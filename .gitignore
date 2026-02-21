@@ -4,3 +4,7 @@ dist
 .env
 client/.env
 server/.env
+.env.local
+.env.production.local
+.env.development.local
+.next/
