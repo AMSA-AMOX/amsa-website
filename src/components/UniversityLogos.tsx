@@ -3,15 +3,19 @@
 import React from "react";
 
 const logos = [
-  "brown.png",
+  "brown.svg",
+  "aclogo.png",
   "columbia.png",
-  "harvard-logo-black-transparent.png",
-  "JonhsHopkins.png",
+  "harvardlogo.png",
   "mit.png",
-  "mountholyoke.png",
-  "NYU.png",
-  "stanford-logo-black-transparent.png",
-  "vanderbilt.png",
+  "yale.png",
+  "berk.svg",
+  "umdlogo.svg",
+  "princeton.svg",
+  "cornell.png",
+  "nyu.svg",
+  "stanford.svg",
+  "gmu.png",
   "wesleyan.png",
 ];
 
@@ -21,23 +25,23 @@ function UniversityLogos() {
       <style>{`
         .logo-section {
           overflow: hidden;
-          white-space: nowrap;
           background: transparent;
-          padding: 20px 0;
+          padding: 40px 0;
         }
         .logo-track {
-          display: inline-block;
-          white-space: nowrap;
+          display: flex;
+          width: max-content;
           animation: logoScroll 60s linear infinite;
         }
         .logo-img {
-          display: inline-block;
-          height: 60px;
-          margin: 0 40px;
-          opacity: 0.8;
-          transition: transform 0.3s ease;
+          display: block;
+          height: 90px;
+          margin: 0 56px;
+          filter: grayscale(1);
+          transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
         }
         .logo-img:hover {
+          filter: none;
           opacity: 1;
           transform: scale(1.1);
         }

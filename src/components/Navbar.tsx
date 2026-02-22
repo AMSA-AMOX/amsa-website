@@ -73,11 +73,11 @@ export default function Navbar() {
           </p>
         </Link>
 
-        <div className="text-3xl md:hidden text-white cursor-pointer" onClick={() => setOpen(!open)}>
+        <div className="text-3xl lg:hidden text-white cursor-pointer" onClick={() => setOpen(!open)}>
           ☰
         </div>
 
-        <nav className={`flex-col md:flex md:flex-row md:items-center md:gap-12 gap-5 absolute md:static top-20 right-0 bg-[#001049] md:bg-transparent px-6 py-4 md:p-0 shadow-md md:shadow-none w-full md:w-auto transition-all ${open ? "flex" : "hidden"}`}>
+        <nav className={`flex-col lg:flex lg:flex-row lg:items-center lg:gap-12 gap-5 absolute lg:static top-20 right-0 bg-[#001049] lg:bg-transparent px-6 py-4 lg:p-0 shadow-md lg:shadow-none w-full lg:w-auto transition-all ${open ? "flex" : "hidden"}`}>
           {navItems.map(({ name, to }) => (
             <Link
               key={name}
@@ -87,10 +87,10 @@ export default function Navbar() {
               {name}
             </Link>
           ))}
-          <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-6">
             <SlideButton
               href="https://www.gofundme.com/f/amsa-general-fundraising-campaign-2024?utm_campaign=p_lico+share-sheet&utm_medium=copy_link&utm_source=customer"
-              className="border-2 border-[#ffc832] text-[#ffc832] text-lg px-6 py-2 rounded-md text-center"
+              className="border-2 border-[#ffc832] text-[#ffc832] text-lg px-6 py-2 rounded-2xl text-center"
               fillColor="#ffc832"
               hoverTextColor="#001049"
             >
@@ -98,7 +98,7 @@ export default function Navbar() {
             </SlideButton>
             <SlideButton
               href="/login"
-              className="border-2 border-white text-white text-lg px-6 py-2 rounded-md text-center"
+              className="border-2 border-white text-white text-lg px-6 py-2 rounded-2xl text-center"
               fillColor="#ffffff"
               hoverTextColor="#001049"
             >
