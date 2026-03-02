@@ -31,18 +31,18 @@ function UniversityLogos() {
         .logo-track {
           display: flex;
           width: max-content;
-          animation: logoScroll 60s linear infinite;
+          animation: logoScroll 90s linear infinite;
         }
         .logo-img {
           display: block;
-          height: 90px;
-          margin: 0 56px;
-          filter: grayscale(1);
+          height: 70px;
+          margin: 0 96px;
+          filter: grayscale(1) opacity(0.7);
           transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
         }
         .logo-img:hover {
           filter: none;
-          opacity: 1;
+          opacity: 0.9;
           transform: scale(1.1);
         }
         @keyframes logoScroll {

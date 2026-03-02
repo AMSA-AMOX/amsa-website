@@ -1,6 +1,5 @@
 import Hero from "@/components/Hero";
 import UniversityLogos from "@/components/UniversityLogos";
-import AnnouncementSection from "@/components/AnnouncementSection";
 import ProgramsSection from "@/components/ProgramsSection";
 import FloatingGallery from "@/components/FloatingGallery";
 import TeamSection from "@/components/TeamSection";
@@ -12,7 +11,6 @@ export default function HomePage() {
     <>
       <Hero />
       <UniversityLogos />
-      <AnnouncementSection />
       <ProgramsSection />
       <FloatingGallery />
       <TeamSection />

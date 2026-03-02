@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Jost } from "next/font/google";
+import { Urbanist } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const jost = Jost({ subsets: ["latin"], variable: "--font-jost" });
+const urbanist = Urbanist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-urbanist" });
 
 export const metadata: Metadata = {
   title: "AMSA - Association of Mongolian Students in America",
@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={jost.className}>
+      <body className={urbanist.className}>
         <AuthProvider>
           <Navbar />
           {children}
