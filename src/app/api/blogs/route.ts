@@ -1,25 +1,21 @@
 import { NextResponse } from "next/server";
 import slugify from "slugify";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken, assertRole } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const { Blog, User } = await getDb();
-    const blogs = await Blog.findAll({
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "eduEmail"],
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-    });
+    const { data: blogs, error } = await supabase
+      .from("website_blogs")
+      .select("*, Users(id, firstName, lastName, email)")
+      .order("createdAt", { ascending: false });
+
+    if (error) throw error;
     return NextResponse.json({ blogs });
   } catch (e: any) {
-    console.error("GET /api/blogs failed:", e?.parent?.sqlMessage || e.message);
+    console.error("GET /api/blogs failed:", e.message);
     return NextResponse.json(
-      { message: "Failed to load blogs", error: e?.parent?.sqlMessage || e.message },
+      { message: "Failed to load blogs", error: e.message },
       { status: 500 }
     );
   }
@@ -45,10 +41,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const { Blog } = await getDb();
     const slug = slugify(title, { lower: true, strict: true });
 
-    const existing = await Blog.findOne({ where: { slug } });
+    const { data: existing } = await supabase
+      .from("website_blogs")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+
     if (existing) {
       return NextResponse.json(
         { message: "A blog with this title already exists" },
@@ -56,17 +56,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const blog = await Blog.create({
-      title,
-      slug,
-      content,
-      coverImageUrl: coverImageUrl || null,
-      authorId: userPayload.id,
-    });
+    const { data: blog, error } = await supabase
+      .from("website_blogs")
+      .insert({
+        title,
+        slug,
+        content,
+        coverImageUrl: coverImageUrl ?? null,
+        authorId: userPayload.id,
+      })
+      .select()
+      .single();
 
+    if (error) throw error;
     return NextResponse.json({ blog }, { status: 201 });
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to create blog" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to create blog" },
+      { status: 500 }
+    );
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken, assertRole } from "@/lib/auth";
 
 export async function GET(
@@ -8,22 +8,22 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const { Announcement, User } = await getDb();
-    const announcement = await Announcement.findByPk(Number(id), {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "eduEmail"],
-        },
-      ],
-    });
-    if (!announcement) {
+    const { data: announcement, error } = await supabase
+      .from("Announcements")
+      .select("*, Users(id, firstName, lastName, email)")
+      .eq("id", Number(id))
+      .single();
+
+    if (error || !announcement) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
     return NextResponse.json({ announcement });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to load announcement" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to load announcement" },
+      { status: 500 }
+    );
   }
 }
 
@@ -41,17 +41,24 @@ export async function PUT(
   }
 
   try {
-    const { Announcement } = await getDb();
-    const announcement = await Announcement.findByPk(Number(id));
-    if (!announcement) {
+    const body = await request.json();
+    const { data: announcement, error } = await supabase
+      .from("Announcements")
+      .update(body)
+      .eq("id", Number(id))
+      .select()
+      .single();
+
+    if (error || !announcement) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
-    const body = await request.json();
-    await (announcement as any).update(body);
     return NextResponse.json({ announcement });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to update announcement" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to update announcement" },
+      { status: 500 }
+    );
   }
 }
 
@@ -69,15 +76,20 @@ export async function DELETE(
   }
 
   try {
-    const { Announcement } = await getDb();
-    const announcement = await Announcement.findByPk(Number(id));
-    if (!announcement) {
+    const { error } = await supabase
+      .from("Announcements")
+      .delete()
+      .eq("id", Number(id));
+
+    if (error) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
-    await (announcement as any).destroy();
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to delete announcement" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to delete announcement" },
+      { status: 500 }
+    );
   }
 }

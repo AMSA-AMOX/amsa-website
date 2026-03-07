@@ -1,26 +1,34 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(request: Request) {
-  let userPayload;
+  let payload;
   try {
-    userPayload = verifyToken(request);
+    payload = verifyToken(request);
   } catch (res) {
     return res as NextResponse;
   }
 
   try {
-    const { User } = await getDb();
-    const user = await User.findByPk(userPayload.id, {
-      attributes: ["id", "eduEmail", "role", "firstName", "lastName"],
-    });
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from("Users")
+      .select(
+        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, bio, createdAt, phoneNumber, city, state, schoolName, major, degreeLevel, graduationYear, schoolYear, personalEmail, facebook, instagram, linkedin"
+      )
+      .eq("id", payload.id)
+      .single();
+
+    if (error || !user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
+
     return NextResponse.json({ user });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to load user" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to load user" },
+      { status: 500 }
+    );
   }
 }

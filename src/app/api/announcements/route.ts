@@ -1,27 +1,20 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken, assertRole } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const { Announcement, User } = await getDb();
-    const announcements = await Announcement.findAll({
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "eduEmail"],
-        },
-      ],
-      order: [
-        ["publishedAt", "DESC"],
-        ["createdAt", "DESC"],
-      ],
-    });
+    const { data: announcements, error } = await supabase
+      .from("Announcements")
+      .select("*, Users(id, firstName, lastName, email)")
+      .order("publishedAt", { ascending: false });
+
+    if (error) throw error;
     return NextResponse.json({ announcements });
   } catch (e: any) {
-    console.error("GET /api/announcements failed:", e?.parent?.sqlMessage || e.message);
+    console.error("GET /api/announcements failed:", e.message);
     return NextResponse.json(
-      { message: "Failed to load announcements", error: e?.parent?.sqlMessage || e.message },
+      { message: "Failed to load announcements", error: e.message },
       { status: 500 }
     );
   }
@@ -47,17 +40,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const { Announcement } = await getDb();
-    const announcement = await Announcement.create({
-      title,
-      body: text,
-      publishedAt: publishedAt || new Date(),
-      authorId: userPayload.id,
-    });
+    const { data: announcement, error } = await supabase
+      .from("Announcements")
+      .insert({
+        title,
+        body: text,
+        publishedAt: publishedAt ?? new Date().toISOString(),
+        authorId: userPayload.id,
+      })
+      .select()
+      .single();
 
+    if (error) throw error;
     return NextResponse.json({ announcement }, { status: 201 });
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to create announcement" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to create announcement" },
+      { status: 500 }
+    );
   }
 }

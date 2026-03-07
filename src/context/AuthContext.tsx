@@ -3,12 +3,44 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
-type User = {
+export type User = {
   id: number;
   email: string;
   role: string;
   firstName: string;
   lastName: string;
+  acceptanceStatus: string;
+  profilePic: string | null;
+  level: string | null;
+  bio: string | null;
+};
+
+export type SignupPayload = {
+  email?: string;
+  eduEmail?: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  personalEmail?: string;
+  phone?: string;
+  birthDate?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  schoolName?: string;
+  schoolCity?: string;
+  schoolState?: string;
+  degree?: string;
+  gradYear?: string;
+  schoolYear?: string;
+  major?: string;
+  secondMajor?: string;
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  isUsCollegeStudent?: boolean;
 };
 
 type AuthContextValue = {
@@ -16,14 +48,7 @@ type AuthContextValue = {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  signup: (opts: {
-    email?: string;
-    eduEmail?: string;
-    personalEmail?: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }) => Promise<User>;
+  signup: (opts: SignupPayload) => Promise<User>;
   logout: () => void;
   authFetch: (path: string, opts?: RequestInit) => Promise<any>;
 };
@@ -35,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore from localStorage on first mount
   useEffect(() => {
     const stored = localStorage.getItem("amsa_auth");
     if (!stored) {
@@ -43,9 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      const { token, user } = JSON.parse(stored);
-      setToken(token);
-      setUser(user);
+      const parsed = JSON.parse(stored);
+      setToken(parsed.token);
+      setUser(parsed.user);
     } catch {
       localStorage.removeItem("amsa_auth");
     } finally {
@@ -53,10 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const saveAuth = (token: string, user: User) => {
-    setToken(token);
-    setUser(user);
-    localStorage.setItem("amsa_auth", JSON.stringify({ token, user }));
+  const saveAuth = (t: string, u: User) => {
+    setToken(t);
+    setUser(u);
+    localStorage.setItem("amsa_auth", JSON.stringify({ token: t, user: u }));
   };
 
   const clearAuth = () => {
@@ -74,31 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data.user;
   };
 
-  const signup = async ({
-    email,
-    eduEmail,
-    personalEmail,
-    password,
-    firstName,
-    lastName,
-  }: {
-    email?: string;
-    eduEmail?: string;
-    personalEmail?: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }): Promise<User> => {
-    const emailToSend = (email || eduEmail || "").trim();
+  const signup = async (opts: SignupPayload): Promise<User> => {
+    const emailToSend = (opts.email || opts.eduEmail || "").trim();
     const data = await api("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({
-        email: emailToSend,
-        personalEmail,
-        password,
-        firstName,
-        lastName,
-      }),
+      body: JSON.stringify({ ...opts, email: emailToSend }),
     });
     saveAuth(data.token, data.user);
     return data.user;
@@ -109,9 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const authFetch = (path: string, opts: RequestInit = {}) => {
-    if (!token) {
-      return Promise.reject({ message: "Not authenticated" });
-    }
+    if (!token) return Promise.reject({ message: "Not authenticated" });
     return api(path, {
       ...opts,
       headers: {

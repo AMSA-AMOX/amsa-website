@@ -1,36 +1,35 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { makeToken, isAmsaAdminEmail } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email, password } = body;
+    const normalizedEmail = email?.toLowerCase().trim();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return NextResponse.json(
         { message: "Missing email or password" },
         { status: 400 }
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-    const { User } = await getDb();
+    const { data: user, error } = await supabase
+      .from("Users")
+      .select("id, email, password, firstName, lastName, role, acceptanceStatus, profilePic, level, bio")
+      .eq("email", normalizedEmail)
+      .single();
 
-    const user = await User.findOne({
-      where: { eduEmail: normalizedEmail },
-      attributes: ["id", "eduEmail", "password", "role", "firstName", "lastName"],
-    });
-
-    if (!user) {
+    if (error || !user) {
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    const match = await bcrypt.compare(password, (user as any).password);
+    const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return NextResponse.json(
         { message: "Invalid email or password" },
@@ -38,22 +37,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Auto-upgrade AMSA email users to admin
-    if (isAmsaAdminEmail((user as any).eduEmail) && (user as any).role !== "admin") {
-      (user as any).role = "admin";
-      await (user as any).save();
+    let role = user.role ?? "member";
+
+    // Auto-upgrade @amsa.mn emails to admin
+    if (isAmsaAdminEmail(normalizedEmail) && role !== "admin") {
+      role = "admin";
+      await supabase.from("Users").update({ role }).eq("id", user.id);
     }
 
-    const token = makeToken({ id: (user as any).id, role: (user as any).role });
+    const token = makeToken({ id: user.id, role });
 
     return NextResponse.json({
       message: "Login successful",
       user: {
-        id: (user as any).id,
-        email: (user as any).eduEmail,
-        role: (user as any).role,
-        firstName: (user as any).firstName,
-        lastName: (user as any).lastName,
+        id: user.id,
+        email: normalizedEmail,
+        role,
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
+        acceptanceStatus: user.acceptanceStatus ?? "pending",
+        profilePic: user.profilePic ?? null,
+        level: user.level ?? null,
+        bio: user.bio ?? null,
       },
       token,
     });

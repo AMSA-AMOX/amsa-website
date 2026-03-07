@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { Op } from "sequelize";
 import slugify from "slugify";
-import { getDb } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken, assertRole } from "@/lib/auth";
 
 // GET /api/blogs/:slug
@@ -11,23 +10,22 @@ export async function GET(
 ) {
   const { param } = await params;
   try {
-    const { Blog, User } = await getDb();
-    const blog = await Blog.findOne({
-      where: { slug: param },
-      include: [
-        {
-          model: User,
-          attributes: ["id", "firstName", "lastName", "eduEmail"],
-        },
-      ],
-    });
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from("website_blogs")
+      .select("*, Users(id, firstName, lastName, email)")
+      .eq("slug", param)
+      .single();
+
+    if (error || !blog) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
     return NextResponse.json({ blog });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to load blog" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to load blog" },
+      { status: 500 }
+    );
   }
 }
 
@@ -46,41 +44,44 @@ export async function PUT(
   }
 
   try {
-    const id = Number(param);
-    if (isNaN(id)) {
-      return NextResponse.json({ message: "Invalid id" }, { status: 400 });
-    }
-
-    const { Blog } = await getDb();
-    const blog = await Blog.findByPk(id);
-    if (!blog) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
-
     const body = await request.json();
     const data: Record<string, unknown> = { ...body };
 
     if (data.title) {
-      data.slug = slugify(data.title as string, { lower: true, strict: true });
-      const other = await Blog.findOne({
-        where: {
-          slug: data.slug,
-          id: { [Op.ne]: id },
-        },
-      });
+      const newSlug = slugify(data.title as string, { lower: true, strict: true });
+      const { data: other } = await supabase
+        .from("website_blogs")
+        .select("id")
+        .eq("slug", newSlug)
+        .neq("id", Number(param))
+        .single();
+
       if (other) {
         return NextResponse.json(
           { message: "Another blog already has this title" },
           { status: 409 }
         );
       }
+      data.slug = newSlug;
     }
 
-    await (blog as any).update(data);
+    const { data: blog, error } = await supabase
+      .from("website_blogs")
+      .update(data)
+      .eq("id", Number(param))
+      .select()
+      .single();
+
+    if (error || !blog) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
     return NextResponse.json({ blog });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to update blog" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to update blog" },
+      { status: 500 }
+    );
   }
 }
 
@@ -99,21 +100,20 @@ export async function DELETE(
   }
 
   try {
-    const id = Number(param);
-    if (isNaN(id)) {
-      return NextResponse.json({ message: "Invalid id" }, { status: 400 });
-    }
+    const { error } = await supabase
+      .from("website_blogs")
+      .delete()
+      .eq("id", Number(param));
 
-    const { Blog } = await getDb();
-    const blog = await Blog.findByPk(id);
-    if (!blog) {
+    if (error) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
-
-    await (blog as any).destroy();
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: "Failed to delete blog" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to delete blog" },
+      { status: 500 }
+    );
   }
 }
