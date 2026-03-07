@@ -97,12 +97,12 @@ export default function Navbar() {
           ))}
           <div className="flex flex-col xl:flex-row" style={{ gap: "clamp(0.5rem, 1vw, 1.5rem)" }}>
             <SlideButton
-              href="https://www.gofundme.com/f/amsa-general-fundraising-campaign-2024?utm_campaign=p_lico+share-sheet&utm_medium=copy_link&utm_source=customer"
+              href="/signup/member"
               className="border-2 border-[#ffc832] text-[#ffc832] rounded-2xl text-center"
               fillColor="#ffc832"
               hoverTextColor="#001049"
             >
-              <span style={{ fontSize: "clamp(0.75rem, 1.2vw, 1.25rem)", padding: "clamp(0.25rem, 0.5vw, 0.625rem) clamp(0.75rem, 1.5vw, 1.75rem)", display: "block" }}>Donate</span>
+              <span style={{ fontSize: "clamp(0.75rem, 1.2vw, 1.25rem)", padding: "clamp(0.25rem, 0.5vw, 0.625rem) clamp(0.75rem, 1.5vw, 1.75rem)", display: "block" }}>Become a Member</span>
             </SlideButton>
             <SlideButton
               href="/login"
