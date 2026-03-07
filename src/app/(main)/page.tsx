@@ -10,8 +10,12 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <UniversityLogos />
-      <ProgramsSection />
+      <div className="relative z-0">
+        <UniversityLogos />
+      </div>
+      <div className="pt-[80px] md:pt-[160px] lg:pt-[220px]">
+        <ProgramsSection />
+      </div>
       <FloatingGallery />
       <TeamSection />
       <InfoCTASection />

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Urbanist } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 const urbanist = Urbanist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-urbanist" });
 
@@ -23,9 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={urbanist.className}>
         <AuthProvider>
-          <Navbar />
           {children}
-          <Footer />
         </AuthProvider>
       </body>
     </html>
