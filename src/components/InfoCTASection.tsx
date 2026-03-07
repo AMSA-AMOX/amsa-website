@@ -8,7 +8,7 @@ import "aos/dist/aos.css";
 
 const ctas = [
   { icon: faUserPlus, label: "Become a member", action: "Register to AMSA!", link: "/signup/member" },
-  { icon: faEnvelope, label: "Wanna contribute?", action: "Contact us", link: "/contact" },
+  { icon: faEnvelope, label: "Wanna contribute?", action: "Contact us", link: "mailto:administration@amsa.mn" },
   { icon: faUsers, label: "Participating?", action: "Join AGM with us!", link: "/programs" },
 ];
 

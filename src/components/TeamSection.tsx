@@ -11,9 +11,9 @@ const teamMembers = [
   { name: "Telmen", image: "/team/telmen.svg", linkedin: "https://linkedin.com/in/telmenbayarbaatar" },
   { name: "Nomiko", image: "/team/nomiko.svg", linkedin: "https://www.linkedin.com/in/nominsuvd-munkhbayar-9655a220b/" },
   { name: "Alex", image: "/team/alex.svg", linkedin: "https://www.linkedin.com/in/queguiner/" },
-  { name: "Arvin", image: "/team/arvin.svg", linkedin: "https://www.linkedin.com/in/arvin-ariunbat-558a3b391/" },
-  { name: "Bilgee", image: "/team/bilgee.svg", linkedin: "https://www.linkedin.com/in/bilgeeb/" },
   { name: "Ozi", image: "/team/ozi.svg", linkedin: "https://www.linkedin.com/in/ozi-erdenebat-12b0ab2b0/" },
+  { name: "Bilgee", image: "/team/bilgee.svg", linkedin: "https://www.linkedin.com/in/bilgeeb/" },
+  { name: "Arvin", image: "/team/arvin.svg", linkedin: "https://www.linkedin.com/in/arvin-ariunbat-558a3b391/" },
 ];
 
 const TeamSection = () => {
@@ -27,7 +27,7 @@ const TeamSection = () => {
         className="text-4xl font-['Syne-Bold'] text-white text-center mb-12"
         data-aos="fade-up"
       >
-        Meet Our Team <span style={{ color: "#FFCA3A" }}>2026 ~ 2027</span>
+        Meet Our Executive Board <span style={{ color: "#FFCA3A" }}>2026 ~ 2027</span>
       </h2>
 
       {/* Desktop: 4-column grid, 2 rows */}
@@ -39,7 +39,7 @@ const TeamSection = () => {
             target="_blank"
             rel="noopener noreferrer"
             data-aos="fade-up"
-            data-aos-delay={index * 80}
+            data-aos-delay={index < 4 ? index * 80 : (index - 4) * 80}
             className="flex items-center justify-center hover:-translate-y-2 transition-transform duration-300"
           >
             <Image
@@ -62,7 +62,7 @@ const TeamSection = () => {
               target="_blank"
               rel="noopener noreferrer"
               data-aos="fade-left"
-              data-aos-delay={index * 60}
+              data-aos-delay={index * 50}
               className="flex-shrink-0"
             >
               <Image
