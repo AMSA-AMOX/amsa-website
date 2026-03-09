@@ -37,7 +37,7 @@ function UniversityLogos() {
           display: block;
           height: 70px;
           margin: 0 96px;
-          filter: grayscale(1) opacity(0.7);
+          filter: grayscale(0) opacity(0.5);
           transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
         }
         .logo-img:hover {

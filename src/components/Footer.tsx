@@ -38,7 +38,7 @@ const Footer = () => {
             <p className="text-[#FFFCF3]/60 leading-relaxed text-center md:text-left max-w-xs" style={{ fontSize: "clamp(0.75rem, 1.1vw, 1rem)" }}>
               Empowering, supporting, and uniting the Mongolian student community across America.
             </p>
-            <div className="flex gap-4 text-2xl">
+            <div className="flex gap-5" style={{ fontSize: "clamp(1.1rem, 1.5vw, 1.4rem)" }}>
               {socialLinks.map(({ icon, href, label }) => (
                 <a
                   key={label}
@@ -46,7 +46,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={label}
-                  className="w-12 h-12 rounded-full border border-[#FFFCF3]/20 flex items-center justify-center hover:border-[#FFCA3A] hover:text-[#FFCA3A] transition-all duration-200"
+                  className="text-[#FFFCF3]/60 hover:text-[#FFCA3A] transition-colors duration-200"
                 >
                   {icon}
                 </a>

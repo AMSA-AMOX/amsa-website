@@ -50,7 +50,7 @@ function Hero() {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-white/75 text-sm md:text-[15px] mb-6 lg:mb-8 whitespace-nowrap">
+        <p className="text-white/75 text-base md:text-lg mb-6 lg:mb-8 max-w-sm sm:max-w-none sm:whitespace-nowrap text-center">
           AMSA empowers, supports, and unites the Mongolian student community across America
         </p>
 

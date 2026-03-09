@@ -22,16 +22,17 @@ const TeamSection = () => {
   }, []);
 
   return (
-    <section className="w-full bg-[#001049] py-16 px-6 font-poppins">
+    <section className="w-full bg-[#001049] py-12 px-6 pb-24 font-poppins">
       <h2
-        className="text-4xl font-['Syne-Bold'] text-white text-center mb-12"
+        className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
         data-aos="fade-up"
       >
-        Meet Our Executive Board <span style={{ color: "#FFCA3A" }}>2026 ~ 2027</span>
+        <span className="block text-xl sm:text-3xl md:text-4xl">Meet Our Executive Board</span>
+        <span className="block text-base sm:text-3xl md:text-4xl" style={{ color: "#FFCA3A" }}>2026 ~ 2027</span>
       </h2>
 
       {/* Desktop: 4-column grid, 2 rows */}
-      <div className="hidden md:grid grid-cols-4 gap-8 max-w-6xl mx-auto">
+      <div className="hidden md:grid grid-cols-4 gap-x-6 gap-y-8 max-w-7xl mx-auto">
         {teamMembers.map((member, index) => (
           <a
             key={member.name}
@@ -45,8 +46,8 @@ const TeamSection = () => {
             <Image
               src={member.image}
               alt={member.name}
-              width={192}
-              height={192}
+              width={240}
+              height={240}
             />
           </a>
         ))}
@@ -54,7 +55,7 @@ const TeamSection = () => {
 
       {/* Mobile: horizontal scroll */}
       <div className="md:hidden overflow-x-auto scrollbar-hide">
-        <div className="flex gap-6 w-max px-2 pb-4">
+          <div className="flex gap-10 w-max px-2 pb-4">
           {teamMembers.map((member, index) => (
             <a
               key={member.name}
@@ -68,8 +69,8 @@ const TeamSection = () => {
               <Image
                 src={member.image}
                 alt={member.name}
-                width={144}
-                height={144}
+                width={180}
+                height={180}
               />
             </a>
           ))}
