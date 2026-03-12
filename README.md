@@ -1,34 +1,37 @@
 # AMSA Website
 
-React + Vite front end and Express + MySQL API for the AMSA member site, blog, and announcements.
+Modern web application for the Association of Mongolian Students in America (AMSA), built with Next.js 15.
 
 ## Stack
-- Client: Vite, React 19, Tailwind CSS 4
-- Server: Express 5, Sequelize (MySQL), JWT auth
+- **Framework:** Next.js 15 (App Router)
+- **UI/Styling:** React 19, Tailwind CSS 4
+- **Database/ORM:** Supabase, Sequelize (MySQL)
+- **Tooling:** Turbopack
 
 ## Prerequisites
 - Node.js 18+ and npm
-- MySQL instance you can connect to
+- A database instance (MySQL or compatible)
 
 ## Setup
-1) Server env (`server/.env`):
-```
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=amsa
-DB_USER=root
-DB_PASS=your_password
-JWT_SECRET=change_me
-PORT=4000
-```
-2) Client env (`client/.env`):
-```
-VITE_API_URL=http://localhost:4000
-```
-3) Install and run:
-```
-cd server && npm install && npm run dev
-cd ../client && npm install && npm run dev
+
+1) Install dependencies:
+```bash
+npm install
 ```
 
-Server listens on `PORT` and auto-syncs models in non-production; client dev server prints its URL (defaults to `http://localhost:5173`).
+2) Environment Variables:
+Copy `.env.example` to `.env.local` (or create it) and fill in your connection details:
+```env
+# .env.local expected variables (e.g., Database, Supabase secrets, etc.)
+```
+
+3) Run the development server:
+```bash
+npm run dev
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+## Deployment
+
+This application is ready to be deployed on Next.js compatible platforms like [Vercel](https://vercel.com/). Ensure you configure your environment variables in your deployment platform's settings.
