@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -23,10 +23,77 @@ const strategyBoardMembers = [
   { name: "Tsenguun", role: "Director", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/tsenguun.jpeg", linkedin: "https://www.linkedin.com/in/tsenguun-ts/" },
 ];
 
+export type TeamMemberInfo = {
+  UserId: number;
+  name: string;
+  year: number;
+  role: string;
+  User: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    schoolName: string;
+    profilePic: string;
+    linkedin: string;
+  };
+};
+
+const HistoricalMemberCard = ({ member }: { member: TeamMemberInfo }) => {
+  const name = `${member.User?.firstName || ""} ${member.User?.lastName || ""}`.trim();
+  const profilePic = member.User?.profilePic || "/avatar.png";
+  
+  return (
+    <a
+      href={member.User?.linkedin || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-aos="fade-up"
+      className="flex flex-col items-center hover:-translate-y-2 transition-transform duration-300 w-44"
+    >
+      <div className="w-[140px] h-[180px] rounded-2xl overflow-hidden border-4 border-[#FFCA3A] mb-3 bg-[#E2E8F0]">
+        <Image
+          src={profilePic.startsWith("http") ? profilePic : "/avatar.png"}
+          alt={name}
+          width={140}
+          height={180}
+          className="object-cover w-full h-full"
+          unoptimized
+        />
+      </div>
+      <h3 className="text-white font-bold text-center text-lg leading-tight mb-1">{name}</h3>
+      <p className="text-[#FFCA3A] text-sm text-center mb-1">{member.name}</p>
+      <p className="text-white/70 text-xs text-center">{member.User?.schoolName}</p>
+    </a>
+  );
+};
+
 const TeamSection = () => {
+  const [historicalMembers, setHistoricalMembers] = useState<Record<string, TeamMemberInfo[]> | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
+
+    // Fetch historical members
+    const fetchHistoricalMembers = async () => {
+      try {
+        const response = await fetch('/api/user/members');
+        if (response.ok) {
+          const data = await response.json();
+          setHistoricalMembers(data.tuz || {});
+        }
+      } catch (err) {
+        console.error("Error fetching historical team members:", err);
+      }
+    };
+
+    fetchHistoricalMembers();
   }, []);
+
+  const currentYear = new Date().getFullYear();
+  const historicalYears = historicalMembers
+    ? Object.keys(historicalMembers).filter((year) => parseInt(year) !== currentYear && parseInt(year) !== currentYear + 1)
+    : [];
 
   return (
     <section className="w-full bg-[#001049] py-12 px-6 pb-24 font-poppins">
@@ -149,6 +216,67 @@ const TeamSection = () => {
           ))}
         </div>
       </div>
+
+      {/* Historical Executive Team Members Default Dropdown */}
+      {historicalYears.length > 0 && (
+        <div className="mt-24 max-w-7xl mx-auto px-6">
+          <h2
+            className="font-['Syne-Bold'] text-white text-center mb-8 leading-[1.4]"
+            data-aos="fade-up"
+          >
+            <span className="block text-xl sm:text-3xl md:text-3xl">Historical Executive Teams</span>
+          </h2>
+
+          <div className="flex flex-col items-center mb-12" data-aos="fade-up">
+            <label htmlFor="year-select" className="block text-sm font-medium text-white/80 mb-3">
+              Select a year to view past Executive Team members:
+            </label>
+            <select
+              id="year-select"
+              value={selectedYear || ""}
+              onChange={(e) => setSelectedYear(e.target.value || null)}
+              className="px-6 py-3 border-2 border-[#FFCA3A] bg-[#001049] text-white rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-[#FFCA3A] focus:border-[#FFCA3A] text-base w-full max-w-sm appearance-none cursor-pointer"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23FFCA3A'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 1rem center',
+                backgroundSize: '1.5em 1.5em',
+                paddingRight: '3rem'
+              }}
+            >
+              <option value="" className="bg-[#001049] text-white">-- Select a year --</option>
+              {historicalYears
+                .sort((a, b) => parseInt(b) - parseInt(a))
+                .map((year) => (
+                  <option key={year} value={year} className="bg-[#001049] text-white">
+                    {year} ~ {parseInt(year) + 1}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Display selected year's members */}
+          {selectedYear && historicalMembers && historicalMembers[selectedYear] && (
+            <div className="mb-12">
+              <h3 className="text-[#FFCA3A] text-xl md:text-2xl font-bold mb-8 text-center" data-aos="fade-up">
+                Executive Team {selectedYear} ~ {parseInt(selectedYear) + 1}
+              </h3>
+              <div className="flex flex-wrap justify-center gap-x-8 gap-y-10">
+                {historicalMembers[selectedYear].map((member, index) => (
+                  <HistoricalMemberCard key={`historical-${selectedYear}-${index}`} member={member} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Show message when no year is selected */}
+          {!selectedYear && (
+            <div className="text-center pb-8 text-white/60" data-aos="fade-up">
+              <p>Select a year from the dropdown above to view past Executive Team members.</p>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 };

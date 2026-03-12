@@ -62,15 +62,13 @@ const Footer = () => {
             >
               Become a member
             </Link>
-            <a
-              href="https://www.gofundme.com/f/amsa-general-fundraising-campaign-2024"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="/donate"
               className="text-[#FFFCF3]/80 hover:text-[#FFCA3A] transition-colors duration-200 font-medium"
               style={{ fontSize: "clamp(0.9rem, 1.4vw, 1.15rem)" }}
             >
               Donate
-            </a>
+            </Link>
           </div>
 
           {/* Contact */}
