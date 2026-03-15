@@ -17,10 +17,10 @@ const teamMembers = [
 ];
 
 const strategyBoardMembers = [
-  { name: "Sukhbat", role: "Chairman", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/sukhbat.jpeg", linkedin: "https://www.linkedin.com/in/sukhbatl/" },
-  { name: "Khaliun", role: "Director", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/1553998609060-haliunaa.jpg", linkedin: "https://www.linkedin.com/in/khal/" },
-  { name: "Anudari", role: "Secretary", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/1559570281982-31682479_10216797849442645_1569596713151234048_o.jpg", linkedin: "https://www.linkedin.com/in/letianu/" },
-  { name: "Tsenguun", role: "Director", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/tsenguun.jpeg", linkedin: "https://www.linkedin.com/in/tsenguun-ts/" },
+  { name: "Sukhbat", role: "chairman", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/sukhbat.jpeg", linkedin: "https://www.linkedin.com/in/sukhbatl/" },
+  { name: "Khaliun", role: "director", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/1553998609060-haliunaa.jpg", linkedin: "https://www.linkedin.com/in/khal/" },
+  { name: "Anudari", role: "secretary", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/1559570281982-31682479_10216797849442645_1569596713151234048_o.jpg", linkedin: "https://www.linkedin.com/in/letianu/" },
+  { name: "Tsenguun", role: "director", image: "https://eaylfdrxudujbzcchhcp.supabase.co/storage/v1/object/public/pictures/public/tsenguun.jpeg", linkedin: "https://www.linkedin.com/in/tsenguun-ts/" },
 ];
 
 export type TeamMemberInfo = {
@@ -39,31 +39,27 @@ export type TeamMemberInfo = {
 };
 
 const HistoricalMemberCard = ({ member }: { member: TeamMemberInfo }) => {
-  const name = `${member.User?.firstName || ""} ${member.User?.lastName || ""}`.trim();
+  const name = member.User?.firstName || "";
   const profilePic = member.User?.profilePic || "/avatar.png";
-  
+
   return (
-    <a
-      href={member.User?.linkedin || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
+    <div
       data-aos="fade-up"
-      className="flex flex-col items-center hover:-translate-y-2 transition-transform duration-300 w-44"
+      className="flex flex-col items-center"
     >
-      <div className="w-[140px] h-[180px] rounded-2xl overflow-hidden border-4 border-[#FFCA3A] mb-3 bg-[#E2E8F0]">
+      <div className="w-52 h-68 overflow-hidden border-8 border-white mb-3">
         <Image
           src={profilePic.startsWith("http") ? profilePic : "/avatar.png"}
           alt={name}
-          width={140}
-          height={180}
+          width={208}
+          height={272}
           className="object-cover w-full h-full"
           unoptimized
         />
       </div>
-      <h3 className="text-white font-bold text-center text-lg leading-tight mb-1">{name}</h3>
-      <p className="text-[#FFCA3A] text-sm text-center mb-1">{member.name}</p>
-      <p className="text-white/70 text-xs text-center">{member.User?.schoolName}</p>
-    </a>
+      <h3 className="text-white text-center text-xl leading-tight mb-0.5" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{name}</h3>
+      <p className="text-[#FFCA3A] text-sm text-center lowercase" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</p>
+    </div>
   );
 };
 
@@ -73,11 +69,9 @@ const TeamSection = () => {
 
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
-
-    // Fetch historical members
     const fetchHistoricalMembers = async () => {
       try {
-        const response = await fetch('/api/user/members');
+        const response = await fetch("/api/user/members");
         if (response.ok) {
           const data = await response.json();
           setHistoricalMembers(data.tuz || {});
@@ -96,135 +90,161 @@ const TeamSection = () => {
     : [];
 
   return (
-    <section className="w-full bg-[#001049] py-12 px-6 pb-24 font-poppins">
-      <h2
-        className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
-        data-aos="fade-up"
-      >
-        <span className="block text-xl sm:text-3xl md:text-4xl">Meet Our Executive Board</span>
-        <span className="block text-base sm:text-3xl md:text-4xl" style={{ color: "#FFCA3A" }}>2026 ~ 2027</span>
-      </h2>
+    <div className="w-full bg-[#001049] font-poppins">
 
-      {/* Desktop: 4-column grid, 2 rows */}
-      <div className="hidden md:grid grid-cols-4 gap-x-6 gap-y-8 max-w-7xl mx-auto">
-        {teamMembers.map((member, index) => (
-          <a
-            key={member.name}
-            href={member.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <div className="relative w-full">
+        <img
+          src="/teampage.JPG"
+          alt="AMSA Team"
+          className="w-full object-cover object-center"
+          style={{ maxHeight: "75vh", minHeight: "420px" }}
+        />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/30" />
+
+        {/* Text box — bottom-left */}
+        <div className="absolute bottom-0 left-0 w-full md:w-auto">
+          <div
+            className="bg-[#001049] px-8 py-8 md:px-12 md:py-10 max-w-2xl"
             data-aos="fade-up"
-            data-aos-delay={index < 4 ? index * 80 : (index - 4) * 80}
-            className="flex items-center justify-center hover:-translate-y-2 transition-transform duration-300"
           >
-            <Image
-              src={member.image}
-              alt={member.name}
-              width={240}
-              height={240}
-            />
-          </a>
-        ))}
-      </div>
-
-      {/* Mobile: horizontal scroll */}
-      <div className="md:hidden overflow-x-auto scrollbar-hide">
-          <div className="flex gap-10 w-max px-2 pb-4">
-          {teamMembers.map((member, index) => (
-            <a
-              key={member.name}
-              href={member.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-aos="fade-left"
-              data-aos-delay={index * 50}
-              className="flex-shrink-0"
-            >
-              <Image
-                src={member.image}
-                alt={member.name}
-                width={180}
-                height={180}
-              />
-            </a>
-          ))}
+            <p className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest mb-3">Our People</p>
+            <h1 className="font-['Syne-Bold'] text-white text-2xl sm:text-3xl md:text-4xl leading-snug mb-4">
+              A team {" "}
+              <em className="not-italic text-[#FFCA3A]">committed</em>{" "}
+              to the generations to come.
+            </h1>
+            <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-md">
+              We bring students together across campuses to create a supportive nonprofit network focused on shared growth, academic excellence, and career readiness.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Strategy Board Section */}
-      <h2
-        className="font-['Syne-Bold'] text-white text-center mt-24 mb-12 leading-[1.4]"
-        data-aos="fade-up"
-      >
-        <span className="block text-xl sm:text-3xl md:text-4xl">Strategy Board</span>
-      </h2>
+      {/* ── Strategy Board ───────────────────────────────────────────────────── */}
+      <section className="py-20 px-6">
+        <h2
+          className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
+          data-aos="fade-up"
+        >
+          <span className="block text-xl sm:text-3xl md:text-4xl">Strategy Board</span>
+        </h2>
 
-      {/* Strategy Board Desktop */}
-      <div className="hidden md:flex justify-center gap-x-12 gap-y-8 max-w-7xl mx-auto flex-wrap">
-        {strategyBoardMembers.map((member, index) => (
-          <a
-            key={member.name}
-            href={member.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-aos="fade-up"
-            data-aos-delay={index * 80}
-            className="flex flex-col items-center hover:-translate-y-2 transition-transform duration-300"
-          >
-            <div className="w-[200px] h-[260px] rounded-2xl overflow-hidden border-4 border-[#FFCA3A] mb-4">
-              <Image
-                src={member.image}
-                alt={member.name}
-                width={200}
-                height={260}
-                className="object-cover w-full h-full"
-                unoptimized
-              />
-            </div>
-            <h3 className="text-white font-bold text-xl">{member.name}</h3>
-            <p className="text-[#FFCA3A] font-medium">{member.role}</p>
-          </a>
-        ))}
-      </div>
-
-      {/* Strategy Board Mobile */}
-      <div className="md:hidden overflow-x-auto scrollbar-hide">
-        <div className="flex gap-8 w-max px-6 pb-4">
+        {/* Desktop */}
+        <div className="hidden md:flex justify-center gap-x-12 gap-y-8 max-w-7xl mx-auto flex-wrap">
           {strategyBoardMembers.map((member, index) => (
             <a
               key={member.name}
               href={member.linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              data-aos="fade-left"
-              data-aos-delay={index * 50}
-              className="flex flex-col items-center flex-shrink-0"
+              data-aos="fade-up"
+              data-aos-delay={index * 80}
+              className="flex flex-col items-center hover:-translate-y-2 transition-transform duration-300"
             >
-              <div className="w-[140px] h-[180px] rounded-2xl overflow-hidden border-4 border-[#FFCA3A] mb-3">
+              <div className="w-70 h-90 overflow-hidden border-8 border-white mb-4">
                 <Image
                   src={member.image}
                   alt={member.name}
-                  width={140}
-                  height={180}
+                  width={280}
+                  height={360}
                   className="object-cover w-full h-full"
                   unoptimized
                 />
               </div>
-              <h3 className="text-white font-bold text-lg">{member.name}</h3>
-              <p className="text-[#FFCA3A] text-sm">{member.role}</p>
+              <h3 className="text-white text-4xl" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</h3>
+              <p className="text-[#FFCA3A] font-medium text-xl" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.role}</p>
             </a>
           ))}
         </div>
-      </div>
 
-      {/* Historical Executive Team Members Default Dropdown */}
+        {/* Mobile */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide">
+          <div className="flex gap-8 w-max px-6 pb-4">
+            {strategyBoardMembers.map((member, index) => (
+              <a
+                key={member.name}
+                href={member.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-aos="fade-left"
+                data-aos-delay={index * 50}
+                className="flex flex-col items-center flex-shrink-0"
+              >
+                <div className="w-[140px] h-[180px]  overflow-hidden border-8 border-white mb-3">
+                  <Image
+                    src={member.image}
+                    alt={member.name}
+                    width={140}
+                    height={180}
+                    className="object-cover w-full h-full"
+                    unoptimized
+                  />
+                </div>
+                <h3 className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</h3>
+                <p className="text-[#FFCA3A] text-sm" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.role}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Executive Board ──────────────────────────────────────────────────── */}
+      <section className="pb-20 px-6">
+        <h2
+          className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
+          data-aos="fade-up"
+        >
+          <span className="block text-xl sm:text-3xl md:text-4xl">Executive Board</span>
+          <span className="block text-base sm:text-3xl md:text-4xl text-[#FFCA3A]">2026 ~ 2027</span>
+        </h2>
+
+        {/* Desktop: 4-column grid */}
+        <div className="hidden md:grid grid-cols-4 gap-x-6 gap-y-8 max-w-7xl mx-auto">
+          {teamMembers.map((member, index) => (
+            <a
+              key={member.name}
+              href={member.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-aos="fade-up"
+              data-aos-delay={index < 4 ? index * 80 : (index - 4) * 80}
+              className="flex items-center justify-center hover:-translate-y-2 transition-transform duration-300"
+            >
+              <Image src={member.image} alt={member.name} width={240} height={240} />
+            </a>
+          ))}
+        </div>
+
+        {/* Mobile: horizontal scroll */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide">
+          <div className="flex gap-10 w-max px-2 pb-4">
+            {teamMembers.map((member, index) => (
+              <a
+                key={member.name}
+                href={member.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-aos="fade-left"
+                data-aos-delay={index * 50}
+                className="flex-shrink-0"
+              >
+                <Image src={member.image} alt={member.name} width={180} height={180} />
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Past Cohorts ─────────────────────────────────────────────────────── */}
       {historicalYears.length > 0 && (
-        <div className="mt-24 max-w-7xl mx-auto px-6">
+        <section className="pb-24 max-w-7xl mx-auto px-6">
           <h2
-            className="font-['Syne-Bold'] text-white text-center mb-8 leading-[1.4]"
+            className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
             data-aos="fade-up"
           >
-            <span className="block text-xl sm:text-3xl md:text-3xl">Historical Executive Teams</span>
+            <span className="block text-xl sm:text-3xl md:text-3xl">Past Cohorts</span>
           </h2>
 
           <div className="flex flex-col items-center mb-12" data-aos="fade-up">
@@ -238,10 +258,10 @@ const TeamSection = () => {
               className="px-6 py-3 border-2 border-[#FFCA3A] bg-[#001049] text-white rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-[#FFCA3A] focus:border-[#FFCA3A] text-base w-full max-w-sm appearance-none cursor-pointer"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23FFCA3A'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 1rem center',
-                backgroundSize: '1.5em 1.5em',
-                paddingRight: '3rem'
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 1rem center",
+                backgroundSize: "1.5em 1.5em",
+                paddingRight: "3rem",
               }}
             >
               <option value="" className="bg-[#001049] text-white">-- Select a year --</option>
@@ -255,13 +275,12 @@ const TeamSection = () => {
             </select>
           </div>
 
-          {/* Display selected year's members */}
-          {selectedYear && historicalMembers && historicalMembers[selectedYear] && (
+          {selectedYear && historicalMembers?.[selectedYear] && (
             <div className="mb-12">
               <h3 className="text-[#FFCA3A] text-xl md:text-2xl font-bold mb-8 text-center" data-aos="fade-up">
                 Executive Team {selectedYear} ~ {parseInt(selectedYear) + 1}
               </h3>
-              <div className="flex flex-wrap justify-center gap-x-8 gap-y-10">
+              <div className="flex flex-wrap justify-center gap-x-10 gap-y-14">
                 {historicalMembers[selectedYear].map((member, index) => (
                   <HistoricalMemberCard key={`historical-${selectedYear}-${index}`} member={member} />
                 ))}
@@ -269,15 +288,14 @@ const TeamSection = () => {
             </div>
           )}
 
-          {/* Show message when no year is selected */}
           {!selectedYear && (
             <div className="text-center pb-8 text-white/60" data-aos="fade-up">
               <p>Select a year from the dropdown above to view past Executive Team members.</p>
             </div>
           )}
-        </div>
+        </section>
       )}
-    </section>
+    </div>
   );
 };
 

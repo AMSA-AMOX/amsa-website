@@ -113,11 +113,17 @@ export default function DashboardPage() {
         {user.acceptanceStatus?.toLowerCase() === "pending" && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
             <span className="text-yellow-500 text-xl">⏳</span>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-semibold text-yellow-800">Membership application pending</p>
               <p className="text-sm text-yellow-700 mt-0.5">
                 Your application is under review. You'll be notified once an admin approves your membership.
               </p>
+              <a
+                href="#"
+                className="inline-block mt-2 text-sm font-medium text-yellow-800 underline hover:text-yellow-900 transition-colors"
+              >
+                Check verification status →
+              </a>
             </div>
           </div>
         )}

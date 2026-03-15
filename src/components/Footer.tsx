@@ -12,9 +12,9 @@ const navLinks = [
 ];
 
 const socialLinks = [
-  { icon: <FaInstagram />, href: "https://instagram.com", label: "Instagram" },
-  { icon: <FaFacebook />,  href: "https://facebook.com",  label: "Facebook"  },
-  { icon: <FaLinkedin />,  href: "https://linkedin.com",  label: "LinkedIn"  },
+  { icon: <FaInstagram />, href: "https://www.instagram.com/amsa.amokh/", label: "Instagram" },
+  { icon: <FaFacebook />,  href: "https://www.facebook.com/amsa.amokh",  label: "Facebook"  },
+  { icon: <FaLinkedin />,  href: "https://www.linkedin.com/company/association-of-mongolian-students-in-theusa/",  label: "LinkedIn"  },
 ];
 
 const Footer = () => {
@@ -110,3 +110,5 @@ const Footer = () => {
 };
 
 export default Footer;
+
+

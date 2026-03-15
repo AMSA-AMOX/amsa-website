@@ -1,105 +1,33 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
-type Step = "select" | "form";
-
-const SCHOOL_YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate Student"];
-
-const US_STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
-  "HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
-  "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
-  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
-  "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
-];
-
-function StateSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [query, setQuery] = useState(value);
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const filtered = query.length > 0
-    ? US_STATES.filter((s) => s.startsWith(query.toUpperCase()))
-    : US_STATES;
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const select = (state: string) => {
-    setQuery(state);
-    onChange(state);
-    setOpen(false);
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <input
-        type="text"
-        value={query}
-        maxLength={2}
-        placeholder="e.g. NY"
-        className="input w-full uppercase"
-        onChange={(e) => {
-          const v = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
-          setQuery(v);
-          onChange(v);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        required
-      />
-      {open && filtered.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto text-sm">
-          {filtered.map((s) => (
-            <li
-              key={s}
-              onMouseDown={() => select(s)}
-              className={`px-4 py-2 cursor-pointer hover:bg-gray-50 ${s === value ? "font-semibold text-[#001049]" : "text-gray-700"}`}
-            >
-              {s}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+const EyeIcon = ({ open }: { open: boolean }) =>
+  open ? (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    </svg>
   );
-}
+
 
 const SignupMember = () => {
   const { signup } = useAuth();
   const router = useRouter();
 
-  const [step, setStep] = useState<Step>("select");
-  const [isCollegeStudent, setIsCollegeStudent] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    schoolName: "",
-    schoolCity: "",
-    schoolState: "",
-    major: "",
-    schoolYear: "",
-    facebook: "",
-    instagram: "",
-    linkedin: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "", firstName: "", lastName: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,19 +36,10 @@ const SignupMember = () => {
     setLoading(true);
     try {
       await signup({
-        eduEmail: formData.email,
+        email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        schoolName: formData.schoolName,
-        schoolCity: isCollegeStudent ? formData.schoolCity : undefined,
-        schoolState: isCollegeStudent ? formData.schoolState : undefined,
-        major: isCollegeStudent ? formData.major : undefined,
-        schoolYear: isCollegeStudent ? formData.schoolYear : undefined,
-        facebook: formData.facebook || undefined,
-        instagram: formData.instagram || undefined,
-        linkedin: formData.linkedin || undefined,
-        isUsCollegeStudent: isCollegeStudent ?? false,
       });
       router.push("/welcome");
     } catch (err: any) {
@@ -130,200 +49,82 @@ const SignupMember = () => {
     }
   };
 
-  // ── Step 0: type selector ─────────────────────────────────────────────────
-  if (step === "select") {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-[#001049] mb-2">
-          Become a Member
-        </h2>
-        <p className="text-gray-500 text-center mb-12">
-          First, tell us a bit about yourself.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-          <button
-            onClick={() => { setIsCollegeStudent(true); setStep("form"); }}
-            className="group flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-gray-200 bg-white hover:border-[#001049] hover:shadow-lg transition-all"
-          >
-            <div className="text-5xl">🎓</div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-[#001049]">College Student</p>
-              <p className="text-sm text-gray-500 mt-1">Currently enrolled in a US college or university</p>
-            </div>
-            <span className="mt-auto text-xs font-medium text-[#001049] border border-[#001049] rounded-full px-3 py-1 group-hover:bg-[#001049] group-hover:text-white transition-colors">
-              Select →
-            </span>
-          </button>
-
-          <button
-            onClick={() => { setIsCollegeStudent(false); setStep("form"); }}
-            className="group flex flex-col items-center gap-4 p-8 rounded-2xl border-2 border-gray-200 bg-white hover:border-[#FFCA3A] hover:shadow-lg transition-all"
-          >
-            <div className="text-5xl">🏫</div>
-            <div className="text-center">
-              <p className="text-lg font-semibold text-[#001049]">Other</p>
-              <p className="text-sm text-gray-500 mt-1">High school student or not currently enrolled</p>
-            </div>
-            <span className="mt-auto text-xs font-medium text-gray-600 border border-gray-300 rounded-full px-3 py-1 group-hover:bg-[#FFCA3A] group-hover:text-[#001049] group-hover:border-[#FFCA3A] transition-colors">
-              Select →
-            </span>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Step 1: form ──────────────────────────────────────────────────────────
   return (
-    <div className="max-w-xl mx-auto p-8 bg-white shadow-lg rounded-2xl my-10">
-      <div className="flex items-center gap-3 mb-8">
-        <button
-          type="button"
-          onClick={() => setStep("select")}
-          className="text-gray-400 hover:text-[#001049] transition text-xl"
-          aria-label="Go back"
-        >
-          ←
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-[#001049]">
-            {isCollegeStudent ? "College Student" : "Other"} Registration
-          </h2>
-          <p className="text-sm text-gray-400">
-            {isCollegeStudent ? "US college or university" : "High school / not enrolled"}
-          </p>
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-10">
+        <div className="mb-8 text-center">
+          <img src="/header-logo.svg" alt="AMSA" className="h-12 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-[#001049]">Create an account</h2>
+          <p className="text-gray-400 text-sm mt-1">Join the AMSA community</p>
         </div>
-      </div>
 
-      {error && <p className="text-red-600 text-sm mb-4 text-center">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+              {error}
+            </div>
+          )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">First Name</label>
+              <input name="firstName" placeholder="First" onChange={handleChange} className="input w-full" required />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Last Name</label>
+              <input name="lastName" placeholder="Last" onChange={handleChange} className="input w-full" required />
+            </div>
+          </div>
 
-        {/* Account */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Account</h3>
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600">Email <span className="text-red-500">*</span></label>
+        <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
               name="email"
-              placeholder="Email"
+              placeholder="you@example.com"
               onChange={handleChange}
               className="input w-full"
               required
             />
           </div>
+
           <div className="space-y-1">
-            <label className="text-sm text-gray-600">Password <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Password"
+                placeholder="password"
                 onChange={handleChange}
-                className="input w-full pr-12"
+                className="input w-full pr-11"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 hover:text-gray-700 transition select-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "Hide" : "Show"}
+                <EyeIcon open={showPassword} />
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Name */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Name</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-sm text-gray-600">First Name <span className="text-red-500">*</span></label>
-              <input name="firstName" placeholder="First Name" onChange={handleChange} className="input w-full" required />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm text-gray-600">Last Name <span className="text-red-500">*</span></label>
-              <input name="lastName" placeholder="Last Name" onChange={handleChange} className="input w-full" required />
-            </div>
-          </div>
-        </div>
-
-        {/* School */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-            {isCollegeStudent ? "College" : "School"}
-          </h3>
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600">
-              {isCollegeStudent ? "University / College Name" : "School Name"} <span className="text-red-500">*</span>
-            </label>
-            <input
-              name="schoolName"
-              placeholder={isCollegeStudent ? "University / College Name" : "School Name"}
-              onChange={handleChange}
-              className="input w-full"
-              required
-            />
-          </div>
-          {isCollegeStudent && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-sm text-gray-600">City <span className="text-red-500">*</span></label>
-                  <input name="schoolCity" placeholder="City" onChange={handleChange} className="input w-full" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm text-gray-600">State <span className="text-red-500">*</span></label>
-                  <StateSelect
-                    value={formData.schoolState}
-                    onChange={(v) => setFormData((f) => ({ ...f, schoolState: v }))}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm text-gray-600">Major <span className="text-red-500">*</span></label>
-                <input name="major" placeholder="Major" onChange={handleChange} className="input w-full" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm text-gray-600">Year in School <span className="text-red-500">*</span></label>
-                <select
-                  name="schoolYear"
-                  onChange={handleChange}
-                  className="input w-full"
-                  defaultValue=""
-                  required
-                >
-                  <option value="" disabled>Select year</option>
-                  {SCHOOL_YEARS.map((yr) => (
-                    <option key={yr} value={yr}>{yr}</option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Social (optional) */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-            Social <span className="normal-case font-normal text-gray-300">(optional)</span>
-          </h3>
-          <input name="facebook" placeholder="Facebook" onChange={handleChange} className="input w-full" />
-          <input name="instagram" placeholder="Instagram" onChange={handleChange} className="input w-full" />
-          <input name="linkedin" placeholder="LinkedIn" onChange={handleChange} className="input w-full" />
-        </div>
 
         <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-[#001A78] text-white py-3 rounded-lg shadow hover:bg-[#073D97] transition disabled:opacity-50 font-medium"
-        >
-          {loading ? "Registering..." : "Create Account"}
-        </button>
-      </form>
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#001049] text-white py-3 rounded-xl font-medium hover:bg-[#001A78] transition disabled:opacity-50 mt-2"
+          >
+            {loading ? "Creating account…" : "Create Account"}
+          </button>
+        <p className="text-center text-sm text-gray-400 pt-2">
+            Already have an account?{" "}
+            <Link href="/login" className="text-[#001049] font-medium hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };

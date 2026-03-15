@@ -16,31 +16,10 @@ export type User = {
 };
 
 export type SignupPayload = {
-  email?: string;
-  eduEmail?: string;
+  email: string;
   password: string;
   firstName: string;
   lastName: string;
-  personalEmail?: string;
-  phone?: string;
-  birthDate?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  schoolName?: string;
-  schoolCity?: string;
-  schoolState?: string;
-  degree?: string;
-  gradYear?: string;
-  schoolYear?: string;
-  major?: string;
-  secondMajor?: string;
-  facebook?: string;
-  instagram?: string;
-  linkedin?: string;
-  isUsCollegeStudent?: boolean;
 };
 
 type AuthContextValue = {
@@ -99,10 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signup = async (opts: SignupPayload): Promise<User> => {
-    const emailToSend = (opts.email || opts.eduEmail || "").trim();
     const data = await api("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ ...opts, email: emailToSend }),
+      body: JSON.stringify({ ...opts, email: opts.email.trim() }),
     });
     saveAuth(data.token, data.user);
     return data.user;
