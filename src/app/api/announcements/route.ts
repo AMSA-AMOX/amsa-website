@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { verifyToken, assertRole } from "@/lib/auth";
+import { verifyToken, assertContentCreator } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   let userPayload;
   try {
     userPayload = verifyToken(request);
-    assertRole(userPayload, "admin");
+    assertContentCreator(userPayload);
   } catch (res) {
     return res as NextResponse;
   }

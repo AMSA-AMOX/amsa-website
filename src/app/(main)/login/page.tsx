@@ -33,12 +33,8 @@ const LoginPage = () => {
     setError("");
     setLoading(true);
     try {
-      const user = await login(form.email, form.password);
-      if (user.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/welcome");
-      }
+      await login(form.email, form.password);
+      router.push("/welcome");
     } catch (err: any) {
       setError(err?.message || "Login failed");
     } finally {

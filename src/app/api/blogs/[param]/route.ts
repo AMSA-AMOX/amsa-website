@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import slugify from "slugify";
 import { supabase } from "@/lib/supabase";
-import { verifyToken, assertRole } from "@/lib/auth";
+import { verifyToken, assertContentCreator } from "@/lib/auth";
 
 // GET /api/blogs/:slug
 export async function GET(
@@ -38,7 +38,7 @@ export async function PUT(
   let userPayload;
   try {
     userPayload = verifyToken(request);
-    assertRole(userPayload, "admin");
+    assertContentCreator(userPayload);
   } catch (res) {
     return res as NextResponse;
   }
@@ -94,7 +94,7 @@ export async function DELETE(
   let userPayload;
   try {
     userPayload = verifyToken(request);
-    assertRole(userPayload, "admin");
+    assertContentCreator(userPayload);
   } catch (res) {
     return res as NextResponse;
   }

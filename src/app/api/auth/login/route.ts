@@ -38,11 +38,22 @@ export async function POST(request: Request) {
     }
 
     let role = user.role ?? "member";
+    let acceptanceStatus = user.acceptanceStatus ?? "pending";
 
-    // Auto-upgrade @amsa.mn emails to admin
-    if (isAmsaAdminEmail(normalizedEmail) && role !== "admin") {
-      role = "admin";
-      await supabase.from("Users").update({ role }).eq("id", user.id);
+    // Auto-upgrade @amsa.mn emails to board_member and auto-verify them
+    if (isAmsaAdminEmail(normalizedEmail) && role !== "admin" && role !== "board_member") {
+      role = "board_member";
+      acceptanceStatus = "approved";
+      await supabase
+        .from("Users")
+        .update({ role, acceptanceStatus, emailVerified: true })
+        .eq("id", user.id);
+    } else if (isAmsaAdminEmail(normalizedEmail) && role === "board_member" && acceptanceStatus !== "approved") {
+      acceptanceStatus = "approved";
+      await supabase
+        .from("Users")
+        .update({ acceptanceStatus, emailVerified: true })
+        .eq("id", user.id);
     }
 
     const token = makeToken({ id: user.id, role });
@@ -55,7 +66,7 @@ export async function POST(request: Request) {
         role,
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
-        acceptanceStatus: user.acceptanceStatus ?? "pending",
+        acceptanceStatus,
         profilePic: user.profilePic ?? null,
         level: user.level ?? null,
         bio: user.bio ?? null,

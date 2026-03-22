@@ -1,0 +1,23 @@
+---
+description: Never use the Supabase service role key — use anon key + RLS policies instead
+alwaysApply: true
+---
+
+# Supabase: Never Use the Service Role Key
+
+Always use the anon key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) with the standard `supabase` client from `@/lib/supabase`.
+
+**Never** create a `supabaseAdmin` client, import `SUPABASE_SERVICE_ROLE_KEY`, or use `service_role` credentials anywhere in this codebase.
+
+```typescript
+// ❌ NEVER
+import { supabaseAdmin } from "@/lib/supabase-admin";
+const supabaseAdmin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+// ✅ ALWAYS
+import { supabase } from "@/lib/supabase";
+```
+
+If a database operation is blocked by RLS, fix it by adding the appropriate RLS policy in Supabase — not by switching to the service role.
+
+Authorization is enforced at the API route layer via `verifyToken()` and `assertRole()` / `assertContentCreator()`.

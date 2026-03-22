@@ -25,6 +25,15 @@ export function assertRole(payload: JwtPayload, role: string): void {
   }
 }
 
+/**
+ * Allows both "admin" and "board_member" roles to create/edit/delete content.
+ */
+export function assertContentCreator(payload: JwtPayload): void {
+  if (payload.role !== "admin" && payload.role !== "board_member") {
+    throw NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+}
+
 export function makeToken(user: { id: number; role: string }): string {
   return jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
     expiresIn: "7d",
@@ -33,3 +42,20 @@ export function makeToken(user: { id: number; role: string }): string {
 
 export const isAmsaAdminEmail = (email: string): boolean =>
   email?.toLowerCase().endsWith("@amsa.mn");
+
+export const ROLES = {
+  ADMIN: "admin",
+  BOARD_MEMBER: "board_member",
+  MEMBER: "member",
+} as const;
+
+export function getRoleLabel(role: string): string {
+  switch (role) {
+    case ROLES.ADMIN:
+      return "Admin";
+    case ROLES.BOARD_MEMBER:
+      return "Board Member";
+    default:
+      return "Member";
+  }
+}

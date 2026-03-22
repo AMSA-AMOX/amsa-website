@@ -30,6 +30,7 @@ type AuthContextValue = {
   signup: (opts: SignupPayload) => Promise<User>;
   logout: () => void;
   authFetch: (path: string, opts?: RequestInit) => Promise<any>;
+  updateUser: (partial: Partial<User>) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -90,6 +91,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuth();
   };
 
+  const updateUser = (partial: Partial<User>) => {
+    if (!user || !token) return;
+    const updated = { ...user, ...partial };
+    setUser(updated);
+    localStorage.setItem("amsa_auth", JSON.stringify({ token, user: updated }));
+  };
+
   const authFetch = (path: string, opts: RequestInit = {}) => {
     if (!token) return Promise.reject({ message: "Not authenticated" });
     return api(path, {
@@ -103,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, signup, logout, authFetch, loading }}
+      value={{ user, token, login, signup, logout, authFetch, loading, updateUser }}
     >
       {children}
     </AuthContext.Provider>

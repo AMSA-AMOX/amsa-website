@@ -32,7 +32,10 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const role = isAmsaAdminEmail(eduEmail) ? "admin" : "member";
+    const isBoardMember = isAmsaAdminEmail(eduEmail);
+    const role = isBoardMember ? "board_member" : "member";
+    const acceptanceStatus = isBoardMember ? "approved" : "pending";
+    const emailVerified = isBoardMember;
 
     const { data: user, error: userError } = await supabase
       .from("Users")
@@ -42,8 +45,8 @@ export async function POST(request: Request) {
         firstName,
         lastName,
         role,
-        acceptanceStatus: "pending",
-        emailVerified: false,
+        acceptanceStatus,
+        emailVerified,
       })
       .select("id, email, firstName, lastName, role, acceptanceStatus")
       .single();
@@ -52,7 +55,6 @@ export async function POST(request: Request) {
       console.error(userError);
       return NextResponse.json({ message: "Signup failed" }, { status: 500 });
     }
-
 
     const token = makeToken({ id: user.id, role });
 
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
           role,
           firstName,
           lastName,
-          acceptanceStatus: "pending",
+          acceptanceStatus,
           profilePic: null,
           level: null,
           bio: null,

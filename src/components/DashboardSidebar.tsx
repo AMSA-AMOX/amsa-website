@@ -53,11 +53,11 @@ const navItems = [
     ),
   },
   {
-    label: "Inbox",
-    href: "/dashboard/inbox",
+    label: "Network",
+    href: "/dashboard/network",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
       </svg>
     ),
   },
@@ -75,11 +75,8 @@ export default function DashboardSidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/10">
-        <Link href="/" className="flex items-center gap-3">
-          <img src="/header-logo.svg" alt="AMSA" className="h-9 w-auto" />
-          <span className="text-white font-semibold text-sm leading-tight">
-            AMSA
-          </span>
+        <Link href="/welcome" className="flex items-center gap-3">
+          <img src="/header-logo.svg" alt="AMSA" className="h-14 w-auto" />
         </Link>
       </div>
 
@@ -108,8 +105,12 @@ export default function DashboardSidebar() {
       {/* User footer */}
       <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0">
-            {initials}
+          <div className="w-8 h-8 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
+            {user?.profilePic ? (
+              <img src={user.profilePic} alt={`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()} className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-white text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
@@ -138,9 +139,8 @@ export default function DashboardSidebar() {
 
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#001049] flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/header-logo.svg" alt="AMSA" className="h-8 w-auto" />
-          <span className="text-white font-semibold text-sm">AMSA</span>
+        <Link href="/welcome" className="flex items-center gap-2">
+          <img src="/header-logo.svg" alt="AMSA" className="h-12 w-auto" />
         </Link>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-white p-1">
           {mobileOpen ? (
