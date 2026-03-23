@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,12 +58,6 @@ type EditForm = {
   x: string; facebook: string; instagram: string; linkedin: string;
 };
 
-type SuggestedUser = {
-  id: number; firstName: string; lastName: string;
-  profilePic: string | null; schoolName: string | null;
-  graduationYear: string | null; major: string | null; schoolYear: string | null;
-};
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EMPTY_EXP: ExpForm = {
@@ -77,6 +72,7 @@ const YEARS = Array.from({ length: new Date().getFullYear() - 1989 }, (_, i) => 
 const DEGREE_LEVELS = ["Associate's","Bachelor's","Master's","PhD / Doctorate","Professional (MD / JD / MBA)","Certificate"];
 const SCHOOL_YEARS = ["Freshman","Sophomore","Junior","Senior","Graduate Student","Alumni"];
 const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
+const VERIFICATION_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd7SUihiYdumMKDuHoDngMhFuid04Qecakd4b8-pf6uUt8hvA/formResponse";
 
 const UNIVERSITIES: { name: string; domain: string }[] = [
   { name: "Arizona State University", domain: "asu.edu" },
@@ -215,27 +211,43 @@ const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
 const normalizeLookupName = (value: string) => value.trim().toLowerCase();
 
 const findUniversityDomain = (schoolName: string) => {
-  const match = UNIVERSITIES.find((u) => u.name.toLowerCase() === schoolName.toLowerCase());
-  return match?.domain ?? null;
+  const known = getKnownSchoolDomain(schoolName);
+  if (known) return known;
+
+  const variants = getLookupNameVariants(schoolName);
+  for (const variant of variants) {
+    const match = UNIVERSITIES.find((u) => u.name.toLowerCase() === variant.toLowerCase());
+    if (match?.domain) return match.domain;
+  }
+
+  return null;
 };
 
 const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promise<string | null> => {
-  try {
-    const query = encodeURIComponent(name.trim());
-    const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
-    if (!res.ok) return null;
-    const results = await res.json() as Array<{ domain?: string }>;
-    if (!Array.isArray(results) || results.length === 0) return null;
+  const known = getKnownSchoolDomain(name);
+  if (preferEdu && known) return known;
 
-    if (preferEdu) {
-      const eduMatch = results.find((r) => r.domain?.toLowerCase().endsWith(".edu"));
-      if (eduMatch?.domain) return eduMatch.domain;
+  const variants = getLookupNameVariants(name);
+  for (const variant of variants) {
+    try {
+      const query = encodeURIComponent(variant);
+      const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
+      if (!res.ok) continue;
+      const results = await res.json() as Array<{ domain?: string }>;
+      if (!Array.isArray(results) || results.length === 0) continue;
+
+      if (preferEdu) {
+        const eduMatch = results.find((r) => r.domain?.toLowerCase().endsWith(".edu"));
+        if (eduMatch?.domain) return eduMatch.domain;
+      }
+
+      const anyMatch = results.find((r) => !!r.domain)?.domain;
+      if (anyMatch) return anyMatch;
+    } catch {
+      continue;
     }
-
-    return results.find((r) => !!r.domain)?.domain ?? null;
-  } catch {
-    return null;
   }
+  return null;
 };
 
 const buildLogoUrl = (domain: string) => {
@@ -369,9 +381,6 @@ export default function DashboardPage() {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
-  const [suggestions, setSuggestions] = useState<SuggestedUser[]>([]);
-  const [followingInFlight, setFollowingInFlight] = useState<Set<number>>(new Set());
   const [shareOpen, setShareOpen] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
@@ -383,6 +392,7 @@ export default function DashboardPage() {
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [schoolSuggestionsOpen, setSchoolSuggestionsOpen] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarRemoved, setAvatarRemoved] = useState(false);
@@ -404,9 +414,7 @@ export default function DashboardPage() {
       authFetch("/api/user/follows").then((d) => {
         setFollowersCount(d.followersCount ?? 0);
         setFollowingCount(d.followingCount ?? 0);
-        setFollowingIds(new Set(d.followingIds ?? []));
       }).catch(() => {}),
-      authFetch("/api/user/suggestions").then((d) => setSuggestions(d.users ?? [])).catch(() => {}),
     ]).finally(() => setLoadingProfile(false));
   }, [user, loading]);
 
@@ -429,10 +437,25 @@ export default function DashboardPage() {
       x: profile.x ?? "", facebook: profile.facebook ?? "", instagram: profile.instagram ?? "", linkedin: profile.linkedin ?? "",
     });
     setSaveError(""); setAvatarFile(null); setAvatarPreview(null);
-    setAvatarRemoved(false); setAvatarError(""); setEditOpen(true);
+    setAvatarRemoved(false); setAvatarError(""); setSchoolSuggestionsOpen(false); setEditOpen(true);
   };
 
   const handleField = (name: keyof EditForm, value: string) => setForm((f) => ({ ...f, [name]: value }));
+
+  const filteredUniversities = useMemo(() => {
+    const query = form.schoolName.trim().toLowerCase();
+    return UNIVERSITIES
+      .map((u) => {
+        const normalizedName = u.name.toLowerCase();
+        const startsWith = query && normalizedName.startsWith(query);
+        const includes = query && normalizedName.includes(query);
+        const rank = !query ? 0 : startsWith ? 2 : includes ? 1 : -1;
+        return { ...u, rank };
+      })
+      .filter((u) => u.rank >= 0)
+      .sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name))
+      .slice(0, 8);
+  }, [form.schoolName]);
 
   const compressImage = (file: File, maxDim = 400, quality = 0.8): Promise<Blob> =>
     new Promise((resolve, reject) => {
@@ -544,24 +567,6 @@ export default function DashboardPage() {
     } catch { } finally { setExpDeleting(null); }
   };
 
-  const toggleFollow = async (targetId: number) => {
-    if (followingInFlight.has(targetId)) return;
-    setFollowingInFlight((s) => new Set(s).add(targetId));
-    const isFollowing = followingIds.has(targetId);
-    try {
-      if (isFollowing) {
-        await authFetch(`/api/user/follows/${targetId}`, { method: "DELETE" });
-        setFollowingIds((s) => { const n = new Set(s); n.delete(targetId); return n; });
-        setFollowingCount((c) => Math.max(0, c - 1));
-      } else {
-        await authFetch("/api/user/follows", { method: "POST", body: JSON.stringify({ followingId: targetId }) });
-        setFollowingIds((s) => new Set(s).add(targetId));
-        setFollowingCount((c) => c + 1);
-      }
-    } catch { }
-    finally { setFollowingInFlight((s) => { const n = new Set(s); n.delete(targetId); return n; }); }
-  };
-
   if (!user) return null;
 
   const displayName = `${user.firstName} ${user.lastName}`;
@@ -635,11 +640,21 @@ export default function DashboardPage() {
 
                 {/* Acceptance status */}
                 {user.acceptanceStatus?.toLowerCase() === "pending" && (
-                  <div className="flex items-center gap-2 text-xs text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2">
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                    Application pending review
+                  <div className="text-xs text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      Application pending review
+                    </div>
+                    <a
+                      href={VERIFICATION_FORM_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center font-semibold underline underline-offset-2 hover:text-yellow-800 transition"
+                    >
+                      Submit verification form
+                    </a>
                   </div>
                 )}
                 {user.acceptanceStatus?.toLowerCase() === "approved" && (
@@ -845,51 +860,6 @@ export default function DashboardPage() {
           {/* ── Right sidebar ─────────────────────────────────────────────── */}
           <aside className="w-72 shrink-0 space-y-4 sticky top-4 self-start hidden xl:block">
 
-            {/* People you might know */}
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">People you might know</h3>
-              {suggestions.length === 0 ? (
-                <p className="text-xs text-gray-400">No suggestions yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {suggestions.map((s) => {
-                    const sInitials = `${s.firstName?.[0] ?? ""}${s.lastName?.[0] ?? ""}`.toUpperCase();
-                    const sInfo = [s.graduationYear ? `'${s.graduationYear.slice(-2)}` : null, s.major].filter(Boolean).join(" · ");
-                    const isF = followingIds.has(s.id);
-                    return (
-                      <div key={s.id} className="flex items-start gap-2.5">
-                        <div className="w-9 h-9 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
-                          {s.profilePic
-                            ? <img src={s.profilePic} alt={`${s.firstName} ${s.lastName}`} className="w-full h-full object-cover" />
-                            : sInitials}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 leading-tight">{s.firstName} {s.lastName}</p>
-                          {s.schoolName && <p className="text-xs text-gray-400 truncate">{s.schoolName}{sInfo ? ` · ${sInfo}` : ""}</p>}
-                          <button
-                            onClick={() => toggleFollow(s.id)}
-                            disabled={followingInFlight.has(s.id)}
-                            className={`mt-1.5 text-xs font-semibold px-3 py-1 rounded-full border transition disabled:opacity-50 ${
-                              isF
-                                ? "border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-500 hover:bg-red-50"
-                                : "border-[#001049] text-[#001049] hover:bg-[#001049]/5"
-                            }`}
-                          >
-                            {isF ? "Following" : "Follow"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {suggestions.length > 0 && (
-                <button className="w-full mt-4 text-xs text-[#001049] font-medium hover:underline text-center">
-                  See more
-                </button>
-              )}
-            </div>
-
             {/* Board member badge */}
             {user.role === "board_member" && (
               <div className="bg-[#001049] rounded-2xl p-4">
@@ -983,12 +953,40 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">School Name</label>
-                    <input type="text" list="university-list" value={form.schoolName}
-                      onChange={(e) => handleField("schoolName", e.target.value)}
-                      placeholder="Search your university…" className={inputCls} />
-                    <datalist id="university-list">
-                      {UNIVERSITIES.map((u) => <option key={u.domain} value={u.name} />)}
-                    </datalist>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={form.schoolName}
+                        onChange={(e) => {
+                          handleField("schoolName", e.target.value);
+                          setSchoolSuggestionsOpen(true);
+                        }}
+                        onFocus={() => setSchoolSuggestionsOpen(true)}
+                        onBlur={() => setTimeout(() => setSchoolSuggestionsOpen(false), 120)}
+                        placeholder="Search your university…"
+                        className={inputCls}
+                        autoComplete="off"
+                      />
+                      {schoolSuggestionsOpen && filteredUniversities.length > 0 && (
+                        <div className="absolute z-30 top-full left-0 right-0 mt-1 max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+                          {filteredUniversities.map((u) => (
+                            <button
+                              key={u.domain}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleField("schoolName", u.name);
+                                setSchoolSuggestionsOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                            >
+                              {u.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400">Showing up to 8 matches.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <SelectField label="Degree Level" name="degreeLevel" value={form.degreeLevel} onChange={handleField} options={DEGREE_LEVELS} />
