@@ -5,6 +5,7 @@ import { verifyToken } from "@/lib/auth";
 const ALLOWED_FIELDS = new Set([
   "firstName",
   "lastName",
+  "headline",
   "bio",
   "profilePic",
   "phoneNumber",
@@ -50,7 +51,7 @@ export async function PATCH(request: Request) {
       .update(updates)
       .eq("id", payload.id)
       .select(
-        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, bio, createdAt, phoneNumber, city, state, schoolName, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
+        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
       )
       .single();
 

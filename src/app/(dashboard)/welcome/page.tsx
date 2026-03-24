@@ -17,6 +17,7 @@ type FullProfile = {
   acceptanceStatus: string;
   profilePic: string | null;
   level: string | null;
+  headline: string | null;
   bio: string | null;
   createdAt: string;
   schoolName: string | null;
@@ -52,7 +53,7 @@ type ExpForm = {
 };
 
 type EditForm = {
-  firstName: string; lastName: string; bio: string; profilePic: string;
+  firstName: string; lastName: string; headline: string; bio: string; profilePic: string;
   schoolName: string; degreeLevel: string; major: string;
   schoolYear: string; graduationYear: string;
   x: string; facebook: string; instagram: string; linkedin: string;
@@ -386,7 +387,7 @@ export default function DashboardPage() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<EditForm>({
-    firstName: "", lastName: "", bio: "", profilePic: "",
+    firstName: "", lastName: "", headline: "", bio: "", profilePic: "",
     schoolName: "", degreeLevel: "", major: "", schoolYear: "", graduationYear: "",
     x: "", facebook: "", instagram: "", linkedin: "",
   });
@@ -430,7 +431,7 @@ export default function DashboardPage() {
     if (!profile) return;
     setForm({
       firstName: profile.firstName ?? "", lastName: profile.lastName ?? "",
-      bio: profile.bio ?? "", profilePic: profile.profilePic ?? "",
+      headline: profile.headline ?? "", bio: profile.bio ?? "", profilePic: profile.profilePic ?? "",
       schoolName: profile.schoolName ?? "", degreeLevel: profile.degreeLevel ?? "",
       major: profile.major ?? "", schoolYear: profile.schoolYear ?? "",
       graduationYear: profile.graduationYear ?? "",
@@ -575,6 +576,9 @@ export default function DashboardPage() {
     profile?.graduationYear ? `'${profile.graduationYear.slice(-2)}` : null,
     profile?.major,
   ].filter(Boolean).join(" · ");
+  const profileHeadline = (profile?.headline ?? "").trim() || [profile?.major, profile?.schoolName ? `@ ${profile.schoolName}` : null]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <>
@@ -604,9 +608,9 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                {/* Bio snippet */}
-                {profile?.bio && (
-                  <p className="mt-2 text-sm text-gray-500 text-center line-clamp-2 leading-snug">{profile.bio}</p>
+                {/* LinkedIn-style headline (About stays as separate section) */}
+                {profileHeadline && (
+                  <p className="mt-2 text-sm text-gray-500 text-center leading-snug">{profileHeadline}</p>
                 )}
               </div>
 
@@ -766,7 +770,7 @@ export default function DashboardPage() {
                     <span>·</span>
                     <span><strong className="text-gray-900">{followingCount}</strong> following</span>
                   </div>
-                  {profile?.schoolName && <p className="text-sm text-gray-500 mt-1">{profile.schoolName}{schoolLine ? ` · ${schoolLine}` : ""}</p>}
+                  {profileHeadline && <p className="text-sm text-gray-500 mt-1">{profileHeadline}</p>}
                 </div>
                 <button onClick={openEdit} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Edit</button>
               </div>
@@ -937,6 +941,17 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="First Name" name="firstName" value={form.firstName} onChange={handleField} />
                     <Field label="Last Name" name="lastName" value={form.lastName} onChange={handleField} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Custom Header</label>
+                    <input
+                      type="text"
+                      value={form.headline}
+                      onChange={(e) => handleField("headline", e.target.value)}
+                      placeholder="e.g. Computer Science @ UMD"
+                      maxLength={140}
+                      className={inputCls}
+                    />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">About / Bio</label>

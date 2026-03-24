@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
 
 const VERIFICATION_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd7SUihiYdumMKDuHoDngMhFuid04Qecakd4b8-pf6uUt8hvA/formResponse";
+const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
+const LOGO_DOMAIN_CACHE = new Map<string, string | null>();
+const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
 
 type NetworkMember = {
   id: number;
@@ -18,6 +22,106 @@ type NetworkMember = {
   mutualCount: number;
   isFollowing: boolean;
 };
+
+const normalizeLookupName = (value: string) => value.trim().toLowerCase();
+
+const fetchDomainFromClearbit = async (name: string): Promise<string | null> => {
+  const known = getKnownSchoolDomain(name);
+  if (known) return known;
+
+  const variants = getLookupNameVariants(name);
+  for (const variant of variants) {
+    try {
+      const query = encodeURIComponent(variant);
+      const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
+      if (!res.ok) continue;
+      const results = (await res.json()) as Array<{ domain?: string }>;
+      if (!Array.isArray(results) || results.length === 0) continue;
+      const eduMatch = results.find((r) => r.domain?.toLowerCase().endsWith(".edu"));
+      if (eduMatch?.domain) return eduMatch.domain;
+      const anyMatch = results.find((r) => !!r.domain)?.domain;
+      if (anyMatch) return anyMatch;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+};
+
+const buildLogoUrl = (domain: string) => {
+  const base = `https://img.logo.dev/${domain}`;
+  if (!LOGO_DEV_TOKEN) return base;
+  return `${base}?token=${encodeURIComponent(LOGO_DEV_TOKEN)}`;
+};
+
+const resolveSchoolLogoDomain = async (name: string): Promise<string | null> => {
+  const key = normalizeLookupName(name);
+  if (LOGO_DOMAIN_CACHE.has(key)) return LOGO_DOMAIN_CACHE.get(key) ?? null;
+  if (LOGO_DOMAIN_PENDING.has(key)) return LOGO_DOMAIN_PENDING.get(key)!;
+
+  const pending = fetchDomainFromClearbit(name).then((domain) => {
+    LOGO_DOMAIN_CACHE.set(key, domain);
+    LOGO_DOMAIN_PENDING.delete(key);
+    return domain;
+  });
+  LOGO_DOMAIN_PENDING.set(key, pending);
+  return pending;
+};
+
+const useSchoolLogoDomain = (schoolName: string | null | undefined) => {
+  const [domain, setDomain] = useState<string | null>(schoolName ? getKnownSchoolDomain(schoolName) : null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!schoolName?.trim()) {
+      setDomain(null);
+      return;
+    }
+
+    const known = getKnownSchoolDomain(schoolName);
+    if (known) {
+      setDomain(known);
+      return;
+    }
+
+    resolveSchoolLogoDomain(schoolName).then((resolved) => {
+      if (!cancelled) setDomain(resolved);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolName]);
+
+  return domain;
+};
+
+function SchoolLogo({ schoolName }: { schoolName: string | null | undefined }) {
+  const [err, setErr] = useState(false);
+  const domain = useSchoolLogoDomain(schoolName);
+  const initial = schoolName?.trim()[0]?.toUpperCase() ?? "U";
+
+  useEffect(() => {
+    setErr(false);
+  }, [domain, schoolName]);
+
+  if (!domain || err) {
+    return (
+      <div className="w-7 h-7 rounded-md bg-[#001049]/10 flex items-center justify-center text-[#001049] font-bold text-xs shrink-0">
+        {initial}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={buildLogoUrl(domain)}
+      alt={schoolName ?? ""}
+      onError={() => setErr(true)}
+      className="w-7 h-7 rounded-md object-contain shrink-0 bg-white border border-gray-100"
+    />
+  );
+}
 
 export default function NetworkPage() {
   const { user, loading, authFetch } = useAuth();
@@ -247,15 +351,14 @@ export default function NetworkPage() {
                     <span>
                       <strong className="text-gray-900">{member.followersCount}</strong> followers
                     </span>
-                    <span className="text-gray-300">·</span>
-                    <span>
-                      <strong className="text-gray-900">{member.followingCount}</strong> following
-                    </span>
                   </div>
 
-                  <p className="mt-1.5 text-sm text-gray-500 h-10 line-clamp-2">
-                    {member.schoolName || "School not added yet"}
-                  </p>
+                  <div className="mt-2 min-h-10 flex items-center justify-center gap-2 max-w-full">
+                    <SchoolLogo schoolName={member.schoolName} />
+                    <p className="text-sm text-gray-500 line-clamp-2">
+                      {member.schoolName || "School not added yet"}
+                    </p>
+                  </div>
 
                   {member.mutualCount > 0 && (
                     <p className="mt-0.5 text-xs text-[#001049]/70 font-medium">
