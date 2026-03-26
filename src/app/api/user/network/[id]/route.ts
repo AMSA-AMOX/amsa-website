@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: RouteContext) {
     const { data: user, error } = await supabase
       .from("Users")
       .select(
-        "id, firstName, lastName, profilePic, bio, schoolName, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x, acceptanceStatus"
+        "id, firstName, lastName, role, profilePic, bio, schoolName, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x"
       )
       .eq("id", targetId)
       .single();
@@ -35,7 +35,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 
-    if (user.acceptanceStatus !== "approved" && targetId !== payload.id) {
+    if (!["us_member", "board_member", "admin"].includes(user.role)) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 

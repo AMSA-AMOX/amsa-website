@@ -11,7 +11,7 @@ type NotificationItem = {
   title: string;
   description: string;
   happenedAt: string;
-  href: string;
+  href?: string;
   avatarUrl?: string | null;
 };
 
@@ -117,9 +117,33 @@ export default function NotificationsPage() {
 
 function NotificationRow({ item }: { item: NotificationItem }) {
   const timeText = formatTimeAgo(item.happenedAt);
+  const rowClass = "block rounded-xl border border-gray-100 p-3 md:p-4";
+
+  if (!item.href) {
+    return (
+      <div className={rowClass}>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] font-semibold shrink-0 overflow-hidden">
+            {item.avatarUrl ? (
+              <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />
+            ) : item.type === "follow" ? (
+              "F"
+            ) : (
+              "E"
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+            <p className="text-sm text-gray-600 leading-snug">{item.description}</p>
+            <p className="text-xs text-gray-400 mt-1">{timeText}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Link href={item.href} className="block rounded-xl border border-gray-100 hover:bg-gray-50 transition p-3 md:p-4">
+    <Link href={item.href} className={`${rowClass} hover:bg-gray-50 transition`}>
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] font-semibold shrink-0 overflow-hidden">
           {item.avatarUrl ? (

@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
 
-const VERIFICATION_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd7SUihiYdumMKDuHoDngMhFuid04Qecakd4b8-pf6uUt8hvA/formResponse";
 const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
 const LOGO_DOMAIN_CACHE = new Map<string, string | null>();
 const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
@@ -126,7 +125,6 @@ function SchoolLogo({ schoolName }: { schoolName: string | null | undefined }) {
 export default function NetworkPage() {
   const { user, loading, authFetch } = useAuth();
   const router = useRouter();
-  const isApproved = user?.acceptanceStatus?.toLowerCase() === "approved";
 
   const [query, setQuery] = useState("");
   const [members, setMembers] = useState<NetworkMember[]>([]);
@@ -239,27 +237,6 @@ export default function NetworkPage() {
 
   if (!user) return null;
 
-  if (!isApproved) {
-    return (
-      <div className="py-10 px-4 md:px-8 max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-          <h1 className="text-xl font-bold text-[#001049]">Network is available after verification</h1>
-          <p className="text-sm text-gray-500 mt-2">
-            Complete the verification form to unlock member networking and profile connections.
-          </p>
-          <a
-            href={VERIFICATION_FORM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center mt-5 px-4 py-2.5 rounded-xl bg-[#001049] text-white text-sm font-semibold hover:bg-[#073D97] transition"
-          >
-            Open Verification Form
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="py-7 px-4 md:px-7 lg:px-9 max-w-[1500px] mx-auto">
       <div className="mb-5 flex items-end justify-between gap-3 flex-wrap">
@@ -305,7 +282,7 @@ export default function NetworkPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {loadingMembers && (
           <div className="contents animate-pulse">
             {Array.from({ length: 6 }).map((_, index) => (
@@ -315,7 +292,7 @@ export default function NetworkPage() {
         )}
 
         {!loadingMembers && members.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center md:col-span-2 xl:col-span-3">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center md:col-span-2 xl:col-span-4">
             <p className="text-base font-semibold text-[#001049]">No members found</p>
             <p className="text-sm text-gray-500 mt-1">Try a different name or school keyword.</p>
           </div>

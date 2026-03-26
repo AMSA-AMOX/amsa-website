@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     let role = user.role ?? "member";
-    let acceptanceStatus = user.acceptanceStatus ?? "pending";
+    let acceptanceStatus = user.acceptanceStatus ?? "approved";
 
     // Auto-upgrade @amsa.mn emails to board_member and auto-verify them
     if (isAmsaAdminEmail(normalizedEmail) && role !== "admin" && role !== "board_member") {
@@ -53,6 +53,12 @@ export async function POST(request: Request) {
       await supabase
         .from("Users")
         .update({ acceptanceStatus, emailVerified: true })
+        .eq("id", user.id);
+    } else if (role === "member" && acceptanceStatus !== "approved") {
+      acceptanceStatus = "approved";
+      await supabase
+        .from("Users")
+        .update({ acceptanceStatus })
         .eq("id", user.id);
     }
 

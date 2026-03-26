@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -73,7 +74,6 @@ const YEARS = Array.from({ length: new Date().getFullYear() - 1989 }, (_, i) => 
 const DEGREE_LEVELS = ["Associate's","Bachelor's","Master's","PhD / Doctorate","Professional (MD / JD / MBA)","Certificate"];
 const SCHOOL_YEARS = ["Freshman","Sophomore","Junior","Senior","Graduate Student","Alumni"];
 const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
-const VERIFICATION_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSd7SUihiYdumMKDuHoDngMhFuid04Qecakd4b8-pf6uUt8hvA/formResponse";
 
 const UNIVERSITIES: { name: string; domain: string }[] = [
   { name: "Arizona State University", domain: "asu.edu" },
@@ -162,7 +162,26 @@ const UNIVERSITIES: { name: string; domain: string }[] = [
   { name: "Yale University", domain: "yale.edu" },
 ];
 
-const ROLE_LABELS: Record<string, string> = { admin: "Admin", board_member: "Board Member", member: "Member" };
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  board_member: "Board Member",
+  us_member: "US Member",
+  member: "Member",
+};
+
+const parseMajors = (value: string | null | undefined): string[] =>
+  (value ?? "")
+    .split(/\s*(?:\/|,|\|)\s*/g)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+const serializeMajors = (majors: string[]): string =>
+  majors
+    .map((major) => major.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(" / ");
 
 // ─── Small components ─────────────────────────────────────────────────────────
 
@@ -391,6 +410,7 @@ export default function DashboardPage() {
     schoolName: "", degreeLevel: "", major: "", schoolYear: "", graduationYear: "",
     x: "", facebook: "", instagram: "", linkedin: "",
   });
+  const [majorFieldCount, setMajorFieldCount] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [schoolSuggestionsOpen, setSchoolSuggestionsOpen] = useState(false);
@@ -429,19 +449,44 @@ export default function DashboardPage() {
 
   const openEdit = () => {
     if (!profile) return;
+    const majors = parseMajors(profile.major);
     setForm({
       firstName: profile.firstName ?? "", lastName: profile.lastName ?? "",
       headline: profile.headline ?? "", bio: profile.bio ?? "", profilePic: profile.profilePic ?? "",
       schoolName: profile.schoolName ?? "", degreeLevel: profile.degreeLevel ?? "",
-      major: profile.major ?? "", schoolYear: profile.schoolYear ?? "",
+      major: serializeMajors(majors), schoolYear: profile.schoolYear ?? "",
       graduationYear: profile.graduationYear ?? "",
       x: profile.x ?? "", facebook: profile.facebook ?? "", instagram: profile.instagram ?? "", linkedin: profile.linkedin ?? "",
     });
+    setMajorFieldCount(Math.max(1, majors.length || 1));
     setSaveError(""); setAvatarFile(null); setAvatarPreview(null);
     setAvatarRemoved(false); setAvatarError(""); setSchoolSuggestionsOpen(false); setEditOpen(true);
   };
 
   const handleField = (name: keyof EditForm, value: string) => setForm((f) => ({ ...f, [name]: value }));
+  const majorParts = useMemo(() => {
+    const parsed = parseMajors(form.major);
+    const padded = Array.from({ length: majorFieldCount }, (_, index) => parsed[index] ?? "");
+    return padded.slice(0, 3);
+  }, [form.major, majorFieldCount]);
+
+  const handleMajorChange = (index: number, value: string) => {
+    const next = [...majorParts];
+    next[index] = value;
+    setForm((prev) => ({ ...prev, major: serializeMajors(next) }));
+  };
+
+  const addMajorField = () => setMajorFieldCount((prev) => Math.min(3, prev + 1));
+  const removeMajorField = () => {
+    setMajorFieldCount((prev) => {
+      const nextCount = Math.max(1, prev - 1);
+      setForm((current) => ({
+        ...current,
+        major: serializeMajors(parseMajors(current.major).slice(0, nextCount)),
+      }));
+      return nextCount;
+    });
+  };
 
   const filteredUniversities = useMemo(() => {
     const query = form.schoolName.trim().toLowerCase();
@@ -631,6 +676,7 @@ export default function DashboardPage() {
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                     user.role === "admin" ? "bg-purple-100 text-purple-700" :
                     user.role === "board_member" ? "bg-[#FFCA3A]/20 text-[#001049]" :
+                    user.role === "us_member" ? "bg-blue-100 text-blue-700" :
                     "bg-gray-100 text-gray-600"
                   }`}>
                     {ROLE_LABELS[user.role] ?? "Member"}
@@ -642,31 +688,29 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Acceptance status */}
-                {user.acceptanceStatus?.toLowerCase() === "pending" && (
-                  <div className="text-xs text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                      </svg>
-                      Application pending review
-                    </div>
-                    <a
-                      href={VERIFICATION_FORM_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center font-semibold underline underline-offset-2 hover:text-yellow-800 transition"
-                    >
-                      Submit verification form
-                    </a>
-                  </div>
-                )}
+                {/* Membership status */}
                 {user.acceptanceStatus?.toLowerCase() === "approved" && (
                   <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">
                     <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                     </svg>
                     Member
+                  </div>
+                )}
+                {user.role === "member" && (
+                  <div className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      Apply to become a US Member
+                    </div>
+                    <Link
+                      href="/verification"
+                      className="inline-flex items-center font-semibold underline underline-offset-2 hover:text-blue-800 transition"
+                    >
+                      Open US Member application
+                    </Link>
                   </div>
                 )}
               </div>
@@ -1005,7 +1049,41 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <SelectField label="Degree Level" name="degreeLevel" value={form.degreeLevel} onChange={handleField} options={DEGREE_LEVELS} />
-                    <Field label="Major" name="major" value={form.major} onChange={handleField} placeholder="Computer Science" />
+                    <div className="col-span-2 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Major(s) (up to 3)</label>
+                        <div className="flex items-center gap-2">
+                          {majorFieldCount > 1 && (
+                            <button
+                              type="button"
+                              onClick={removeMajorField}
+                              className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                          {majorFieldCount < 3 && (
+                            <button
+                              type="button"
+                              onClick={addMajorField}
+                              className="text-xs font-medium text-[#001049] hover:text-[#073D97]"
+                            >
+                              + Add major
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {majorParts.map((major, index) => (
+                        <input
+                          key={`major-${index}`}
+                          type="text"
+                          value={major}
+                          onChange={(e) => handleMajorChange(index, e.target.value)}
+                          placeholder={`Major ${index + 1}`}
+                          className={inputCls}
+                        />
+                      ))}
+                    </div>
                     <SelectField label="School Year" name="schoolYear" value={form.schoolYear} onChange={handleField} options={SCHOOL_YEARS} />
                     <Field label="Graduation Year" name="graduationYear" value={form.graduationYear} onChange={handleField} placeholder="2026" />
                   </div>

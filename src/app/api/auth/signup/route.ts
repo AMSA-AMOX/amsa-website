@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const isBoardMember = isAmsaAdminEmail(eduEmail);
     const role = isBoardMember ? "board_member" : "member";
-    const acceptanceStatus = isBoardMember ? "approved" : "pending";
+    const acceptanceStatus = "approved";
     const emailVerified = isBoardMember;
 
     const { data: user, error: userError } = await supabase

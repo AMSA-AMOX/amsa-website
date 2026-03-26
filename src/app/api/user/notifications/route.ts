@@ -9,12 +9,18 @@ type NotificationItem = {
   title: string;
   description: string;
   happenedAt: string;
-  href: string;
+  href?: string;
   avatarUrl?: string | null;
 };
 
 type FollowRow = { followerId: number; createdAt?: string | null };
-type UserRow = { id: number; firstName: string | null; lastName: string | null; profilePic: string | null };
+type UserRow = {
+  id: number;
+  firstName: string | null;
+  lastName: string | null;
+  profilePic: string | null;
+  role: string | null;
+};
 type EventRow = { id: number; title: string | null; startAt: string | null; createdAt: string | null };
 
 export async function GET(request: Request) {
@@ -53,7 +59,7 @@ export async function GET(request: Request) {
         if (followerIds.length > 0) {
           const { data: users } = await supabase
             .from("Users")
-            .select("id, firstName, lastName, profilePic")
+            .select("id, firstName, lastName, profilePic, role")
             .in("id", followerIds);
 
           const userById = new Map<number, UserRow>((users ?? []).map((u: any) => [u.id, u as UserRow]));
@@ -62,13 +68,14 @@ export async function GET(request: Request) {
             const actor = userById.get(row.followerId);
             if (!actor) continue;
             const fullName = `${actor.firstName ?? ""} ${actor.lastName ?? ""}`.trim() || "Someone";
+            const canOpenProfile = ["us_member", "board_member", "admin"].includes(actor.role ?? "");
             notifications.push({
               id: `follow-${row.followerId}-${row.createdAt ?? "na"}`,
               type: "follow",
               title: "New follower",
               description: `${fullName} followed you.`,
               happenedAt: row.createdAt ?? new Date(0).toISOString(),
-              href: `/dashboard/network/${row.followerId}`,
+              href: canOpenProfile ? `/dashboard/network/${row.followerId}` : undefined,
               avatarUrl: actor.profilePic,
             });
           }

@@ -77,7 +77,7 @@ export async function listNetworkMembersForUser(
   let usersQuery = supabase
     .from("Users")
     .select("id, firstName, lastName, profilePic, schoolName, graduationYear")
-    .eq("acceptanceStatus", "approved")
+    .in("role", ["us_member", "board_member", "admin"])
     .neq("id", userId)
     .limit(candidateLimit);
 

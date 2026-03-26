@@ -4,6 +4,11 @@ const SCHOOL_DOMAIN_ALIASES: Record<string, string> = {
   "f and m": "fandm.edu",
   "f&m": "fandm.edu",
   fandm: "fandm.edu",
+  "washington university in st louis": "wustl.edu",
+  "washington university in saint louis": "wustl.edu",
+  "washington university st louis": "wustl.edu",
+  "washington university saint louis": "wustl.edu",
+  washu: "wustl.edu",
 };
 
 const normalizeEntityName = (value: string) =>
