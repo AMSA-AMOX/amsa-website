@@ -4,19 +4,21 @@ import React, { useState, useEffect } from "react";
 
 const heroImages = [
   { src: "/assets/Hero-alt2.png", alt: "AMSA Students at Yale" },
-  { src: "/assets/Hero-alt1.png", alt: "AMSA Students at Google" },
   { src: "/assets/2014agm.jpg", alt: "AMSA AGM 2014" },
-  { src: "/assets/2015agm.JPG", alt: "AMSA AGM 2015" },
   { src: "/assets/2017agm.JPG", alt: "AMSA AGM 2017" },
   { src: "/assets/2025agm.jpg", alt: "AMSA AGM 2025" },
 ];
 
 function Hero() {
   const [current, setCurrent] = useState(0);
+  const hasImages = heroImages.length > 0;
+  const safeCurrent = hasImages ? current % heroImages.length : 0;
+  const activeImage = hasImages ? heroImages[safeCurrent] : null;
 
   const goTo = (idx: number) => setCurrent(idx);
 
   useEffect(() => {
+    if (heroImages.length <= 1) return;
     const interval = setInterval(() => {
       setCurrent((prev) => (prev + 1) % heroImages.length);
     }, 5000);
@@ -80,11 +82,13 @@ function Hero() {
             className="relative w-full max-w-[820px] md:max-w-[1040px] lg:max-w-[1200px] rounded-lg shadow-2xl overflow-hidden"
             style={{ aspectRatio: "16/9" }}
           >
-            <img
-              src={heroImages[current].src}
-              alt={heroImages[current].alt}
-              className="absolute inset-0 w-full h-full object-cover rounded-lg"
-            />
+            {activeImage && (
+              <img
+                src={activeImage.src}
+                alt={activeImage.alt}
+                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+              />
+            )}
             {/* Slide indicators */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
               {heroImages.map((_, i) => (
