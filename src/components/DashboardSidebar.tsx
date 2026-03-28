@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 type NavItem = {
   label: string;
   href: string;
+  section: "top" | "social" | "tools";
   requiresAdmin?: boolean;
   icon: React.ReactNode;
 };
@@ -17,6 +18,7 @@ const navItems: NavItem[] = [
   {
     label: "Dashboard",
     href: "/welcome",
+    section: "top",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.75L12 3l9 6.75V21H15v-6H9v6H3V9.75z" />
@@ -24,17 +26,29 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "Blogs",
-    href: "/dashboard/blogs",
+    label: "Feed",
+    href: "/dashboard/feed",
+    section: "social",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12.75h-15m15-5.25h-15m15 10.5h-15" />
+      </svg>
+    ),
+  },
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    section: "top",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 1-5.714 0A8.967 8.967 0 0 1 6 16.139V11.25a6 6 0 1 1 12 0v4.889a8.967 8.967 0 0 1-3.143.943ZM9.75 17.75a2.25 2.25 0 0 0 4.5 0" />
       </svg>
     ),
   },
   {
     label: "Research",
     href: "/dashboard/research",
+    section: "tools",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
@@ -44,6 +58,7 @@ const navItems: NavItem[] = [
   {
     label: "Podcast",
     href: "/dashboard/podcast",
+    section: "tools",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
@@ -51,8 +66,19 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    label: "Guide",
+    href: "/dashboard/guide",
+    section: "tools",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5h15v15h-15v-15Zm3.75 3.75h7.5m-7.5 3h7.5m-7.5 3h5.25" />
+      </svg>
+    ),
+  },
+  {
     label: "Events",
     href: "/dashboard/events",
+    section: "social",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -62,6 +88,7 @@ const navItems: NavItem[] = [
   {
     label: "Network",
     href: "/dashboard/network",
+    section: "social",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
@@ -69,17 +96,9 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "Notifications",
-    href: "/dashboard/notifications",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 1-5.714 0A8.967 8.967 0 0 1 6 16.139V11.25a6 6 0 1 1 12 0v4.889a8.967 8.967 0 0 1-3.143.943ZM9.75 17.75a2.25 2.25 0 0 0 4.5 0" />
-      </svg>
-    ),
-  },
-  {
     label: "Verification Queue",
     href: "/dashboard/admin/verification",
+    section: "tools",
     requiresAdmin: true,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -96,6 +115,9 @@ export default function DashboardSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = user?.role === "admin";
   const visibleNavItems = navItems.filter((item) => !item.requiresAdmin || isAdmin);
+  const topItems = visibleNavItems.filter((item) => item.section === "top");
+  const socialItems = visibleNavItems.filter((item) => item.section === "social");
+  const toolItems = visibleNavItems.filter((item) => item.section === "tools");
 
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase();
 
@@ -109,26 +131,69 @@ export default function DashboardSidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-6 space-y-1">
-        {visibleNavItems.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                active
-                  ? "bg-white text-[#001049]"
-                  : "text-white/70 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          );
-        })}
-
+      <nav className="flex-1 px-3 py-6">
+        <div className="space-y-1">
+          {topItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? "bg-white text-[#001049]"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="my-4 border-t border-white/10" />
+        <div className="space-y-1">
+          {socialItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? "bg-white text-[#001049]"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div className="my-4 border-t border-white/10" />
+        <div className="space-y-1">
+          {toolItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? "bg-white text-[#001049]"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       {/* User footer */}
