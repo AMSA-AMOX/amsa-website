@@ -859,7 +859,7 @@ export default function DashboardPage() {
           <main className="flex-1 min-w-0 space-y-3">
 
             {/* Tab nav */}
-            <div className="bg-white rounded-2xl shadow-sm px-6 flex border-b border-gray-100 overflow-hidden">
+            <div className="flex justify-center gap-8 border-b border-gray-200">
               {(["profile", "posts"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -868,13 +868,13 @@ export default function DashboardPage() {
                     setActiveTab(tab);
                     if (tab === "posts" && !postsLoaded) loadOwnPosts();
                   }}
-                  className={`py-3.5 mr-6 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+                  className={`py-3.5 text-base font-semibold border-b-2 transition-colors -mb-px ${
                     activeTab === tab
                       ? "border-[#001049] text-[#001049]"
                       : "border-transparent text-gray-400 hover:text-gray-700"
                   }`}
                 >
-                  {tab === "posts" ? `Posts${postsLoaded ? ` ${posts.length}` : ""}` : "Profile"}
+                  {tab === "posts" ? "Posts" : "Profile"}
                 </button>
               ))}
             </div>

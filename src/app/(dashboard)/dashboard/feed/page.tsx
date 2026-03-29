@@ -199,30 +199,35 @@ export default function FeedPage() {
       </p>
 
       {canSeeTopActions && (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPolicyOpen(true)}
-            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            Posting Policy
-          </button>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
+            {user.profilePic ? (
+              <img src={user.profilePic} alt={user.firstName} className="w-full h-full object-cover" />
+            ) : (
+              `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setPostOpen(true)}
-            className="px-3 py-2 rounded-xl bg-[#001049] text-white text-sm font-semibold hover:bg-[#073D97]"
+            className="flex-1 text-left px-4 py-3 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 hover:bg-gray-50 transition"
           >
-            + Post creation
+            Share something with the community...
           </button>
           <button
             type="button"
-            onClick={() => {
-              setShopMessage("");
-              setShopOpen(true);
-            }}
-            className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            onClick={() => { setShopMessage(""); setShopOpen(true); }}
+            className="relative p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-500 shrink-0"
+            aria-label={`Shop (${tokens} tokens)`}
           >
-            Shop ({tokens} tokens)
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" />
+            </svg>
+            {tokens > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-[#001049] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                {tokens}
+              </span>
+            )}
           </button>
         </div>
       )}

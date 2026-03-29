@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import type { PostItem } from "@/components/posts/types";
 
 const formatRelative = (isoDate: string) => {
@@ -54,27 +55,39 @@ export default function PostCard({
     <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {showAuthor && (
         <header className="px-5 pt-5 pb-3 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
-            {post.author?.profilePic ? (
-              <img
-                src={post.author.profilePic}
-                alt={`${post.author.firstName} ${post.author.lastName}`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              initials
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-gray-900 truncate">
-              {post.author
-                ? `${post.author.firstName} ${post.author.lastName}`
-                : "Unknown user"}
-            </p>
-            <p className="text-xs text-gray-500 truncate">
-              {post.author?.headline || "AMSA Member"} · {formatRelative(post.createdAt)}
-            </p>
-          </div>
+          {post.author ? (
+            <Link href={`/dashboard/network/${post.author.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
+                {post.author.profilePic ? (
+                  <img
+                    src={post.author.profilePic}
+                    alt={`${post.author.firstName} ${post.author.lastName}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {post.author.firstName} {post.author.lastName}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {post.author.headline || "AMSA Member"} · {formatRelative(post.createdAt)}
+                </p>
+              </div>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">Unknown user</p>
+                <p className="text-xs text-gray-500 truncate">{formatRelative(post.createdAt)}</p>
+              </div>
+            </div>
+          )}
           {onFollow && post.author && (
             <button
               type="button"
