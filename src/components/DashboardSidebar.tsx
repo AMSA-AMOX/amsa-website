@@ -76,16 +76,6 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "Creator",
-    href: "/dashboard/blogs",
-    section: "tools",
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 1 0-7.18 0m7.18 0A5.97 5.97 0 0 1 18 19.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5a5.97 5.97 0 0 1 2.41-5.13m7.18 0a11.95 11.95 0 0 1-7.18 0" />
-      </svg>
-    ),
-  },
-  {
     label: "Events",
     href: "/dashboard/events",
     section: "social",

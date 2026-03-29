@@ -11,7 +11,7 @@ const programs = [
     accent: "Leadership & College Readiness",
     description: "A one-day annual conference inspiring high school students in Mongolia to pursue higher education in the U.S.",
     location: "Ulaanbaatar, Mongolia",
-    image: "/assets/programs/cyf2025.JPG",
+    image: "/assets/programs/cyf2025.jpg",
   },
   {
     short: "BUOP",

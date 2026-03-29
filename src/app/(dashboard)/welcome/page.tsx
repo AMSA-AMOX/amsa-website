@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
+import PostCard from "@/components/posts/PostCard";
+import type { PostItem } from "@/components/posts/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -425,6 +427,61 @@ export default function DashboardPage() {
   const [expSaving, setExpSaving] = useState(false);
   const [expError, setExpError] = useState("");
   const [expDeleting, setExpDeleting] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"profile" | "posts">("profile");
+  const [posts, setPosts] = useState<PostItem[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+  const [appreciating, setAppreciating] = useState<Set<number>>(new Set());
+
+  const loadOwnPosts = useCallback(async () => {
+    if (postsLoaded || loadingPosts) return;
+    setLoadingPosts(true);
+    try {
+      const data = await authFetch("/api/posts?includeModeration=true&limit=40");
+      setPosts((data.posts ?? []) as PostItem[]);
+      setPostsLoaded(true);
+    } catch {
+      setPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [authFetch, postsLoaded, loadingPosts]);
+
+  const onAppreciate = useCallback(async (postId: number) => {
+    if (appreciating.has(postId)) return;
+    const current = posts.find((p) => p.id === postId);
+    if (!current || current.hasAppreciated) return;
+    setAppreciating((prev) => new Set(prev).add(postId));
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, hasAppreciated: true, appreciationCount: p.appreciationCount + 1 } : p
+      )
+    );
+    try {
+      const data = await authFetch(`/api/posts/${postId}/helpful`, { method: "POST" });
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, hasAppreciated: Boolean(data.hasAppreciated), appreciationCount: Number(data.appreciationCount ?? p.appreciationCount) }
+            : p
+        )
+      );
+    } catch {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, hasAppreciated: current.hasAppreciated, appreciationCount: current.appreciationCount }
+            : p
+        )
+      );
+    } finally {
+      setAppreciating((prev) => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+    }
+  }, [authFetch, appreciating, posts]);
 
   useEffect(() => {
     if (loading) return;
@@ -801,6 +858,27 @@ export default function DashboardPage() {
           {/* ── Center content ─────────────────────────────────────────────── */}
           <main className="flex-1 min-w-0 space-y-3">
 
+            {/* Tab nav */}
+            <div className="bg-white rounded-2xl shadow-sm px-6 flex border-b border-gray-100 overflow-hidden">
+              {(["profile", "posts"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab);
+                    if (tab === "posts" && !postsLoaded) loadOwnPosts();
+                  }}
+                  className={`py-3.5 mr-6 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+                    activeTab === tab
+                      ? "border-[#001049] text-[#001049]"
+                      : "border-transparent text-gray-400 hover:text-gray-700"
+                  }`}
+                >
+                  {tab === "posts" ? `Posts${postsLoaded ? ` ${posts.length}` : ""}` : "Profile"}
+                </button>
+              ))}
+            </div>
+
             {/* Mobile: compact profile header */}
             <div className="lg:hidden bg-white rounded-2xl shadow-sm p-5">
               <div className="flex items-start gap-4">
@@ -819,6 +897,37 @@ export default function DashboardPage() {
                 <button onClick={openEdit} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Edit</button>
               </div>
             </div>
+
+            {activeTab === "posts" && (
+              <div className="space-y-3">
+                {loadingPosts &&
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="bg-white rounded-2xl shadow-sm p-5 space-y-3 animate-pulse border border-gray-100">
+                      <div className="h-5 bg-gray-100 rounded w-3/4" />
+                      <div className="h-4 bg-gray-100 rounded w-full" />
+                      <div className="h-4 bg-gray-100 rounded w-4/5" />
+                    </div>
+                  ))}
+                {!loadingPosts && posts.length === 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <p className="text-sm font-semibold text-[#001049]">No posts yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Posts you create will appear here.</p>
+                  </div>
+                )}
+                {!loadingPosts &&
+                  posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onAppreciate={onAppreciate}
+                      appreciating={appreciating.has(post.id)}
+                      showAuthor={false}
+                    />
+                  ))}
+              </div>
+            )}
+
+            {activeTab === "profile" && <>
 
             {/* About */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -902,6 +1011,8 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            </>}
 
           </main>
 

@@ -28,6 +28,8 @@ export default function FeedPage() {
   const [tokens, setTokens] = useState(0);
   const [shopMessage, setShopMessage] = useState("");
   const [redeemingKey, setRedeemingKey] = useState<string | null>(null);
+  const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
+  const [followingInProgress, setFollowingInProgress] = useState<Set<number>>(new Set());
   const canPost =
     user?.role === "us_member" || user?.role === "admin" || user?.role === "board_member";
   const canSeeTopActions = user?.role !== "member";
@@ -55,6 +57,15 @@ export default function FeedPage() {
     }
   }, [authFetch]);
 
+  const loadFollowing = useCallback(async () => {
+    try {
+      const data = await authFetch("/api/user/follows");
+      setFollowingIds(new Set((data.followingIds ?? []) as number[]));
+    } catch {
+      setFollowingIds(new Set());
+    }
+  }, [authFetch]);
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -63,7 +74,8 @@ export default function FeedPage() {
     }
     loadPosts();
     loadTokens();
-  }, [user, loading, router, loadPosts, loadTokens]);
+    loadFollowing();
+  }, [user, loading, router, loadPosts, loadTokens, loadFollowing]);
 
   const onAppreciate = async (postId: number) => {
     if (appreciating.has(postId)) return;
@@ -111,6 +123,39 @@ export default function FeedPage() {
       setAppreciating((prev) => {
         const next = new Set(prev);
         next.delete(postId);
+        return next;
+      });
+    }
+  };
+
+  const onFollow = async (authorId: number) => {
+    if (followingInProgress.has(authorId)) return;
+    const isFollowing = followingIds.has(authorId);
+    setFollowingInProgress((prev) => new Set(prev).add(authorId));
+    setFollowingIds((prev) => {
+      const next = new Set(prev);
+      isFollowing ? next.delete(authorId) : next.add(authorId);
+      return next;
+    });
+    try {
+      if (isFollowing) {
+        await authFetch(`/api/user/follows/${authorId}`, { method: "DELETE" });
+      } else {
+        await authFetch("/api/user/follows", {
+          method: "POST",
+          body: JSON.stringify({ followingId: authorId }),
+        });
+      }
+    } catch {
+      setFollowingIds((prev) => {
+        const next = new Set(prev);
+        isFollowing ? next.add(authorId) : next.delete(authorId);
+        return next;
+      });
+    } finally {
+      setFollowingInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(authorId);
         return next;
       });
     }
@@ -222,6 +267,9 @@ export default function FeedPage() {
               onAppreciate={onAppreciate}
               appreciating={appreciating.has(post.id)}
               showAuthor
+              onFollow={post.author?.id !== user.id ? onFollow : undefined}
+              isFollowing={post.author ? followingIds.has(post.author.id) : false}
+              followingInProgress={post.author ? followingInProgress.has(post.author.id) : false}
             />
           ))}
       </div>

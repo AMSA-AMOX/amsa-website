@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
+import PostCard from "@/components/posts/PostCard";
+import type { PostItem } from "@/components/posts/types";
 
 type NetworkProfile = {
   id: number;
@@ -183,6 +185,11 @@ export default function NetworkProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState("");
   const [followInFlight, setFollowInFlight] = useState(false);
+  const [activeTab, setActiveTab] = useState<"profile" | "posts">("profile");
+  const [posts, setPosts] = useState<PostItem[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+  const [appreciating, setAppreciating] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (loading) return;
@@ -219,6 +226,63 @@ export default function NetworkProfilePage() {
       active = false;
     };
   }, [memberId, loading, user, router, authFetch]);
+
+  const loadPosts = useCallback(async () => {
+    if (postsLoaded || loadingPosts) return;
+    setLoadingPosts(true);
+    try {
+      const data = await authFetch(`/api/posts?creatorId=${memberId}&limit=20`);
+      setPosts((data.posts ?? []) as PostItem[]);
+      setPostsLoaded(true);
+    } catch {
+      setPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [authFetch, memberId, postsLoaded, loadingPosts]);
+
+  const handleTabChange = (tab: "profile" | "posts") => {
+    setActiveTab(tab);
+    if (tab === "posts" && !postsLoaded) {
+      loadPosts();
+    }
+  };
+
+  const onAppreciate = async (postId: number) => {
+    if (appreciating.has(postId)) return;
+    const current = posts.find((p) => p.id === postId);
+    if (!current || current.hasAppreciated) return;
+    setAppreciating((prev) => new Set(prev).add(postId));
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, hasAppreciated: true, appreciationCount: p.appreciationCount + 1 } : p
+      )
+    );
+    try {
+      const data = await authFetch(`/api/posts/${postId}/helpful`, { method: "POST" });
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, hasAppreciated: Boolean(data.hasAppreciated), appreciationCount: Number(data.appreciationCount ?? p.appreciationCount) }
+            : p
+        )
+      );
+    } catch {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, hasAppreciated: current.hasAppreciated, appreciationCount: current.appreciationCount }
+            : p
+        )
+      );
+    } finally {
+      setAppreciating((prev) => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+    }
+  };
 
   const toggleFollow = async () => {
     if (!profile || followInFlight || profile.id === user?.id) return;
@@ -391,6 +455,24 @@ export default function NetworkProfilePage() {
             </aside>
 
             <main className="flex-1 min-w-0 space-y-3">
+              {/* Tab nav */}
+              <div className="bg-white rounded-2xl shadow-sm px-6 flex border-b border-gray-100 overflow-hidden">
+                {(["profile", "posts"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => handleTabChange(tab)}
+                    className={`py-3.5 mr-6 text-sm font-semibold border-b-2 transition-colors capitalize -mb-px ${
+                      activeTab === tab
+                        ? "border-[#001049] text-[#001049]"
+                        : "border-transparent text-gray-400 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab === "posts" ? `Posts${postsLoaded ? ` ${posts.length}` : ""}` : "Profile"}
+                  </button>
+                ))}
+              </div>
+
               <div className="lg:hidden bg-white rounded-2xl shadow-sm p-5">
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xl font-bold shrink-0 overflow-hidden">
@@ -451,70 +533,102 @@ export default function NetworkProfilePage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-gray-900">About</h2>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mt-3">
-                  {profile.bio || "No bio added yet."}
-                </p>
-              </div>
+              {activeTab === "profile" && (
+                <>
+                  <div className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900">About</h2>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mt-3">
+                      {profile.bio || "No bio added yet."}
+                    </p>
+                  </div>
 
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-gray-900">Education</h2>
-                <div className="mt-4">
-                  {profile.schoolName ? (
-                    <div className="flex gap-4">
-                      <EntityLogo name={profile.schoolName} preferEdu={true} size={12} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-gray-900">
-                          {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-0.5">{profile.schoolName}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No education details added yet.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-gray-900">Work Experience</h2>
-                <div className="mt-4">
-                  {experiences.length === 0 ? (
-                    <p className="text-sm text-gray-500">No experience added yet.</p>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {experiences.map((exp) => (
-                        <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                          <EntityLogo name={exp.company} preferEdu={false} size={12} rounded="rounded-xl" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900 leading-snug">{exp.jobTitle}</p>
-                            <p className="text-sm text-gray-600 mt-0.5">
-                              {exp.company}
-                              {exp.employmentType && <span className="text-gray-400"> · {exp.employmentType}</span>}
+                  <div className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900">Education</h2>
+                    <div className="mt-4">
+                      {profile.schoolName ? (
+                        <div className="flex gap-4">
+                          <EntityLogo name={profile.schoolName} preferEdu={true} size={12} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-900">
+                              {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
                             </p>
+                            <p className="text-sm text-gray-600 mt-0.5">{profile.schoolName}</p>
                             <p className="text-xs text-gray-400 mt-0.5">
-                              {exp.startMonth} {exp.startYear}
-                              {exp.currentlyWorking
-                                ? " - Present"
-                                : exp.endMonth && exp.endYear
-                                  ? ` - ${exp.endMonth} ${exp.endYear}`
-                                  : ""}
-                              {exp.location && ` · ${exp.location}`}
+                              {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null]
+                                .filter(Boolean)
+                                .join(" · ")}
                             </p>
-                            {exp.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{exp.description}</p>}
                           </div>
                         </div>
-                      ))}
+                      ) : (
+                        <p className="text-sm text-gray-500">No education details added yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900">Work Experience</h2>
+                    <div className="mt-4">
+                      {experiences.length === 0 ? (
+                        <p className="text-sm text-gray-500">No experience added yet.</p>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {experiences.map((exp) => (
+                            <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
+                              <EntityLogo name={exp.company} preferEdu={false} size={12} rounded="rounded-xl" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-gray-900 leading-snug">{exp.jobTitle}</p>
+                                <p className="text-sm text-gray-600 mt-0.5">
+                                  {exp.company}
+                                  {exp.employmentType && <span className="text-gray-400"> · {exp.employmentType}</span>}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {exp.startMonth} {exp.startYear}
+                                  {exp.currentlyWorking
+                                    ? " - Present"
+                                    : exp.endMonth && exp.endYear
+                                      ? ` - ${exp.endMonth} ${exp.endYear}`
+                                      : ""}
+                                  {exp.location && ` · ${exp.location}`}
+                                </p>
+                                {exp.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{exp.description}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "posts" && (
+                <div className="space-y-3">
+                  {loadingPosts &&
+                    Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow-sm p-5 space-y-3 animate-pulse border border-gray-100">
+                        <div className="h-5 bg-gray-100 rounded w-3/4" />
+                        <div className="h-4 bg-gray-100 rounded w-full" />
+                        <div className="h-4 bg-gray-100 rounded w-4/5" />
+                      </div>
+                    ))}
+                  {!loadingPosts && posts.length === 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                      <p className="text-sm font-semibold text-[#001049]">No posts yet</p>
                     </div>
                   )}
+                  {!loadingPosts &&
+                    posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onAppreciate={onAppreciate}
+                        appreciating={appreciating.has(post.id)}
+                        showAuthor={false}
+                      />
+                    ))}
                 </div>
-              </div>
+              )}
 
             </main>
 
