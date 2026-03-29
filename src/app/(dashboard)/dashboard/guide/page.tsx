@@ -5,7 +5,7 @@ export default function GuidePage() {
       <p className="text-gray-400 text-sm mb-8">Helpful guides and resources for AMSA students.</p>
       <div className="bg-white rounded-2xl shadow-sm p-3 md:p-5">
         <iframe
-          src="https://publuu.com/flip-book/1080174/2408563/page/4?embed"
+          src="https://publuu.com/flip-book/1080174/2408563/page/1?embed"
           width="100%"
           height="900"
           scrolling="no"

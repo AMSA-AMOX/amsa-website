@@ -10,7 +10,7 @@ type NavItem = {
   label: string;
   href: string;
   section: "top" | "social" | "tools";
-  requiresAdmin?: boolean;
+  allowedRoles?: string[];
   icon: React.ReactNode;
 };
 
@@ -76,6 +76,16 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    label: "Creator",
+    href: "/dashboard/blogs",
+    section: "tools",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 1 0-7.18 0m7.18 0A5.97 5.97 0 0 1 18 19.5a2.25 2.25 0 0 1-2.25 2.25h-7.5A2.25 2.25 0 0 1 6 19.5a5.97 5.97 0 0 1 2.41-5.13m7.18 0a11.95 11.95 0 0 1-7.18 0" />
+      </svg>
+    ),
+  },
+  {
     label: "Events",
     href: "/dashboard/events",
     section: "social",
@@ -99,10 +109,21 @@ const navItems: NavItem[] = [
     label: "Verification Queue",
     href: "/dashboard/admin/verification",
     section: "tools",
-    requiresAdmin: true,
+    allowedRoles: ["admin"],
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m6 2.25a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Post Approval",
+    href: "/dashboard/admin/posts",
+    section: "tools",
+    allowedRoles: ["admin", "board_member"],
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-9-5.25h12A2.25 2.25 0 0 1 20.25 9v9.75A2.25 2.25 0 0 1 18 21H6a2.25 2.25 0 0 1-2.25-2.25V9A2.25 2.25 0 0 1 6 6.75Zm0-3h12" />
       </svg>
     ),
   },
@@ -113,8 +134,9 @@ export default function DashboardSidebar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const isAdmin = user?.role === "admin";
-  const visibleNavItems = navItems.filter((item) => !item.requiresAdmin || isAdmin);
+  const visibleNavItems = navItems.filter(
+    (item) => !item.allowedRoles || (user?.role ? item.allowedRoles.includes(user.role) : false)
+  );
   const topItems = visibleNavItems.filter((item) => item.section === "top");
   const socialItems = visibleNavItems.filter((item) => item.section === "social");
   const toolItems = visibleNavItems.filter((item) => item.section === "tools");

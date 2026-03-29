@@ -1,60 +1,22 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-
-export default function BlogsPage() {
-  const [blogs, setBlogs] = useState<any[]>([]);
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setError("");
-        const { blogs } = await api("/api/blogs");
-        setBlogs(blogs || []);
-      } catch (e: any) {
-        setError(e?.message || "Failed to load blogs");
-      }
-    };
-    load();
-  }, []);
-
+export default function ResourcesPage() {
   return (
-    <section className="bg-[#FFFCF3] py-16 px-4 font-poppins">
-      <h2 className="text-3xl md:text-4xl text-center font-['Syne-Bold'] text-[#001A78] mb-12">
-        <span className="text-[#001A78]">Announcements</span>
-        {" and "}
-        <span className="text-[#FFCA3A]">Stories</span>
-      </h2>
-
-      {error && <p className="text-red-600 text-center mb-4 text-sm">{error}</p>}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
-        {blogs.map((blog, index) => (
-          <div
-            key={blog.id || index}
-            className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transform transition duration-300 hover:-translate-y-1 max-w-full w-full sm:w-[300px] flex flex-col cursor-pointer animate-fade-up"
-          >
-            <img src={blog.coverImageUrl || "/assets/Hero-background.png"} alt={blog.title} className="w-full h-[200px] object-cover" />
-            <div className="p-5 flex flex-col flex-grow">
-              <h3 className="text-lg font-['Syne-Bold'] text-[#001A78] mb-2">{blog.title}</h3>
-              <p className="text-sm text-[#333] leading-relaxed flex-grow">
-                {expanded === index ? blog.content : blog.content?.slice(0, 180) + (blog.content?.length > 180 ? "..." : "")}
-              </p>
-              <button
-                onClick={() => setExpanded(expanded === index ? null : index)}
-                className="mt-4 inline-block border-2 border-[#001A78] text-[#001A78] px-4 py-2 rounded-lg text-sm hover:bg-[#FFCA3A] transition-all"
-              >
-                {expanded === index ? "Show Less" : "Read More"}
-              </button>
-            </div>
-          </div>
-        ))}
-        {blogs.length === 0 && !error && (
-          <p className="text-sm text-gray-600 text-center col-span-full">No blogs yet.</p>
-        )}
+    <section className="min-h-screen bg-[#001049] py-16 px-4 font-poppins">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl md:text-4xl text-center font-['Syne-Bold'] text-white mb-3">Resources</h1>
+        <p className="text-white/70 text-center text-sm mb-10">Helpful guides and resources for AMSA students.</p>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-3 md:p-5">
+          <iframe
+            src="https://publuu.com/flip-book/1080174/2408563/page/1?embed"
+            width="100%"
+            height="900"
+            scrolling="no"
+            frameBorder={0}
+            allow="clipboard-write; autoplay; fullscreen"
+            allowFullScreen
+            className="publuuflip rounded-xl"
+            title="AMSA Resources"
+          />
+        </div>
       </div>
     </section>
   );

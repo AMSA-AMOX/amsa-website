@@ -47,18 +47,22 @@ const HistoricalMemberCard = ({ member }: { member: TeamMemberInfo }) => {
       data-aos="fade-up"
       className="flex flex-col items-center"
     >
-      <div className="w-52 h-68 overflow-hidden border-8 border-white mb-3">
-        <Image
-          src={profilePic.startsWith("http") ? profilePic : "/avatar.png"}
-          alt={name}
-          width={208}
-          height={272}
-          className="object-cover w-full h-full"
-          unoptimized
-        />
+      <div className="w-56 overflow-hidden border-[12px] border-white mb-3 bg-white">
+        <div className="h-68 overflow-hidden mb-2">
+          <Image
+            src={profilePic.startsWith("http") ? profilePic : "/avatar.png"}
+            alt={name}
+            width={208}
+            height={272}
+            className="object-cover w-full h-full"
+            unoptimized
+          />
+        </div>
+        <div className="px-3 py-2 text-center">
+          <h3 className="text-[#111111] text-2xl leading-tight mb-0.5" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{name}</h3>
+          <p className="text-[#8A8A8A] text-sm lowercase" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</p>
+        </div>
       </div>
-      <h3 className="text-white text-center text-xl leading-tight mb-0.5" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{name}</h3>
-      <p className="text-[#FFCA3A] text-sm text-center lowercase" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</p>
     </div>
   );
 };
@@ -93,12 +97,14 @@ const TeamSection = () => {
     <div className="w-full bg-[#001049] font-poppins">
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <div className="relative w-full">
-        <img
-          src="/teampage.JPG"
+      <div className="relative w-full h-[75vh] min-h-[420px] max-h-[820px]">
+        <Image
+          src="/teampage-hero.jpg"
           alt="AMSA Team"
-          className="w-full object-cover object-center"
-          style={{ maxHeight: "75vh", minHeight: "420px" }}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
         />
         {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-black/30" />
@@ -112,7 +118,7 @@ const TeamSection = () => {
             <p className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest mb-3">Our People</p>
             <h1 className="font-['Syne-Bold'] text-white text-2xl sm:text-3xl md:text-4xl leading-snug mb-4">
               A team {" "}
-              <em className="not-italic text-[#FFCA3A]">committed</em>{" "}
+              <em className="italic text-[#FFCA3A]">committed</em>{" "}
               to the generations to come.
             </h1>
             <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-md">
@@ -123,12 +129,12 @@ const TeamSection = () => {
       </div>
 
       {/* ── Strategy Board ───────────────────────────────────────────────────── */}
-      <section className="py-20 px-6">
+      <section className="py-16 px-6">
         <h2
-          className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
+          className="font-['Syne-Bold'] text-white text-center mb-10 leading-[1.4]"
           data-aos="fade-up"
         >
-          <span className="block text-xl sm:text-3xl md:text-4xl">Strategy Board</span>
+          <span className="block text-xl sm:text-3xl md:text-3xl">Strategy Board</span>
         </h2>
 
         {/* Desktop */}
@@ -143,18 +149,22 @@ const TeamSection = () => {
               data-aos-delay={index * 80}
               className="flex flex-col items-center hover:-translate-y-2 transition-transform duration-300"
             >
-              <div className="w-70 h-90 overflow-hidden border-8 border-white mb-4">
-                <Image
-                  src={member.image}
-                  alt={member.name}
-                  width={280}
-                  height={360}
-                  className="object-cover w-full h-full"
-                  unoptimized
-                />
+              <div className="w-64 overflow-hidden border-[8px] lg:border-[10px] xl:border-[12px] border-white mb-4 bg-white">
+                <div className="h-[300px] overflow-hidden mt-2 mb-2 mx-2">
+                  <Image
+                    src={member.image}
+                    alt={member.name}
+                    width={256}
+                    height={300}
+                    className="object-cover object-top w-full h-full"
+                    unoptimized
+                  />
+                </div>
+                <div className="px-3 py-1.5 text-center">
+                  <h3 className="text-[#111111] text-4xl" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</h3>
+                  <p className="text-[#8A8A8A] font-medium text-lg" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.role}</p>
+                </div>
               </div>
-              <h3 className="text-white text-4xl" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</h3>
-              <p className="text-[#FFCA3A] font-medium text-xl" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.role}</p>
             </a>
           ))}
         </div>
@@ -172,18 +182,22 @@ const TeamSection = () => {
                 data-aos-delay={index * 50}
                 className="flex flex-col items-center flex-shrink-0"
               >
-                <div className="w-[140px] h-[180px]  overflow-hidden border-8 border-white mb-3">
-                  <Image
-                    src={member.image}
-                    alt={member.name}
-                    width={140}
-                    height={180}
-                    className="object-cover w-full h-full"
-                    unoptimized
-                  />
+                <div className="w-[142px] overflow-hidden border-[6px] sm:border-[8px] border-white mb-3 bg-white">
+                  <div className="h-[164px] overflow-hidden mt-1.5 mb-1.5 mx-1.5">
+                    <Image
+                      src={member.image}
+                      alt={member.name}
+                      width={126}
+                      height={164}
+                      className="object-cover object-top w-full h-full"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="px-2 py-1 text-center">
+                    <h3 className="text-[#111111] font-bold text-xl" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</h3>
+                    <p className="text-[#8A8A8A] text-sm" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.role}</p>
+                  </div>
                 </div>
-                <h3 className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.name}</h3>
-                <p className="text-[#FFCA3A] text-sm" style={{ fontFamily: "var(--font-ysabeau-sc)" }}>{member.role}</p>
               </a>
             ))}
           </div>

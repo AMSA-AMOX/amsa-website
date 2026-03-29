@@ -60,7 +60,7 @@ export default function Navbar() {
     { name: "Home", to: "/" },
     { name: "Programs", to: "/programs" },
     { name: "Team", to: "/team" },
-    { name: "Blog", to: "/blog" },
+    { name: "Resources", to: "/blog" },
   ];
 
   return (
