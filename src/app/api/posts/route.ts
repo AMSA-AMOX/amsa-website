@@ -13,6 +13,7 @@ type RawPostRow = {
   reviewStatus: "pending" | "approved" | "rejected";
   reviewedAt: string | null;
   reviewNote: string | null;
+  topic: string | null;
 };
 
 type RawUserRow = {
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from("Posts")
-      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote")
+      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
       .order("createdAt", { ascending: false })
       .limit(limit);
 
@@ -152,6 +153,7 @@ export async function GET(request: Request) {
         reviewStatus: post.reviewStatus,
         reviewedAt: post.reviewedAt,
         reviewNote: post.reviewNote,
+        topic: post.topic ?? null,
         author: (() => {
           const normalizedUserId = normalizeId(post.userId);
           return normalizedUserId !== null ? usersById.get(normalizedUserId) ?? null : null;
@@ -188,6 +190,7 @@ export async function POST(request: Request) {
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const text = typeof body?.body === "string" ? body.body.trim() : "";
     const images = normalizeImages(body?.images).slice(0, 6);
+    const topic = typeof body?.topic === "string" && body.topic.trim().length > 0 ? body.topic.trim() : null;
     const reviewStatus = payload.role === ROLES.US_MEMBER ? "pending" : "approved";
     const nowIso = new Date().toISOString();
     const startOfUtcDay = new Date();
@@ -230,11 +233,12 @@ export async function POST(request: Request) {
         title,
         body: text,
         images,
+        topic,
         reviewStatus,
         createdAt: nowIso,
         updatedAt: nowIso,
       })
-      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote")
+      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
       .single();
 
     if (error || !insertedPost) {
@@ -260,6 +264,7 @@ export async function POST(request: Request) {
         reviewStatus: insertedPost.reviewStatus,
         reviewedAt: insertedPost.reviewedAt,
         reviewNote: insertedPost.reviewNote,
+        topic: (insertedPost as any).topic ?? null,
         author: author ?? null,
       },
       requiresApproval: reviewStatus === "pending",

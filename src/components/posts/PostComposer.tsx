@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import type { PostItem } from "@/components/posts/types";
+import { POST_TOPICS } from "@/components/posts/types";
 
 type PostComposerProps = {
   onCreated: (post: PostItem) => void;
@@ -24,6 +25,7 @@ export default function PostComposer({
   const { user, authFetch } = useAuth();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [topic, setTopic] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -45,11 +47,12 @@ export default function PostComposer({
       canPost &&
       title.trim().length > 0 &&
       body.trim().length > 0 &&
+      topic.length > 0 &&
       title.trim().length <= MAX_TITLE &&
       body.trim().length <= MAX_BODY &&
       files.length <= MAX_IMAGES
     );
-  }, [title, body, files.length, submitting]);
+  }, [title, body, topic, files.length, submitting]);
 
   const onPickFiles = (event: ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files ?? []);
@@ -114,6 +117,7 @@ export default function PostComposer({
         body: JSON.stringify({
           title: title.trim(),
           body: body.trim(),
+          topic,
           images: imageUrls,
         }),
       });
@@ -121,6 +125,7 @@ export default function PostComposer({
       onCreated(data.post as PostItem);
       setTitle("");
       setBody("");
+      setTopic("");
       setFiles([]);
     } catch (e: any) {
       setError(e?.message ?? "Could not create post.");
@@ -158,6 +163,30 @@ export default function PostComposer({
           disabled={!canPost}
           className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#001049]/20 focus:border-[#001049] resize-y"
         />
+
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Topic</p>
+          <div className="flex flex-wrap gap-2">
+            {POST_TOPICS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                disabled={!canPost}
+                onClick={() => setTopic(topic === t ? "" : t)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
+                  topic === t
+                    ? "bg-[#001049] text-white border-[#001049]"
+                    : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+                } disabled:opacity-50`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          {!topic && (
+            <p className="text-xs text-gray-400 mt-1.5">Select a topic to continue.</p>
+          )}
+        </div>
 
         <div className="flex items-center justify-between flex-wrap gap-3">
           <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 ${canPost ? "hover:bg-gray-50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}>

@@ -1,3 +1,12 @@
+export const POST_TOPICS = [
+  "School", "Classes", "Dorm", "Dining", "Campus Life",
+  "Social Life", "Clubs", "Sports", "Health", "Housing",
+  "Admission", "Internships", "Jobs", "Research", "Finance",
+  "Study Abroad", "Events", "Tips", "Fun", "Weather",
+] as const;
+
+export type PostTopic = typeof POST_TOPICS[number];
+
 export type PostAuthor = {
   id: number;
   firstName: string;
@@ -17,5 +26,6 @@ export type PostItem = {
   reviewStatus: "pending" | "approved" | "rejected";
   reviewedAt?: string | null;
   reviewNote?: string | null;
+  topic?: string | null;
   author: PostAuthor | null;
 };

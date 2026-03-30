@@ -42,6 +42,7 @@ export default function AdminPostsQueuePage() {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [actionId, setActionId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const pendingCount = useMemo(
@@ -83,6 +84,19 @@ export default function AdminPostsQueuePage() {
       setPosts([]);
     } finally {
       setLoadingPosts(false);
+    }
+  };
+
+  const deletePost = async (postId: number) => {
+    setDeletingId(postId);
+    setError(null);
+    try {
+      await authFetch(`/api/posts/${postId}`, { method: "DELETE" });
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to delete post.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -191,26 +205,36 @@ export default function AdminPostsQueuePage() {
                 />
               </div>
 
-              {post.reviewStatus === "pending" && (
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => reviewPost(post, "approved")}
-                    disabled={actionId === post.id}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => reviewPost(post, "rejected")}
-                    disabled={actionId === post.id}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {post.reviewStatus === "pending" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => reviewPost(post, "approved")}
+                      disabled={actionId === post.id}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => reviewPost(post, "rejected")}
+                      disabled={actionId === post.id}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => deletePost(post.id)}
+                  disabled={deletingId === post.id}
+                  className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500 transition disabled:opacity-50"
+                >
+                  {deletingId === post.id ? "Deleting…" : "Delete"}
+                </button>
+              </div>
             </article>
           ))}
         </div>

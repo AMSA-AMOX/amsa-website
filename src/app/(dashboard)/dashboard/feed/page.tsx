@@ -30,6 +30,7 @@ export default function FeedPage() {
   const [redeemingKey, setRedeemingKey] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<number>>(new Set());
+  const [deleting, setDeleting] = useState<Set<number>>(new Set());
   const canPost =
     user?.role === "us_member" || user?.role === "admin" || user?.role === "board_member";
   const canSeeTopActions = user?.role !== "member";
@@ -161,6 +162,18 @@ export default function FeedPage() {
     }
   };
 
+  const onDelete = async (postId: number) => {
+    setDeleting((prev) => new Set(prev).add(postId));
+    try {
+      await authFetch(`/api/posts/${postId}`, { method: "DELETE" });
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch {
+      // leave post in list on failure
+    } finally {
+      setDeleting((prev) => { const next = new Set(prev); next.delete(postId); return next; });
+    }
+  };
+
   const onCreated = (post: PostItem) => {
     if (post.reviewStatus === "approved") {
       setPosts((prev) => [post, ...prev]);
@@ -275,6 +288,12 @@ export default function FeedPage() {
               onFollow={post.author?.id !== user.id ? onFollow : undefined}
               isFollowing={post.author ? followingIds.has(post.author.id) : false}
               followingInProgress={post.author ? followingInProgress.has(post.author.id) : false}
+              onDelete={
+                post.author?.id === user.id || user.role === "admin" || user.role === "board_member"
+                  ? onDelete
+                  : undefined
+              }
+              deleting={deleting.has(post.id)}
             />
           ))}
       </div>

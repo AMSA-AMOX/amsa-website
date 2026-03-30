@@ -413,6 +413,7 @@ export default function DashboardPage() {
     x: "", facebook: "", instagram: "", linkedin: "",
   });
   const [majorFieldCount, setMajorFieldCount] = useState(1);
+  const [majorValues, setMajorValues] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [schoolSuggestionsOpen, setSchoolSuggestionsOpen] = useState(false);
@@ -432,12 +433,13 @@ export default function DashboardPage() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [appreciating, setAppreciating] = useState<Set<number>>(new Set());
+  const [deletingPost, setDeletingPost] = useState<Set<number>>(new Set());
 
   const loadOwnPosts = useCallback(async () => {
     if (postsLoaded || loadingPosts) return;
     setLoadingPosts(true);
     try {
-      const data = await authFetch("/api/posts?includeModeration=true&limit=40");
+      const data = await authFetch(`/api/posts?includeModeration=true&limit=40&creatorId=${user!.id}`);
       setPosts((data.posts ?? []) as PostItem[]);
       setPostsLoaded(true);
     } catch {
@@ -446,6 +448,18 @@ export default function DashboardPage() {
       setLoadingPosts(false);
     }
   }, [authFetch, postsLoaded, loadingPosts]);
+
+  const onDeletePost = useCallback(async (postId: number) => {
+    setDeletingPost((prev) => new Set(prev).add(postId));
+    try {
+      await authFetch(`/api/posts/${postId}`, { method: "DELETE" });
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch {
+      // leave post in list on failure
+    } finally {
+      setDeletingPost((prev) => { const next = new Set(prev); next.delete(postId); return next; });
+    }
+  }, [authFetch]);
 
   const onAppreciate = useCallback(async (postId: number) => {
     if (appreciating.has(postId)) return;
@@ -515,32 +529,31 @@ export default function DashboardPage() {
       graduationYear: profile.graduationYear ?? "",
       x: profile.x ?? "", facebook: profile.facebook ?? "", instagram: profile.instagram ?? "", linkedin: profile.linkedin ?? "",
     });
-    setMajorFieldCount(Math.max(1, majors.length || 1));
+    const count = Math.max(1, majors.length || 1);
+    setMajorFieldCount(count);
+    setMajorValues(Array.from({ length: count }, (_, i) => majors[i] ?? ""));
     setSaveError(""); setAvatarFile(null); setAvatarPreview(null);
     setAvatarRemoved(false); setAvatarError(""); setSchoolSuggestionsOpen(false); setEditOpen(true);
   };
 
   const handleField = (name: keyof EditForm, value: string) => setForm((f) => ({ ...f, [name]: value }));
-  const majorParts = useMemo(() => {
-    const parsed = parseMajors(form.major);
-    const padded = Array.from({ length: majorFieldCount }, (_, index) => parsed[index] ?? "");
-    return padded.slice(0, 3);
-  }, [form.major, majorFieldCount]);
 
   const handleMajorChange = (index: number, value: string) => {
-    const next = [...majorParts];
-    next[index] = value;
-    setForm((prev) => ({ ...prev, major: serializeMajors(next) }));
+    setMajorValues((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
   };
 
-  const addMajorField = () => setMajorFieldCount((prev) => Math.min(3, prev + 1));
+  const addMajorField = () => {
+    setMajorFieldCount((prev) => Math.min(3, prev + 1));
+    setMajorValues((prev) => [...prev, ""]);
+  };
   const removeMajorField = () => {
     setMajorFieldCount((prev) => {
       const nextCount = Math.max(1, prev - 1);
-      setForm((current) => ({
-        ...current,
-        major: serializeMajors(parseMajors(current.major).slice(0, nextCount)),
-      }));
+      setMajorValues((current) => current.slice(0, nextCount));
       return nextCount;
     });
   };
@@ -624,7 +637,7 @@ export default function DashboardPage() {
         uploadedUrl = "";
         if (oldUrl) await deleteOldAvatar(oldUrl);
       }
-      const data = await authFetch("/api/user/profile", { method: "PATCH", body: JSON.stringify({ ...form, profilePic: uploadedUrl }) });
+      const data = await authFetch("/api/user/profile", { method: "PATCH", body: JSON.stringify({ ...form, major: serializeMajors(majorValues), profilePic: uploadedUrl }) });
       setProfile(data.user);
       updateUser({ firstName: data.user.firstName, lastName: data.user.lastName, bio: data.user.bio, profilePic: data.user.profilePic });
       setEditOpen(false);
@@ -922,6 +935,8 @@ export default function DashboardPage() {
                       onAppreciate={onAppreciate}
                       appreciating={appreciating.has(post.id)}
                       showAuthor={false}
+                      onDelete={onDeletePost}
+                      deleting={deletingPost.has(post.id)}
                     />
                   ))}
               </div>
@@ -1184,7 +1199,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                       </div>
-                      {majorParts.map((major, index) => (
+                      {majorValues.map((major: string, index: number) => (
                         <input
                           key={`major-${index}`}
                           type="text"

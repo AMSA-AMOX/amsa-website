@@ -26,6 +26,8 @@ type PostCardProps = {
   onFollow?: (authorId: number) => void;
   isFollowing?: boolean;
   followingInProgress?: boolean;
+  onDelete?: (postId: number) => void;
+  deleting?: boolean;
 };
 
 export default function PostCard({
@@ -36,6 +38,8 @@ export default function PostCard({
   onFollow,
   isFollowing,
   followingInProgress,
+  onDelete,
+  deleting,
 }: PostCardProps) {
   const initials = useMemo(() => {
     const first = post.author?.firstName?.[0] ?? "";
@@ -124,6 +128,11 @@ export default function PostCard({
             )}
           </div>
         )}
+        {post.topic && (
+          <span className="inline-flex mb-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#001049]/8 text-[#001049]">
+            {post.topic}
+          </span>
+        )}
         <h2 className="text-lg font-bold text-[#001049] leading-snug">{post.title}</h2>
         <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{post.body}</p>
 
@@ -179,6 +188,17 @@ export default function PostCard({
           </div>
         ) : (
           <span className="text-xs text-gray-400">Available after approval</span>
+        )}
+
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(post.id)}
+            disabled={deleting}
+            className="ml-auto text-xs text-gray-400 hover:text-red-500 transition disabled:opacity-50"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
         )}
       </footer>
     </article>
