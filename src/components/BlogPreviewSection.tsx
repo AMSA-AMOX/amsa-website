@@ -30,7 +30,6 @@ const BlogPreviewSection = () => {
   return (
     <section className="bg-transparent px-4 py-16 text-center text-[#001A78] font-poppins">
       <h2 data-aos="fade-up" className="text-4xl font-['Syne-Bold'] mb-10">
-        <span>Podcast</span> and{" "}
         <span className="border-b-[3px] border-[#FFCA3A]">Blog</span>
       </h2>
 
