@@ -9,6 +9,7 @@ const navLinks = [
   { label: "Programs", href: "/programs" },
   { label: "Team", href: "/team" },
   { label: "Resources", href: "/blog" },
+  { label: "Careers", href: "/careers" },
 ];
 
 const socialLinks = [

@@ -62,6 +62,23 @@ type EditForm = {
   x: string; facebook: string; instagram: string; linkedin: string;
 };
 
+type ThreadUser = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profilePic: string | null;
+};
+
+type ThreadItem = {
+  id: number;
+  question: string;
+  answer: string | null;
+  answeredAt: string | null;
+  createdAt: string;
+  asker: ThreadUser | null;
+  recipient: ThreadUser | null;
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EMPTY_EXP: ExpForm = {
@@ -428,12 +445,15 @@ export default function DashboardPage() {
   const [expSaving, setExpSaving] = useState(false);
   const [expError, setExpError] = useState("");
   const [expDeleting, setExpDeleting] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"profile" | "posts">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "posts" | "threads">("profile");
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [appreciating, setAppreciating] = useState<Set<number>>(new Set());
   const [deletingPost, setDeletingPost] = useState<Set<number>>(new Set());
+  const [threads, setThreads] = useState<ThreadItem[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [threadsLoaded, setThreadsLoaded] = useState(false);
 
   const loadOwnPosts = useCallback(async () => {
     if (postsLoaded || loadingPosts) return;
@@ -448,6 +468,20 @@ export default function DashboardPage() {
       setLoadingPosts(false);
     }
   }, [authFetch, postsLoaded, loadingPosts]);
+
+  const loadOwnThreads = useCallback(async () => {
+    if (threadsLoaded || loadingThreads) return;
+    setLoadingThreads(true);
+    try {
+      const data = await authFetch(`/api/threads/profile/${user!.id}`);
+      setThreads((data.threads ?? []) as ThreadItem[]);
+      setThreadsLoaded(true);
+    } catch {
+      setThreads([]);
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, [authFetch, user, threadsLoaded, loadingThreads]);
 
   const onDeletePost = useCallback(async (postId: number) => {
     setDeletingPost((prev) => new Set(prev).add(postId));
@@ -873,13 +907,14 @@ export default function DashboardPage() {
 
             {/* Tab nav */}
             <div className="flex justify-center gap-8 border-b border-gray-200">
-              {(["profile", "posts"] as const).map((tab) => (
+              {(["profile", "posts", "threads"] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => {
                     setActiveTab(tab);
                     if (tab === "posts" && !postsLoaded) loadOwnPosts();
+                    if (tab === "threads" && !threadsLoaded) loadOwnThreads();
                   }}
                   className={`py-3.5 text-base font-semibold border-b-2 transition-colors -mb-px ${
                     activeTab === tab
@@ -887,7 +922,7 @@ export default function DashboardPage() {
                       : "border-transparent text-gray-400 hover:text-gray-700"
                   }`}
                 >
-                  {tab === "posts" ? "Posts" : "Profile"}
+                  {tab === "posts" ? "Posts" : tab === "threads" ? "Threads" : "Profile"}
                 </button>
               ))}
             </div>
@@ -939,6 +974,45 @@ export default function DashboardPage() {
                       deleting={deletingPost.has(post.id)}
                     />
                   ))}
+              </div>
+            )}
+
+            {activeTab === "threads" && (
+              <div className="space-y-3">
+                {loadingThreads &&
+                  Array.from({ length: 2 }).map((_, idx) => (
+                    <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
+                  ))}
+                {!loadingThreads && threads.length === 0 && (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                    <p className="text-sm font-semibold text-[#001049]">No answered threads yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Questions you answer will appear here.</p>
+                  </div>
+                )}
+                {!loadingThreads && threads.map((t) => {
+                  const initials = `${t.recipient?.firstName?.[0] ?? ""}${t.recipient?.lastName?.[0] ?? ""}`.toUpperCase();
+                  return (
+                    <article key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="px-5 py-4 bg-gray-50">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
+                        <p className="text-sm text-gray-800 leading-relaxed">{t.question}</p>
+                      </div>
+                      <div className="px-5 py-4 bg-white border-t border-gray-100">
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
+                            {t.recipient?.profilePic
+                              ? <img src={t.recipient.profilePic} alt={initials} className="w-full h-full object-cover" />
+                              : initials}
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800">
+                            {t.recipient ? `${t.recipient.firstName} ${t.recipient.lastName}` : "You"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 leading-relaxed">{t.answer}</p>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
 

@@ -14,6 +14,7 @@ type CreateEventBody = {
   virtualLinkSoon?: boolean;
   startAt?: string;
   endAt?: string;
+  timezone?: string;
   feeAmount?: number;
   currency?: string;
   totalSeats?: number;
@@ -23,7 +24,7 @@ type CreateEventBody = {
 
 function normalizeEventPayload(body: CreateEventBody) {
   const title = body.title?.trim();
-  const description = body.description?.trim();
+  const description = typeof body.description === "string" ? body.description.replace(/\s+$/, "") : body.description;
   const location = body.location?.trim() || null;
   const startAt = body.startAt ? new Date(body.startAt) : null;
   const endAt = body.endAt ? new Date(body.endAt) : null;
@@ -39,6 +40,9 @@ function normalizeEventPayload(body: CreateEventBody) {
   const eventMode = body.eventMode || "in_person";
   const virtualMeetingUrl = body.virtualMeetingUrl?.trim() || null;
   const virtualLinkSoon = Boolean(body.virtualLinkSoon);
+  const timezone = typeof body.timezone === "string" && body.timezone.trim().length > 0
+    ? body.timezone.trim()
+    : "Asia/Ulaanbaatar";
   const images = (body.images || []).map((v) => v.trim()).filter(Boolean);
 
   if (!title || !description || !startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
@@ -77,6 +81,7 @@ function normalizeEventPayload(body: CreateEventBody) {
       location,
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
+      timezone,
       feeAmount,
       currency,
       totalSeats,
@@ -190,10 +195,12 @@ export async function POST(request: Request) {
       location: eventPayload.location,
       startAt: eventPayload.startAt,
       endAt: eventPayload.endAt,
+      timezone: eventPayload.timezone,
       feeAmount: eventPayload.feeAmount,
       currency: eventPayload.currency,
       totalSeats: eventPayload.totalSeats,
       isMemberExclusive: eventPayload.isMemberExclusive,
+      eventMode: eventPayload.eventMode,
       createdBy: payload.id,
     };
 
@@ -201,7 +208,6 @@ export async function POST(request: Request) {
       .from("Events")
       .insert({
         ...baseInsert,
-        eventMode: eventPayload.eventMode,
         virtualMeetingUrl: eventPayload.virtualMeetingUrl,
         virtualLinkSoon: eventPayload.virtualLinkSoon,
       })
@@ -209,7 +215,7 @@ export async function POST(request: Request) {
       .single();
 
     let createdEvent = event;
-    if (error && String(error.message || "").includes("virtualLinkSoon")) {
+    if (error && /virtualMeetingUrl|virtualLinkSoon/.test(error.message || "")) {
       const retry = await supabase.from("Events").insert(baseInsert).select("*").single();
       if (retry.error || !retry.data) {
         throw retry.error || new Error("Failed to create event");

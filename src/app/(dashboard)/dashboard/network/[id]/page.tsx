@@ -26,7 +26,74 @@ type NetworkProfile = {
   followersCount: number;
   followingCount: number;
   isFollowing: boolean;
+  role: string;
 };
+
+type ThreadUser = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profilePic: string | null;
+};
+
+type ThreadItem = {
+  id: number;
+  question: string;
+  answer: string | null;
+  answeredAt: string | null;
+  createdAt: string;
+  status: "answered" | "pending";
+  asker: ThreadUser | null;
+  recipient: ThreadUser | null;
+};
+
+function formatRelativeThread(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function ThreadCard({ thread }: { thread: ThreadItem }) {
+  const recipientName = thread.recipient
+    ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
+    : "Member";
+  const recipientInitials = thread.recipient
+    ? `${thread.recipient.firstName?.[0] ?? ""}${thread.recipient.lastName?.[0] ?? ""}`.toUpperCase()
+    : "M";
+
+  return (
+    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Question */}
+      <div className="px-5 py-4 bg-gray-50">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
+        <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
+      </div>
+
+      {/* Answer */}
+      <div className="px-5 py-4 bg-white border-t border-gray-100">
+        <div className="flex items-center gap-2 mb-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
+            {thread.recipient?.profilePic ? (
+              <img src={thread.recipient.profilePic} alt={recipientName} className="w-full h-full object-cover" />
+            ) : recipientInitials}
+          </div>
+          <span className="text-sm font-semibold text-gray-800">{recipientName}</span>
+        </div>
+        {thread.answer ? (
+          <p className="text-sm text-gray-600 leading-relaxed">{thread.answer}</p>
+        ) : (
+          <p className="text-sm text-gray-400 italic">Awaiting answer…</p>
+        )}
+      </div>
+    </article>
+  );
+}
 
 type Experience = {
   id: number;
@@ -185,11 +252,18 @@ export default function NetworkProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState("");
   const [followInFlight, setFollowInFlight] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "posts">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "posts" | "threads">("profile");
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [appreciating, setAppreciating] = useState<Set<number>>(new Set());
+  const [profileThreads, setProfileThreads] = useState<ThreadItem[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [threadsLoaded, setThreadsLoaded] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
+  const [questionDraft, setQuestionDraft] = useState("");
+  const [submittingQuestion, setSubmittingQuestion] = useState(false);
+  const [questionMessage, setQuestionMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -241,10 +315,44 @@ export default function NetworkProfilePage() {
     }
   }, [authFetch, memberId, postsLoaded, loadingPosts]);
 
-  const handleTabChange = (tab: "profile" | "posts") => {
+  const loadProfileThreads = useCallback(async () => {
+    if (threadsLoaded || loadingThreads) return;
+    setLoadingThreads(true);
+    try {
+      const data = await authFetch(`/api/threads/profile/${memberId}`);
+      setProfileThreads((data.threads ?? []) as ThreadItem[]);
+      setThreadsLoaded(true);
+    } catch {
+      setProfileThreads([]);
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, [authFetch, memberId, threadsLoaded, loadingThreads]);
+
+  const handleTabChange = (tab: "profile" | "posts" | "threads") => {
     setActiveTab(tab);
-    if (tab === "posts" && !postsLoaded) {
-      loadPosts();
+    if (tab === "posts" && !postsLoaded) loadPosts();
+    if (tab === "threads" && !threadsLoaded) loadProfileThreads();
+  };
+
+  const submitQuestion = async () => {
+    if (!profile || submittingQuestion) return;
+    const q = questionDraft.trim();
+    if (!q) return;
+    setSubmittingQuestion(true);
+    try {
+      await authFetch("/api/threads", {
+        method: "POST",
+        body: JSON.stringify({ recipientId: profile.id, question: q }),
+      });
+      setQuestionDraft("");
+      setAskOpen(false);
+      setQuestionMessage({ text: "Your question has been sent!", ok: true });
+      setTimeout(() => setQuestionMessage(null), 4000);
+    } catch (e: any) {
+      setQuestionMessage({ text: e?.message ?? "Failed to send question.", ok: false });
+    } finally {
+      setSubmittingQuestion(false);
     }
   };
 
@@ -328,11 +436,17 @@ export default function NetworkProfilePage() {
     return `${profile.firstName} ${profile.lastName}`.trim();
   }, [profile]);
 
+  const canAskQuestion =
+    user?.role === "member" &&
+    profile !== null &&
+    profile.id !== user?.id &&
+    ["us_member", "board_member", "admin"].includes(profile?.role ?? "");
+
   if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-3 md:px-5">
-      <div className="max-w-[1500px] mx-auto">
+      <div className="max-w-375 mx-auto">
         <div className="mb-3">
           <Link
             href="/dashboard/network"
@@ -395,6 +509,7 @@ export default function NetworkProfilePage() {
                       {profile.isFollowing ? "Following" : "Follow"}
                     </button>
                   )}
+
                 </div>
 
                 <div className="px-5 py-4 space-y-3">
@@ -452,12 +567,61 @@ export default function NetworkProfilePage() {
                   </div>
                 )}
               </div>
+
+              {canAskQuestion && (
+                <div className="bg-white rounded-2xl shadow-sm p-5">
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Ask a question</p>
+                  <p className="text-xs text-gray-400 mb-3">Send a direct question to {profile.firstName}.</p>
+                  {questionMessage && (
+                    <p className={`text-xs mb-2 ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
+                      {questionMessage.text}
+                    </p>
+                  )}
+                  {!askOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
+                      className="w-full px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:border-[#001049]/30 hover:text-[#001049] transition"
+                    >
+                      Ask a Direct Question
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <textarea
+                        value={questionDraft}
+                        onChange={(e) => setQuestionDraft(e.target.value)}
+                        placeholder="Ask your question… (max 600 chars)"
+                        maxLength={600}
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={submittingQuestion || questionDraft.trim().length === 0}
+                          onClick={submitQuestion}
+                          className="flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
+                        >
+                          {submittingQuestion ? "Sending…" : "Submit"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionMessage(null); }}
+                          className="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </aside>
 
             <main className="flex-1 min-w-0 space-y-3">
               {/* Tab nav */}
               <div className="flex justify-center gap-8 border-b border-gray-200">
-                {(["profile", "posts"] as const).map((tab) => (
+                {(["profile", "posts", "threads"] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
@@ -468,7 +632,7 @@ export default function NetworkProfilePage() {
                         : "border-transparent text-gray-400 hover:text-gray-700"
                     }`}
                   >
-                    {tab === "posts" ? "Posts" : "Profile"}
+                    {tab === "posts" ? "Posts" : tab === "threads" ? "Threads" : "Profile"}
                   </button>
                 ))}
               </div>
@@ -532,6 +696,55 @@ export default function NetworkProfilePage() {
                   </div>
                 )}
               </div>
+
+              {canAskQuestion && (
+                <div className="lg:hidden bg-white rounded-2xl shadow-sm p-5">
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Ask a question</p>
+                  <p className="text-xs text-gray-400 mb-3">Send a direct question to {profile.firstName}.</p>
+                  {questionMessage && (
+                    <p className={`text-xs mb-2 ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
+                      {questionMessage.text}
+                    </p>
+                  )}
+                  {!askOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
+                      className="w-full px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:border-[#001049]/30 hover:text-[#001049] transition"
+                    >
+                      Ask a Direct Question
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <textarea
+                        value={questionDraft}
+                        onChange={(e) => setQuestionDraft(e.target.value)}
+                        placeholder="Ask your question… (max 600 chars)"
+                        maxLength={600}
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={submittingQuestion || questionDraft.trim().length === 0}
+                          onClick={submitQuestion}
+                          className="flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
+                        >
+                          {submittingQuestion ? "Sending…" : "Submit"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionMessage(null); }}
+                          className="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {activeTab === "profile" && (
                 <>
@@ -626,6 +839,24 @@ export default function NetworkProfilePage() {
                         appreciating={appreciating.has(post.id)}
                         showAuthor={false}
                       />
+                    ))}
+                </div>
+              )}
+
+              {activeTab === "threads" && (
+                <div className="space-y-3">
+                  {loadingThreads &&
+                    Array.from({ length: 2 }).map((_, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
+                    ))}
+                  {!loadingThreads && profileThreads.length === 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                      <p className="text-sm font-semibold text-gray-500">No answered threads yet.</p>
+                    </div>
+                  )}
+                  {!loadingThreads &&
+                    profileThreads.map((t) => (
+                      <ThreadCard key={t.id} thread={t} />
                     ))}
                 </div>
               )}

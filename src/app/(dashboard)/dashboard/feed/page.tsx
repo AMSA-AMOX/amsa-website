@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import PostCard from "@/components/posts/PostCard";
 import PostComposer from "@/components/posts/PostComposer";
 import type { PostItem } from "@/components/posts/types";
+import { POST_TOPICS } from "@/components/posts/types";
 import { useAuth } from "@/context/AuthContext";
 
 const SHOP_ITEMS = [
@@ -31,6 +32,7 @@ export default function FeedPage() {
   const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const canPost =
     user?.role === "us_member" || user?.role === "admin" || user?.role === "board_member";
   const canSeeTopActions = user?.role !== "member";
@@ -202,6 +204,10 @@ export default function FeedPage() {
     }
   };
 
+  const filteredPosts = selectedTopic
+    ? posts.filter((p) => p.topic === selectedTopic)
+    : posts;
+
   if (!user) return null;
 
   return (
@@ -245,6 +251,35 @@ export default function FeedPage() {
         </div>
       )}
 
+      {/* Topic filter bar */}
+      <div className="mb-5 -mx-1 px-1 flex gap-2 overflow-x-auto scrollbar-none pb-1">
+        <button
+          type="button"
+          onClick={() => setSelectedTopic(null)}
+          className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+            selectedTopic === null
+              ? "bg-[#001049] text-white border-[#001049]"
+              : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+          }`}
+        >
+          All
+        </button>
+        {POST_TOPICS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setSelectedTopic(selectedTopic === t ? null : t)}
+            className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+              selectedTopic === t
+                ? "bg-[#001049] text-white border-[#001049]"
+                : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {error}
@@ -268,17 +303,21 @@ export default function FeedPage() {
             </div>
           ))}
 
-        {!loadingPosts && posts.length === 0 && (
+        {!loadingPosts && filteredPosts.length === 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-            <p className="text-base font-semibold text-[#001049]">No posts yet</p>
+            <p className="text-base font-semibold text-[#001049]">
+              {selectedTopic ? `No posts tagged "${selectedTopic}"` : "No posts yet"}
+            </p>
             <p className="text-sm text-gray-500 mt-1">
-              Once creators publish updates, they will appear here.
+              {selectedTopic
+                ? "Try a different topic or view all posts."
+                : "Once creators publish updates, they will appear here."}
             </p>
           </div>
         )}
 
         {!loadingPosts &&
-          posts.map((post) => (
+          filteredPosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}

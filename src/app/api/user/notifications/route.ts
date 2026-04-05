@@ -5,7 +5,7 @@ import { getFollowsTableName } from "@/lib/follows-table";
 
 type NotificationItem = {
   id: string;
-  type: "follow" | "event";
+  type: "follow" | "event" | "thread_question";
   title: string;
   description: string;
   happenedAt: string;
@@ -106,6 +106,49 @@ export async function GET(request: Request) {
       }
     } else {
       console.error("Notifications events feed error:", eventsError);
+    }
+
+    // Thread question notifications (for US member+ only)
+    if (["us_member", "board_member", "admin"].includes(payload.role ?? "")) {
+      try {
+        const { data: threadRows, error: threadError } = await supabase
+          .from("Threads")
+          .select("id, askerId, question, createdAt")
+          .eq("recipientId", payload.id)
+          .is("answer", null)
+          .order("createdAt", { ascending: false })
+          .limit(10);
+
+        if (!threadError && threadRows && threadRows.length > 0) {
+          const askerIds = Array.from(new Set((threadRows as any[]).map((r) => r.askerId)));
+          const { data: askers } = await supabase
+            .from("Users")
+            .select("id, firstName, lastName, profilePic")
+            .in("id", askerIds);
+
+          const askerById = new Map<number, UserRow>(
+            ((askers ?? []) as any[]).map((u) => [u.id, u as UserRow])
+          );
+
+          for (const row of threadRows as any[]) {
+            const asker = askerById.get(row.askerId);
+            const name = asker
+              ? `${asker.firstName ?? ""} ${asker.lastName ?? ""}`.trim() || "Someone"
+              : "Someone";
+            notifications.push({
+              id: `thread-${row.id}`,
+              type: "thread_question",
+              title: "New question",
+              description: `${name} asked you a question.`,
+              happenedAt: row.createdAt,
+              href: "/dashboard/inbox",
+              avatarUrl: asker?.profilePic ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Notifications thread question feed error:", e);
+      }
     }
 
     notifications.sort((a, b) => {

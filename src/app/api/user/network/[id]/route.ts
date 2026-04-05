@@ -108,6 +108,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         id: user.id,
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
+        role: user.role,
         profilePic: user.profilePic,
         bio: user.bio,
         schoolName: user.schoolName,

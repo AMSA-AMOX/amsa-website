@@ -42,6 +42,7 @@ export default function NotificationsPage() {
     }
 
     setLoadingItems(true);
+    localStorage.setItem("amsa_notif_seen", new Date().toISOString());
     authFetch("/api/user/notifications")
       .then((res) => setItems(res.notifications ?? []))
       .catch(() => setItems([]))

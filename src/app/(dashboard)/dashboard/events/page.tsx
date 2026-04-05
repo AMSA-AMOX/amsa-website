@@ -26,6 +26,7 @@ type DashboardEvent = {
   location: string | null;
   startAt: string;
   endAt: string;
+  timezone: string;
   feeAmount: number;
   currency: string;
   totalSeats: number;
@@ -64,6 +65,7 @@ type CreateEventForm = {
   location: string;
   startAt: string;
   endAt: string;
+  timezone: string;
   hasFee: boolean;
   feeAmount: string;
   currency: string;
@@ -80,12 +82,133 @@ type SelectedImage = {
   previewUrl: string;
 };
 
+const MINUTE_OPTIONS = ["00","05","10","15","20","25","30","35","40","45","50","55"];
+const HOUR_OPTIONS = ["12","1","2","3","4","5","6","7","8","9","10","11"];
+
+function parseDTLocal(val: string): { date: string; hour: string; minute: string; ampm: "AM" | "PM" } {
+  if (!val) return { date: "", hour: "12", minute: "00", ampm: "AM" };
+  const [datePart, timePart] = val.split("T");
+  const [hStr, mStr] = (timePart || "00:00").split(":");
+  const h24 = Number(hStr);
+  const ampm: "AM" | "PM" = h24 < 12 ? "AM" : "PM";
+  const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+  const rawMin = Number(mStr || 0);
+  const snappedMin = Math.round(rawMin / 5) * 5;
+  const minute = snappedMin >= 60 ? "55" : String(snappedMin).padStart(2, "0");
+  return { date: datePart || "", hour: String(h12), minute, ampm };
+}
+
+function buildDTLocal(date: string, hour: string, minute: string, ampm: "AM" | "PM"): string {
+  if (!date) return "";
+  let h24 = Number(hour) % 12;
+  if (ampm === "PM") h24 += 12;
+  return `${date}T${String(h24).padStart(2, "0")}:${minute}`;
+}
+
+function DateTimePicker({ label, value, onChange }: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const { date, hour, minute, ampm } = parseDTLocal(value);
+  const update = (d: string, h: string, m: string, a: "AM" | "PM") =>
+    onChange(buildDTLocal(d, h, m, a));
+
+  return (
+    <label className="text-sm text-gray-700">
+      {label}
+      <div className="mt-1 flex gap-1.5">
+        <input
+          type="date"
+          required
+          value={date}
+          onChange={(e) => update(e.target.value, hour, minute, ampm)}
+          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-2 text-sm"
+        />
+        <select
+          value={hour}
+          onChange={(e) => update(date, e.target.value, minute, ampm)}
+          className="border border-gray-200 rounded-lg px-2 py-2 text-sm"
+        >
+          {HOUR_OPTIONS.map((h) => <option key={h} value={h}>{h}</option>)}
+        </select>
+        <select
+          value={minute}
+          onChange={(e) => update(date, hour, e.target.value, ampm)}
+          className="border border-gray-200 rounded-lg px-2 py-2 text-sm"
+        >
+          {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <select
+          value={ampm}
+          onChange={(e) => update(date, hour, minute, e.target.value as "AM" | "PM")}
+          className="border border-gray-200 rounded-lg px-2 py-2 text-sm"
+        >
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+    </label>
+  );
+}
+
+const TIMEZONES = [
+  { value: "Asia/Ulaanbaatar", label: "Ulaanbaatar (UTC+8)" },
+  { value: "America/New_York", label: "Eastern — EST/EDT" },
+  { value: "America/Chicago", label: "Central — CST/CDT" },
+  { value: "America/Denver", label: "Mountain — MST/MDT" },
+  { value: "America/Los_Angeles", label: "Pacific — PST/PDT" },
+  { value: "Europe/London", label: "London — GMT/BST" },
+  { value: "Europe/Paris", label: "Central Europe — CET/CEST" },
+  { value: "UTC", label: "UTC" },
+] as const;
+
+/** Convert a datetime-local string + IANA timezone name → UTC ISO string */
+function localToUTC(localStr: string, tz: string): string {
+  const asUTC = new Date(localStr + ":00Z");
+  const parts: Record<string, string> = {};
+  new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(asUTC).forEach(({ type, value }) => { parts[type] = value; });
+  const tzHour = Number(parts.hour) === 24 ? 0 : Number(parts.hour);
+  const gotMs = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), tzHour, Number(parts.minute));
+  const offsetMs = gotMs - asUTC.getTime();
+  return new Date(asUTC.getTime() - offsetMs).toISOString();
+}
+
+/** Convert UTC ISO string + IANA timezone → datetime-local string (YYYY-MM-DDTHH:mm) */
+function utcToLocal(isoStr: string, tz: string): string {
+  const d = new Date(isoStr);
+  const parts: Record<string, string> = {};
+  new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d).forEach(({ type, value }) => { parts[type] = value; });
+  const h = parts.hour === "24" ? "00" : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}`;
+}
+
+/** Format a UTC ISO string for display in a given IANA timezone */
+function formatInTZ(isoStr: string, tz: string): string {
+  const tzLabel = TIMEZONES.find((t) => t.value === tz)?.label ?? tz;
+  const time = new Date(isoStr).toLocaleString("en-US", {
+    timeZone: tz,
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  return `${time} (${tzLabel})`;
+}
+
 const initialForm: CreateEventForm = {
   title: "",
   description: "",
   location: "",
   startAt: "",
   endAt: "",
+  timezone: "Asia/Ulaanbaatar",
   hasFee: false,
   feeAmount: "",
   currency: "MNT",
@@ -98,7 +221,10 @@ const initialForm: CreateEventForm = {
 };
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleString();
+  return new Date(date).toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
 }
 
 function formatMoney(amount: number, currency: string) {
@@ -333,12 +459,14 @@ export default function EventsPage() {
 
       const finalImages = [...existingImageUrls, ...uploadedUrls];
 
+      const tz = form.timezone || "Asia/Ulaanbaatar";
       const payload = {
         title: form.title,
         description: form.description,
         location: form.location || null,
-        startAt: form.startAt,
-        endAt: form.endAt,
+        startAt: localToUTC(form.startAt, tz),
+        endAt: localToUTC(form.endAt, tz),
+        timezone: tz,
         feeAmount: form.hasFee ? Number(form.feeAmount || 0) : 0,
         currency: form.currency,
         totalSeats: form.hasSeatLimit
@@ -439,11 +567,7 @@ export default function EventsPage() {
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((img) => img.imageUrl);
 
-    const toDateInputValue = (value: string) => {
-      const d = new Date(value);
-      const tzOffsetMs = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 16);
-    };
+    const tz = event.timezone || "Asia/Ulaanbaatar";
 
     setModalMode("edit");
     setEditingEventId(event.id);
@@ -451,8 +575,9 @@ export default function EventsPage() {
       title: event.title || "",
       description: event.description || "",
       location: event.location || "",
-      startAt: toDateInputValue(event.startAt),
-      endAt: toDateInputValue(event.endAt),
+      startAt: utcToLocal(event.startAt, tz),
+      endAt: utcToLocal(event.endAt, tz),
+      timezone: tz,
       hasFee: Number(event.feeAmount || 0) > 0,
       feeAmount: Number(event.feeAmount || 0) > 0 ? String(event.feeAmount) : "",
       currency: event.currency || "MNT",
@@ -577,10 +702,14 @@ export default function EventsPage() {
           <div>
             <h2 className="text-2xl font-semibold text-[#001049]">{event.title}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              {formatDate(event.startAt)} - {formatDate(event.endAt)}
+              {formatInTZ(event.startAt, event.timezone || "Asia/Ulaanbaatar")} –{" "}
+              {new Date(event.endAt).toLocaleString("en-US", {
+                timeZone: event.timezone || "Asia/Ulaanbaatar",
+                hour: "numeric", minute: "2-digit", hour12: true,
+              })}
             </p>
           </div>
-          <p className="text-base text-gray-700">{event.description}</p>
+          <p className="text-base text-gray-700 whitespace-pre-wrap">{event.description}</p>
           <div className="text-sm text-gray-600 space-y-1.5">
             <p>Location: {event.location || "TBD"}</p>
             <p>
@@ -865,27 +994,29 @@ export default function EventsPage() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
               />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="text-sm text-gray-700">
-                  Start
-                  <input
-                    type="datetime-local"
-                    required
-                    value={form.startAt}
-                    onChange={(e) => setForm((prev) => ({ ...prev, startAt: e.target.value }))}
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="text-sm text-gray-700">
-                  End
-                  <input
-                    type="datetime-local"
-                    required
-                    value={form.endAt}
-                    onChange={(e) => setForm((prev) => ({ ...prev, endAt: e.target.value }))}
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  />
-                </label>
+              <label className="text-sm text-gray-700">
+                Timezone
+                <select
+                  value={form.timezone}
+                  onChange={(e) => setForm((prev) => ({ ...prev, timezone: e.target.value }))}
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid grid-cols-1 gap-3">
+                <DateTimePicker
+                  label="Start"
+                  value={form.startAt}
+                  onChange={(v) => setForm((prev) => ({ ...prev, startAt: v }))}
+                />
+                <DateTimePicker
+                  label="End"
+                  value={form.endAt}
+                  onChange={(v) => setForm((prev) => ({ ...prev, endAt: v }))}
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

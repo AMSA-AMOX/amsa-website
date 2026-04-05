@@ -153,6 +153,7 @@ export async function PUT(
       "virtualLinkSoon",
       "startAt",
       "endAt",
+      "timezone",
       "feeAmount",
       "currency",
       "totalSeats",

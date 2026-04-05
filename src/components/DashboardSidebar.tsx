@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +11,7 @@ type NavItem = {
   href: string;
   section: "top" | "social" | "tools";
   allowedRoles?: string[];
+  badgeKey?: string;
   icon: React.ReactNode;
 };
 
@@ -66,6 +67,16 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    label: "Threads",
+    href: "/dashboard/threads",
+    section: "social",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+      </svg>
+    ),
+  },
+  {
     label: "Events",
     href: "/dashboard/events",
     section: "social",
@@ -90,6 +101,7 @@ const navItems: NavItem[] = [
     href: "/dashboard/admin/verification",
     section: "tools",
     allowedRoles: ["admin"],
+    badgeKey: "verification",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m6 2.25a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -101,6 +113,7 @@ const navItems: NavItem[] = [
     href: "/dashboard/admin/posts",
     section: "tools",
     allowedRoles: ["admin", "board_member"],
+    badgeKey: "posts",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-9-5.25h12A2.25 2.25 0 0 1 20.25 9v9.75A2.25 2.25 0 0 1 18 21H6a2.25 2.25 0 0 1-2.25-2.25V9A2.25 2.25 0 0 1 6 6.75Zm0-3h12" />
@@ -111,9 +124,55 @@ const navItems: NavItem[] = [
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, authFetch } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+  const [cachedNotifs, setCachedNotifs] = useState<Array<{ happenedAt: string }>>([]);
+  const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
+
+  // Fetch notifications once when user logs in
+  useEffect(() => {
+    if (!user) return;
+    authFetch("/api/user/notifications")
+      .then((res) => setCachedNotifs(res.notifications ?? []))
+      .catch(() => {});
+  }, [user, authFetch]);
+
+  // Fetch admin badge counts
+  useEffect(() => {
+    if (!user) return;
+    const isAdmin = user.role === "admin";
+    const canApprovePosts = user.role === "admin" || user.role === "board_member";
+    const updates: Record<string, number> = {};
+    const fetches: Promise<void>[] = [];
+
+    if (isAdmin) {
+      fetches.push(
+        authFetch("/api/admin/verification?status=pending")
+          .then((res) => { updates.verification = (res.submissions ?? []).length; })
+          .catch(() => {})
+      );
+    }
+    if (canApprovePosts) {
+      fetches.push(
+        authFetch("/api/posts?reviewStatus=pending&limit=100&includeModeration=true")
+          .then((res) => { updates.posts = (res.posts ?? []).length; })
+          .catch(() => {})
+      );
+    }
+    Promise.all(fetches).then(() => setBadgeCounts(updates));
+  }, [user, authFetch]);
+
+  // Recalculate unseen count whenever route changes or notifications update
+  useEffect(() => {
+    const seenAt = localStorage.getItem("amsa_notif_seen");
+    const cutoff = seenAt ? new Date(seenAt).getTime() : 0;
+    const unseen = cachedNotifs.filter(
+      (n) => new Date(n.happenedAt).getTime() > cutoff
+    ).length;
+    setNotifCount(unseen);
+  }, [pathname, cachedNotifs]);
   const visibleNavItems = navItems.filter(
     (item) => !item.allowedRoles || (user?.role ? item.allowedRoles.includes(user.role) : false)
   );
@@ -137,6 +196,9 @@ export default function DashboardSidebar() {
         <div className="space-y-1">
           {topItems.map((item) => {
             const active = pathname === item.href;
+            const badge = item.href === "/dashboard/notifications" && notifCount > 0
+              ? notifCount > 9 ? "9+" : String(notifCount)
+              : null;
             return (
               <Link
                 key={item.href}
@@ -149,7 +211,12 @@ export default function DashboardSidebar() {
                 }`}
               >
                 {item.icon}
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {badge && (
+                  <span className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center leading-none">
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -179,6 +246,8 @@ export default function DashboardSidebar() {
         <div className="space-y-1">
           {toolItems.map((item) => {
             const active = pathname === item.href;
+            const count = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
+            const badge = count > 0 ? (count > 9 ? "9+" : String(count)) : null;
             return (
               <Link
                 key={item.href}
@@ -191,7 +260,12 @@ export default function DashboardSidebar() {
                 }`}
               >
                 {item.icon}
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {badge && (
+                  <span className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center leading-none">
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}

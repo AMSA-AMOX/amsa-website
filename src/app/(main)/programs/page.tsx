@@ -46,14 +46,14 @@ const programs = [
     location: "Nationwide",
   },
   {
-  title: "Global Mind Mentorship",
-  short: "GMM",
-  image: "/assets/programs/GlobalMind.png",
-  componentShiftClass: "md:translate-x-8",
-  cardSide: "left",
-  description: `This 8-month mentorship program pairs industry professionals with college students in the U.S., who in turn guide Mongolian high school students on applying to U.S. schools. With monthly sessions, career support, and webinars, it builds a learning bridge across generations.`,
-  date: "8 Months",
-  location: "Online",
+    title: "Global Mind Mentorship",
+    short: "GMM",
+    image: "/assets/programs/GlobalMind.png",
+    componentShiftClass: "md:translate-x-8",
+    cardSide: "left",
+    description: `This 8-month mentorship program pairs industry professionals with college students in the U.S., who in turn guide Mongolian high school students on applying to U.S. schools. With monthly sessions, career support, and webinars, it builds a learning bridge across generations.`,
+    date: "8 Months",
+    location: "Online",
   },
   {
     title: "Curiosity Corner",
@@ -73,75 +73,90 @@ export default function ProgramsPage() {
   }, []);
 
   return (
-    <section className="py-16 md:py-20 px-4 bg-[#001049] text-center font-poppins">
-      <h2 className="text-2xl md:text-3xl font-['Syne-Bold'] text-white mb-12 md:mb-16 leading-relaxed">
-        Since 2011, we've contributed to many impactful projects. <br />
-        Our core initiatives include
-        <span className="text-[#D62828] mx-1">AGM</span>,
-        <span className="text-[#D62828] mx-1">BUOP</span>, and
-        <span className="text-[#D62828] mx-1">CYF</span>.
-      </h2>
+    <main className="min-h-screen bg-[#001049]">
+      {/* Hero — matches Careers / Get Involved */}
+      <div className="max-w-7xl mx-auto px-10 pt-24 pb-16">
+        <p className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest mb-5">
+          What We Do
+        </p>
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+          <h1 className="font-['Syne-Bold'] text-5xl md:text-7xl text-white leading-none">
+            Our<br />Programs
+          </h1>
+          <p className="text-white/50 text-base max-w-sm leading-relaxed lg:text-right">
+            Since 2011, AMSA has run impactful programs connecting Mongolian students across America and back home.
+          </p>
+        </div>
 
-      <div className="flex flex-col gap-16 md:gap-24 max-w-6xl mx-auto">
-        {programs.map((program, index) => (
-          <div
-            key={index}
-            data-aos="fade-up"
-            className={`relative w-full transition-transform ${program.componentShiftClass}`}
-          >
-            <div className="relative overflow-hidden rounded-[22px] shadow-2xl h-[260px] md:h-[520px]">
-              <img
-                src={program.image}
-                alt={program.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+        <div className="mt-14 flex items-center gap-4">
+          <span className="text-white/30 text-sm">{programs.length} programs</span>
+          <div className="flex-1 h-px bg-white/10" />
+        </div>
+      </div>
 
+      {/* Original program cards */}
+      <div className="py-8 px-4 text-center font-poppins">
+        <div className="flex flex-col gap-16 md:gap-24 max-w-6xl mx-auto">
+          {programs.map((program, index) => (
             <div
-              className={`relative -mt-10 mx-4 md:mx-0 md:absolute md:-bottom-16 md:mt-0 w-auto md:w-[min(620px,calc(100%-2rem))] bg-[#EDEDED] rounded-[18px] px-5 py-5 md:px-7 md:py-6 text-left shadow-[0_12px_32px_rgba(0,0,0,0.28)] border border-black/10 ${
-                program.cardSide === "right" ? "md:right-6" : "md:left-6"
-              }`}
+              key={index}
+              data-aos="fade-up"
+              className={`relative w-full transition-transform ${program.componentShiftClass}`}
             >
-              <p className="absolute left-5 top-2 md:left-7 md:top-3 text-[#AEB6C8] font-['Syne-Bold'] text-6xl md:text-8xl leading-none tracking-wide pointer-events-none select-none z-0 opacity-20">
-                {program.short}
-              </p>
+              <div className="relative overflow-hidden rounded-[22px] shadow-2xl h-65 md:h-130">
+                <img
+                  src={program.image}
+                  alt={program.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-              <div className="relative z-10 pt-9">
-                <h3 className="text-[#0D0D0D] text-[30px] md:text-[clamp(2rem,3.2vw,3rem)] font-['Syne-Bold'] leading-[1.05] mb-3 break-words">
-                  {program.title}
-                </h3>
-                <p className="text-[#222] text-xs md:text-[13px] leading-[1.5] mb-5">
-                  {program.description.length > 300
-                    ? `${program.description.slice(0, 300)}...`
-                    : program.description}
+              <div
+                className={`relative -mt-10 mx-4 md:mx-0 md:absolute md:-bottom-16 md:mt-0 w-auto md:w-[min(620px,calc(100%-2rem))] bg-[#EDEDED] rounded-[18px] px-5 py-5 md:px-7 md:py-6 text-left shadow-[0_12px_32px_rgba(0,0,0,0.28)] border border-black/10 ${
+                  program.cardSide === "right" ? "md:right-6" : "md:left-6"
+                }`}
+              >
+                <p className="absolute left-5 top-2 md:left-7 md:top-3 text-[#AEB6C8] font-['Syne-Bold'] text-6xl md:text-8xl leading-none tracking-wide pointer-events-none select-none z-0 opacity-20">
+                  {program.short}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#101010]">
-                  <p className="font-['Syne-Bold'] text-xl md:text-[30px] leading-none">{program.date}</p>
-                  <div className="h-10 w-px bg-black/35" />
-                  <div className="flex items-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#C52A2A"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-7 h-7 md:w-9 md:h-9"
-                      aria-hidden="true"
-                    >
-                      <path d="M21 10.5c0 6.2-9 12.5-9 12.5s-9-6.3-9-12.5a9 9 0 1 1 18 0Z" />
-                      <circle cx="12" cy="10.5" r="3" />
-                    </svg>
-                    <p className="font-['Syne-Bold'] text-xl md:text-[30px] leading-none">{program.location}</p>
+                <div className="relative z-10 pt-9">
+                  <h3 className="text-[#0D0D0D] text-[30px] md:text-[clamp(2rem,3.2vw,3rem)] font-['Syne-Bold'] leading-[1.05] mb-3 wrap-break-word">
+                    {program.title}
+                  </h3>
+                  <p className="text-[#222] text-xs md:text-[13px] leading-normal mb-5">
+                    {program.description.length > 300
+                      ? `${program.description.slice(0, 300)}...`
+                      : program.description}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#101010]">
+                    <p className="font-['Syne-Bold'] text-xl md:text-[30px] leading-none">{program.date}</p>
+                    <div className="h-10 w-px bg-black/35" />
+                    <div className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#C52A2A"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-7 h-7 md:w-9 md:h-9"
+                        aria-hidden="true"
+                      >
+                        <path d="M21 10.5c0 6.2-9 12.5-9 12.5s-9-6.3-9-12.5a9 9 0 1 1 18 0Z" />
+                        <circle cx="12" cy="10.5" r="3" />
+                      </svg>
+                      <p className="font-['Syne-Bold'] text-xl md:text-[30px] leading-none">{program.location}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </section>
+    </main>
   );
 }
