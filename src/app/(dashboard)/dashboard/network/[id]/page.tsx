@@ -43,6 +43,7 @@ type ThreadItem = {
   answeredAt: string | null;
   createdAt: string;
   status: "answered" | "pending";
+  isAnonymous: boolean;
   asker: ThreadUser | null;
   recipient: ThreadUser | null;
 };
@@ -60,29 +61,32 @@ function formatRelativeThread(iso: string): string {
 }
 
 function ThreadCard({ thread }: { thread: ThreadItem }) {
-  const recipientName = thread.recipient
-    ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
-    : "Member";
+  const recipientName = thread.isAnonymous
+    ? "Anonymous"
+    : thread.recipient
+      ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
+      : "Member";
   const recipientInitials = thread.recipient
     ? `${thread.recipient.firstName?.[0] ?? ""}${thread.recipient.lastName?.[0] ?? ""}`.toUpperCase()
     : "M";
 
   return (
     <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Question */}
       <div className="px-5 py-4 bg-gray-50">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
         <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
       </div>
-
-      {/* Answer */}
       <div className="px-5 py-4 bg-white border-t border-gray-100">
         <div className="flex items-center gap-2 mb-2.5">
-          <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
-            {thread.recipient?.profilePic ? (
-              <img src={thread.recipient.profilePic} alt={recipientName} className="w-full h-full object-cover" />
-            ) : recipientInitials}
-          </div>
+          {thread.isAnonymous ? (
+            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
+              {thread.recipient?.profilePic
+                ? <img src={thread.recipient.profilePic} alt={recipientName} className="w-full h-full object-cover" />
+                : recipientInitials}
+            </div>
+          )}
           <span className="text-sm font-semibold text-gray-800">{recipientName}</span>
         </div>
         {thread.answer ? (

@@ -18,6 +18,7 @@ type ThreadItem = {
   answeredAt: string | null;
   createdAt: string;
   status: "answered" | "pending";
+  isAnonymous: boolean;
   asker: ThreadUser | null;
   recipient: ThreadUser | null;
 };
@@ -59,16 +60,29 @@ function Avatar({ user, size = "w-9 h-9" }: { user: ThreadUser | null; size?: st
 function ReceivedThreadCard({
   thread,
   answerDraft,
+  isAnonDraft,
   onDraftChange,
+  onAnonDraftChange,
   onSubmit,
+  onToggleAnon,
+  onDelete,
   submitting,
+  toggling,
+  deleting,
 }: {
   thread: ThreadItem;
   answerDraft: string;
+  isAnonDraft: boolean;
   onDraftChange: (val: string) => void;
+  onAnonDraftChange: (val: boolean) => void;
   onSubmit: () => void;
+  onToggleAnon: () => void;
+  onDelete: () => void;
   submitting: boolean;
+  toggling: boolean;
+  deleting: boolean;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const askerName = thread.asker
     ? `${thread.asker.firstName} ${thread.asker.lastName}`.trim()
     : "Member";
@@ -106,7 +120,71 @@ function ReceivedThreadCard({
             </span>
           </div>
           {thread.status === "answered" ? (
-            <p className="text-sm text-gray-600 leading-relaxed">{thread.answer}</p>
+            <>
+              <p className="text-sm text-gray-600 leading-relaxed">{thread.answer}</p>
+              {/* Actions for answered threads */}
+              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={onToggleAnon}
+                  disabled={toggling || deleting}
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#001049] disabled:opacity-50 transition"
+                >
+                  {toggling ? (
+                    "Updating…"
+                  ) : thread.isAnonymous ? (
+                    <>
+                      <span className="w-4 h-4 inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                        &#128065;
+                      </span>
+                      Make public
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-4 h-4 inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                        &#128100;
+                      </span>
+                      Go anonymous
+                    </>
+                  )}
+                </button>
+                {thread.isAnonymous && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">
+                    Anonymous
+                  </span>
+                )}
+                <div className="flex-1" />
+                {confirmDelete ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Delete this thread?</span>
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmDelete(false); onDelete(); }}
+                      disabled={deleting}
+                      className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50 transition"
+                    >
+                      {deleting ? "Deleting…" : "Yes, delete"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="text-xs text-gray-400 hover:text-gray-600 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={deleting || toggling}
+                    className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50 transition"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </>
           ) : (
             <div className="space-y-2">
               <textarea
@@ -117,14 +195,30 @@ function ReceivedThreadCard({
                 rows={3}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20 text-gray-800"
               />
-              <button
-                type="button"
-                onClick={onSubmit}
-                disabled={submitting || answerDraft.trim().length === 0}
-                className="px-4 py-1.5 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
-              >
-                {submitting ? "Saving…" : "Submit answer"}
-              </button>
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isAnonDraft}
+                    onChange={(e) => onAnonDraftChange(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#001049] focus:ring-[#001049]/20"
+                  />
+                  <span className="text-xs text-gray-500">Post anonymously</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={onSubmit}
+                  disabled={submitting || answerDraft.trim().length === 0}
+                  className="px-4 py-1.5 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
+                >
+                  {submitting ? "Saving…" : "Submit answer"}
+                </button>
+              </div>
+              {isAnonDraft && (
+                <p className="text-xs text-gray-400">
+                  Your name won't appear on your profile or the public feed for this answer.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -168,7 +262,9 @@ function SentThreadCard({ thread }: { thread: ThreadItem }) {
           <div className="flex items-center gap-2 mb-2.5">
             <Avatar user={thread.recipient} />
             <span className="text-sm font-semibold text-gray-800">
-              {thread.recipient ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim() : "Member"}
+              {thread.recipient
+                ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
+                : "Member"}
             </span>
           </div>
           {thread.answer ? (
@@ -189,7 +285,10 @@ export default function InboxPage() {
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [answerDraft, setAnswerDraft] = useState<Record<number, string>>({});
+  const [anonDraft, setAnonDraft] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState<Set<number>>(new Set());
+  const [toggling, setToggling] = useState<Set<number>>(new Set());
+  const [deleting, setDeleting] = useState<Set<number>>(new Set());
   const [errors, setErrors] = useState<Record<number, string>>({});
 
   const isRecipient =
@@ -231,14 +330,20 @@ export default function InboxPage() {
     setErrors((prev) => ({ ...prev, [threadId]: "" }));
 
     try {
+      const isAnonymous = anonDraft[threadId] ?? false;
       const data = await authFetch(`/api/threads/${threadId}`, {
         method: "PATCH",
-        body: JSON.stringify({ answer }),
+        body: JSON.stringify({ answer, isAnonymous }),
       });
       setThreads((prev) =>
         prev.map((t) => (t.id === threadId ? (data.thread as ThreadItem) : t))
       );
       setAnswerDraft((prev) => {
+        const next = { ...prev };
+        delete next[threadId];
+        return next;
+      });
+      setAnonDraft((prev) => {
         const next = { ...prev };
         delete next[threadId];
         return next;
@@ -250,6 +355,56 @@ export default function InboxPage() {
       }));
     } finally {
       setSubmitting((prev) => {
+        const next = new Set(prev);
+        next.delete(threadId);
+        return next;
+      });
+    }
+  };
+
+  const handleToggleAnon = async (threadId: number) => {
+    if (toggling.has(threadId)) return;
+    const thread = threads.find((t) => t.id === threadId);
+    if (!thread) return;
+
+    setToggling((prev) => new Set(prev).add(threadId));
+    try {
+      await authFetch(`/api/threads/${threadId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isAnonymous: !thread.isAnonymous }),
+      });
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId ? { ...t, isAnonymous: !t.isAnonymous } : t
+        )
+      );
+    } catch (e: any) {
+      setErrors((prev) => ({
+        ...prev,
+        [threadId]: e?.message ?? "Failed to update anonymity.",
+      }));
+    } finally {
+      setToggling((prev) => {
+        const next = new Set(prev);
+        next.delete(threadId);
+        return next;
+      });
+    }
+  };
+
+  const handleDelete = async (threadId: number) => {
+    if (deleting.has(threadId)) return;
+    setDeleting((prev) => new Set(prev).add(threadId));
+    try {
+      await authFetch(`/api/threads/${threadId}`, { method: "DELETE" });
+      setThreads((prev) => prev.filter((t) => t.id !== threadId));
+    } catch (e: any) {
+      setErrors((prev) => ({
+        ...prev,
+        [threadId]: e?.message ?? "Failed to delete thread.",
+      }));
+    } finally {
+      setDeleting((prev) => {
         const next = new Set(prev);
         next.delete(threadId);
         return next;
@@ -311,11 +466,19 @@ export default function InboxPage() {
                       <ReceivedThreadCard
                         thread={t}
                         answerDraft={answerDraft[t.id] ?? ""}
+                        isAnonDraft={anonDraft[t.id] ?? false}
                         onDraftChange={(val) =>
                           setAnswerDraft((prev) => ({ ...prev, [t.id]: val }))
                         }
+                        onAnonDraftChange={(val) =>
+                          setAnonDraft((prev) => ({ ...prev, [t.id]: val }))
+                        }
                         onSubmit={() => handleAnswer(t.id)}
+                        onToggleAnon={() => handleToggleAnon(t.id)}
+                        onDelete={() => handleDelete(t.id)}
                         submitting={submitting.has(t.id)}
+                        toggling={toggling.has(t.id)}
+                        deleting={deleting.has(t.id)}
                       />
                       {errors[t.id] && (
                         <p className="text-xs text-red-500 mt-1 px-1">{errors[t.id]}</p>
@@ -332,14 +495,24 @@ export default function InboxPage() {
                 </h2>
                 <div className="space-y-3">
                   {answered.map((t) => (
-                    <ReceivedThreadCard
-                      key={t.id}
-                      thread={t}
-                      answerDraft=""
-                      onDraftChange={() => {}}
-                      onSubmit={() => {}}
-                      submitting={false}
-                    />
+                    <div key={t.id}>
+                      <ReceivedThreadCard
+                        thread={t}
+                        answerDraft=""
+                        isAnonDraft={false}
+                        onDraftChange={() => {}}
+                        onAnonDraftChange={() => {}}
+                        onSubmit={() => {}}
+                        onToggleAnon={() => handleToggleAnon(t.id)}
+                        onDelete={() => handleDelete(t.id)}
+                        submitting={false}
+                        toggling={toggling.has(t.id)}
+                        deleting={deleting.has(t.id)}
+                      />
+                      {errors[t.id] && (
+                        <p className="text-xs text-red-500 mt-1 px-1">{errors[t.id]}</p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </section>

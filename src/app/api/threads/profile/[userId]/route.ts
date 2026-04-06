@@ -12,6 +12,7 @@ type ThreadRow = {
   answer: string | null;
   answeredAt: string | null;
   createdAt: string;
+  isAnonymous: boolean;
 };
 
 type UserRow = {
@@ -23,8 +24,9 @@ type UserRow = {
 
 // GET /api/threads/profile/[userId] — answered threads for a profile's Threads tab
 export async function GET(request: Request, context: RouteContext) {
+  let payload;
   try {
-    verifyToken(request);
+    payload = verifyToken(request);
   } catch (res) {
     return res as NextResponse;
   }
@@ -35,14 +37,22 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Invalid user ID." }, { status: 400 });
   }
 
+  const isOwner = payload.id === targetId;
+
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("Threads")
-      .select("id, askerId, recipientId, question, answer, answeredAt, createdAt")
+      .select("id, askerId, recipientId, question, answer, answeredAt, createdAt, isAnonymous")
       .eq("recipientId", targetId)
       .not("answer", "is", null)
       .order("answeredAt", { ascending: false })
       .limit(30);
+
+    if (!isOwner) {
+      query = query.eq("isAnonymous", false);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("GET /api/threads/profile/[userId] failed:", error);
@@ -71,6 +81,7 @@ export async function GET(request: Request, context: RouteContext) {
       answeredAt: r.answeredAt,
       createdAt: r.createdAt,
       status: "answered" as const,
+      isAnonymous: r.isAnonymous ?? false,
       asker: byId.get(r.askerId) ?? null,
       recipient: byId.get(r.recipientId) ?? null,
     }));

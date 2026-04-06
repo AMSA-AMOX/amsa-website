@@ -5,7 +5,7 @@ import { getFollowsTableName } from "@/lib/follows-table";
 
 type NotificationItem = {
   id: string;
-  type: "follow" | "event" | "thread_question";
+  type: "follow" | "event" | "thread_question" | "thread_answered";
   title: string;
   description: string;
   happenedAt: string;
@@ -141,7 +141,7 @@ export async function GET(request: Request) {
               title: "New question",
               description: `${name} asked you a question.`,
               happenedAt: row.createdAt,
-              href: "/dashboard/inbox",
+              href: "/welcome?threads=unanswered",
               avatarUrl: asker?.profilePic ?? null,
             });
           }
@@ -149,6 +149,50 @@ export async function GET(request: Request) {
       } catch (e) {
         console.error("Notifications thread question feed error:", e);
       }
+    }
+
+    // Thread answered notifications (for askers whose questions got answered)
+    try {
+      const { data: answeredRows, error: answeredError } = await supabase
+        .from("Threads")
+        .select("id, recipientId, answeredAt, isAnonymous")
+        .eq("askerId", payload.id)
+        .not("answer", "is", null)
+        .order("answeredAt", { ascending: false })
+        .limit(10);
+
+      if (!answeredError && answeredRows && answeredRows.length > 0) {
+        const nonAnonRows = (answeredRows as any[]).filter((r) => !r.isAnonymous);
+        const recipientIds = Array.from(new Set(nonAnonRows.map((r) => r.recipientId)));
+
+        const recipientById = new Map<number, UserRow>();
+        if (recipientIds.length > 0) {
+          const { data: recipients } = await supabase
+            .from("Users")
+            .select("id, firstName, lastName, profilePic")
+            .in("id", recipientIds);
+          ((recipients ?? []) as any[]).forEach((u) => recipientById.set(u.id, u as UserRow));
+        }
+
+        for (const row of answeredRows as any[]) {
+          const isAnon = row.isAnonymous ?? false;
+          const recipient = isAnon ? null : recipientById.get(row.recipientId);
+          const name = recipient
+            ? `${recipient.firstName ?? ""} ${recipient.lastName ?? ""}`.trim() || "Someone"
+            : "Someone";
+          notifications.push({
+            id: `thread-answered-${row.id}`,
+            type: "thread_answered",
+            title: "Question answered",
+            description: isAnon ? "Someone answered your question." : `${name} answered your question.`,
+            happenedAt: row.answeredAt,
+            href: "/dashboard/inbox",
+            avatarUrl: isAnon ? null : (recipient?.profilePic ?? null),
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Notifications thread answered feed error:", e);
     }
 
     notifications.sort((a, b) => {

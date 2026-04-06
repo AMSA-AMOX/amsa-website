@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 type NotificationItem = {
   id: string;
-  type: "follow" | "event";
+  type: "follow" | "event" | "thread_question" | "thread_answered";
   title: string;
   description: string;
   happenedAt: string;
@@ -129,6 +129,8 @@ function NotificationRow({ item }: { item: NotificationItem }) {
               <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />
             ) : item.type === "follow" ? (
               "F"
+            ) : item.type === "thread_question" || item.type === "thread_answered" ? (
+              "Q"
             ) : (
               "E"
             )}
@@ -151,6 +153,8 @@ function NotificationRow({ item }: { item: NotificationItem }) {
             <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />
           ) : item.type === "follow" ? (
             "F"
+          ) : item.type === "thread_question" || item.type === "thread_answered" ? (
+            "Q"
           ) : (
             "E"
           )}

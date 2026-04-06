@@ -75,6 +75,8 @@ type ThreadItem = {
   answer: string | null;
   answeredAt: string | null;
   createdAt: string;
+  status: "answered" | "pending";
+  isAnonymous: boolean;
   asker: ThreadUser | null;
   recipient: ThreadUser | null;
 };
@@ -409,6 +411,179 @@ function CompanyLogo({ company, size = 12 }: { company: string; size?: number })
   );
 }
 
+// ─── Thread sub-components ────────────────────────────────────────────────────
+
+function AnsweredThreadActions({
+  thread,
+  onToggleAnon,
+  onDelete,
+  toggling,
+  deleting,
+}: {
+  thread: ThreadItem;
+  onToggleAnon: () => void;
+  onDelete: () => void;
+  toggling: boolean;
+  deleting: boolean;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  return (
+    <div className="flex items-center gap-3 px-5 py-3 border-t border-gray-100 bg-white">
+      <button
+        type="button"
+        onClick={onToggleAnon}
+        disabled={toggling || deleting}
+        className="text-xs font-medium text-gray-500 hover:text-[#001049] disabled:opacity-50 transition"
+      >
+        {toggling ? "Updating…" : thread.isAnonymous ? "Make public" : "Go anonymous"}
+      </button>
+      <div className="flex-1" />
+      {confirmDelete ? (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">Delete?</span>
+          <button
+            type="button"
+            onClick={() => { setConfirmDelete(false); onDelete(); }}
+            disabled={deleting}
+            className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50 transition"
+          >
+            {deleting ? "Deleting…" : "Yes"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(false)}
+            className="text-xs text-gray-400 hover:text-gray-600 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          disabled={deleting || toggling}
+          className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50 transition"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+  );
+}
+
+function UnansweredCard({
+  thread,
+  askerInitials,
+  askerName,
+  timeText,
+  answerDraft,
+  isAnonDraft,
+  onDraftChange,
+  onAnonDraftChange,
+  onSubmit,
+  onDelete,
+  submitting,
+  deleting,
+}: {
+  thread: ThreadItem;
+  askerInitials: string;
+  askerName: string;
+  timeText: string;
+  answerDraft: string;
+  isAnonDraft: boolean;
+  onDraftChange: (val: string) => void;
+  onAnonDraftChange: (val: boolean) => void;
+  onSubmit: () => void;
+  onDelete: () => void;
+  submitting: boolean;
+  deleting: boolean;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  return (
+    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
+        <div className="w-9 h-9 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-sm font-bold shrink-0 overflow-hidden">
+          {thread.asker?.profilePic
+            ? <img src={thread.asker.profilePic} alt={askerName} className="w-full h-full object-cover" />
+            : askerInitials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900">{askerName}</p>
+          <p className="text-xs text-gray-400">{timeText}</p>
+        </div>
+        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">Unanswered</span>
+      </div>
+      <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
+        <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
+      </div>
+      <div className="px-5 py-4 bg-white border-b border-gray-100 space-y-2">
+        <textarea
+          value={answerDraft}
+          onChange={(e) => onDraftChange(e.target.value)}
+          placeholder="Write your answer… (max 2000 chars)"
+          maxLength={2000}
+          rows={3}
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20 text-gray-800"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isAnonDraft}
+              onChange={(e) => onAnonDraftChange(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-[#001049] focus:ring-[#001049]/20"
+            />
+            <span className="text-xs text-gray-500">Post anonymously</span>
+          </label>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={submitting || answerDraft.trim().length === 0}
+            className="px-4 py-1.5 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
+          >
+            {submitting ? "Saving…" : "Submit answer"}
+          </button>
+        </div>
+        {isAnonDraft && (
+          <p className="text-xs text-gray-400">Your name won't appear on your profile or the public feed.</p>
+        )}
+      </div>
+      <div className="flex items-center justify-end gap-2 px-5 py-3 bg-white">
+        {confirmDelete ? (
+          <>
+            <span className="text-xs text-gray-500">Delete this thread?</span>
+            <button
+              type="button"
+              onClick={() => { setConfirmDelete(false); onDelete(); }}
+              disabled={deleting}
+              className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50 transition"
+            >
+              {deleting ? "Deleting…" : "Yes, delete"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="text-xs text-gray-400 hover:text-gray-600 transition"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleting}
+            className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50 transition"
+          >
+            Delete
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -454,6 +629,16 @@ export default function DashboardPage() {
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [threadsLoaded, setThreadsLoaded] = useState(false);
+  const [pendingThreads, setPendingThreads] = useState<ThreadItem[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingLoaded, setPendingLoaded] = useState(false);
+  const [threadsView, setThreadsView] = useState<"answered" | "unanswered">("answered");
+  const [answerDraft, setAnswerDraft] = useState<Record<number, string>>({});
+  const [anonDraft, setAnonDraft] = useState<Record<number, boolean>>({});
+  const [submittingAnswer, setSubmittingAnswer] = useState<Set<number>>(new Set());
+  const [togglingAnon, setTogglingAnon] = useState<Set<number>>(new Set());
+  const [deletingThread, setDeletingThread] = useState<Set<number>>(new Set());
+  const [threadErrors, setThreadErrors] = useState<Record<number, string>>({});
 
   const loadOwnPosts = useCallback(async () => {
     if (postsLoaded || loadingPosts) return;
@@ -482,6 +667,83 @@ export default function DashboardPage() {
       setLoadingThreads(false);
     }
   }, [authFetch, user, threadsLoaded, loadingThreads]);
+
+  const loadPendingThreads = useCallback(async () => {
+    if (pendingLoaded || pendingLoading) return;
+    setPendingLoading(true);
+    try {
+      const data = await authFetch("/api/threads?view=inbox");
+      setPendingThreads(((data.threads ?? []) as ThreadItem[]).filter((t) => t.status === "pending"));
+      setPendingLoaded(true);
+    } catch {
+      setPendingThreads([]);
+    } finally {
+      setPendingLoading(false);
+    }
+  }, [authFetch, pendingLoaded, pendingLoading]);
+
+  const handleThreadsViewChange = (view: "answered" | "unanswered") => {
+    setThreadsView(view);
+    if (view === "unanswered" && !pendingLoaded) loadPendingThreads();
+    if (view === "answered" && !threadsLoaded) loadOwnThreads();
+  };
+
+  const handleAnswer = async (threadId: number) => {
+    const answer = (answerDraft[threadId] ?? "").trim();
+    if (!answer || submittingAnswer.has(threadId)) return;
+    setSubmittingAnswer((p) => new Set(p).add(threadId));
+    setThreadErrors((p) => ({ ...p, [threadId]: "" }));
+    try {
+      const isAnonymous = anonDraft[threadId] ?? false;
+      const data = await authFetch(`/api/threads/${threadId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ answer, isAnonymous }),
+      });
+      setPendingThreads((p) => p.filter((t) => t.id !== threadId));
+      setThreads((p) => [data.thread as ThreadItem, ...p]);
+      setAnswerDraft((p) => { const n = { ...p }; delete n[threadId]; return n; });
+      setAnonDraft((p) => { const n = { ...p }; delete n[threadId]; return n; });
+    } catch (e: any) {
+      setThreadErrors((p) => ({ ...p, [threadId]: e?.message ?? "Failed to save answer." }));
+    } finally {
+      setSubmittingAnswer((p) => { const n = new Set(p); n.delete(threadId); return n; });
+    }
+  };
+
+  const handleToggleAnon = async (threadId: number) => {
+    if (togglingAnon.has(threadId)) return;
+    const thread = [...threads, ...pendingThreads].find((t) => t.id === threadId);
+    if (!thread) return;
+    setTogglingAnon((p) => new Set(p).add(threadId));
+    try {
+      await authFetch(`/api/threads/${threadId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isAnonymous: !thread.isAnonymous }),
+      });
+      const flip = (list: ThreadItem[]) =>
+        list.map((t) => (t.id === threadId ? { ...t, isAnonymous: !t.isAnonymous } : t));
+      setThreads(flip);
+      setPendingThreads(flip);
+    } catch (e: any) {
+      setThreadErrors((p) => ({ ...p, [threadId]: e?.message ?? "Failed to update." }));
+    } finally {
+      setTogglingAnon((p) => { const n = new Set(p); n.delete(threadId); return n; });
+    }
+  };
+
+  const handleDeleteThread = async (threadId: number) => {
+    if (deletingThread.has(threadId)) return;
+    setDeletingThread((p) => new Set(p).add(threadId));
+    try {
+      await authFetch(`/api/threads/${threadId}`, { method: "DELETE" });
+      setThreads((p) => p.filter((t) => t.id !== threadId));
+      setPendingThreads((p) => p.filter((t) => t.id !== threadId));
+    } catch (e: any) {
+      setThreadErrors((p) => ({ ...p, [threadId]: e?.message ?? "Failed to delete." }));
+    } finally {
+      setDeletingThread((p) => { const n = new Set(p); n.delete(threadId); return n; });
+    }
+  };
 
   const onDeletePost = useCallback(async (postId: number) => {
     setDeletingPost((prev) => new Set(prev).add(postId));
@@ -534,6 +796,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) { router.push("/login"); return; }
+    // Auto-open Unanswered threads tab when coming from a notification link
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("threads") === "unanswered") {
+      setActiveTab("threads");
+      setThreadsView("unanswered");
+      loadPendingThreads();
+      loadOwnThreads();
+    }
     Promise.all([
       authFetch("/api/auth/me").then((d) => setProfile(d.user)).catch(() => {}),
       authFetch("/api/user/experience").then((d) => setExperiences(d.experiences ?? [])).catch(() => {}),
@@ -979,40 +1249,135 @@ export default function DashboardPage() {
 
             {activeTab === "threads" && (
               <div className="space-y-3">
-                {loadingThreads &&
-                  Array.from({ length: 2 }).map((_, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
-                  ))}
-                {!loadingThreads && threads.length === 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                    <p className="text-sm font-semibold text-[#001049]">No answered threads yet</p>
-                    <p className="text-xs text-gray-400 mt-1">Questions you answer will appear here.</p>
-                  </div>
-                )}
-                {!loadingThreads && threads.map((t) => {
-                  const initials = `${t.recipient?.firstName?.[0] ?? ""}${t.recipient?.lastName?.[0] ?? ""}`.toUpperCase();
-                  return (
-                    <article key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                      <div className="px-5 py-4 bg-gray-50">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
-                        <p className="text-sm text-gray-800 leading-relaxed">{t.question}</p>
+                {/* Sub-tabs */}
+                <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 w-fit shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => handleThreadsViewChange("answered")}
+                    className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition ${
+                      threadsView === "answered" ? "bg-[#001049] text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    Answered
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleThreadsViewChange("unanswered")}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition ${
+                      threadsView === "unanswered" ? "bg-[#001049] text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    Unanswered
+                    {pendingThreads.length > 0 && (
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                        threadsView === "unanswered" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-600"
+                      }`}>
+                        {pendingThreads.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Answered */}
+                {threadsView === "answered" && (
+                  <>
+                    {loadingThreads && Array.from({ length: 2 }).map((_, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
+                    ))}
+                    {!loadingThreads && threads.length === 0 && (
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                        <p className="text-sm font-semibold text-[#001049]">No answered threads yet</p>
+                        <p className="text-xs text-gray-400 mt-1">Questions you answer will appear here.</p>
                       </div>
-                      <div className="px-5 py-4 bg-white border-t border-gray-100">
-                        <div className="flex items-center gap-2 mb-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
-                            {t.recipient?.profilePic
-                              ? <img src={t.recipient.profilePic} alt={initials} className="w-full h-full object-cover" />
-                              : initials}
-                          </div>
-                          <span className="text-sm font-semibold text-gray-800">
-                            {t.recipient ? `${t.recipient.firstName} ${t.recipient.lastName}` : "You"}
-                          </span>
+                    )}
+                    {!loadingThreads && threads.map((t) => {
+                      const initials = `${t.recipient?.firstName?.[0] ?? ""}${t.recipient?.lastName?.[0] ?? ""}`.toUpperCase();
+                      return (
+                        <div key={t.id}>
+                          <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="px-5 py-4 bg-gray-50">
+                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
+                              <p className="text-sm text-gray-800 leading-relaxed">{t.question}</p>
+                            </div>
+                            <div className="px-5 py-4 bg-white border-t border-gray-100">
+                              <div className="flex items-center gap-2 mb-2.5">
+                                {t.isAnonymous ? (
+                                  <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
+                                    {t.recipient?.profilePic
+                                      ? <img src={t.recipient.profilePic} alt={initials} className="w-full h-full object-cover" />
+                                      : initials}
+                                  </div>
+                                )}
+                                <span className="text-sm font-semibold text-gray-800">
+                                  {t.isAnonymous ? "Anonymous" : (t.recipient ? `${t.recipient.firstName} ${t.recipient.lastName}` : "You")}
+                                </span>
+                                {t.isAnonymous && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Anonymous</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 leading-relaxed">{t.answer}</p>
+                            </div>
+                            <AnsweredThreadActions
+                              thread={t}
+                              onToggleAnon={() => handleToggleAnon(t.id)}
+                              onDelete={() => handleDeleteThread(t.id)}
+                              toggling={togglingAnon.has(t.id)}
+                              deleting={deletingThread.has(t.id)}
+                            />
+                          </article>
+                          {threadErrors[t.id] && (
+                            <p className="text-xs text-red-500 mt-1 px-1">{threadErrors[t.id]}</p>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600 leading-relaxed">{t.answer}</p>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Unanswered */}
+                {threadsView === "unanswered" && (
+                  <>
+                    {pendingLoading && Array.from({ length: 2 }).map((_, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow-sm h-44 animate-pulse border border-gray-100" />
+                    ))}
+                    {!pendingLoading && pendingThreads.length === 0 && (
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                        <p className="text-sm font-semibold text-gray-500">No unanswered questions.</p>
+                        <p className="text-xs text-gray-400 mt-1">You're all caught up.</p>
                       </div>
-                    </article>
-                  );
-                })}
+                    )}
+                    {!pendingLoading && pendingThreads.map((t) => {
+                      const askerInitials = `${t.asker?.firstName?.[0] ?? ""}${t.asker?.lastName?.[0] ?? ""}`.toUpperCase();
+                      const askerName = t.asker ? `${t.asker.firstName} ${t.asker.lastName}`.trim() : "Member";
+                      const diff = Date.now() - new Date(t.createdAt).getTime();
+                      const mins = Math.floor(diff / 60000);
+                      const timeText = mins < 1 ? "just now" : mins < 60 ? `${mins}m` : mins < 1440 ? `${Math.floor(mins / 60)}h` : `${Math.floor(mins / 1440)}d`;
+                      return (
+                        <div key={t.id}>
+                          <UnansweredCard
+                            thread={t}
+                            askerInitials={askerInitials}
+                            askerName={askerName}
+                            timeText={timeText}
+                            answerDraft={answerDraft[t.id] ?? ""}
+                            isAnonDraft={anonDraft[t.id] ?? false}
+                            onDraftChange={(val: string) => setAnswerDraft((p) => ({ ...p, [t.id]: val }))}
+                            onAnonDraftChange={(val: boolean) => setAnonDraft((p) => ({ ...p, [t.id]: val }))}
+                            onSubmit={() => handleAnswer(t.id)}
+                            onDelete={() => handleDeleteThread(t.id)}
+                            submitting={submittingAnswer.has(t.id)}
+                            deleting={deletingThread.has(t.id)}
+                          />
+                          {threadErrors[t.id] && (
+                            <p className="text-xs text-red-500 mt-1 px-1">{threadErrors[t.id]}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             )}
 

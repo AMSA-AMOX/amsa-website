@@ -10,6 +10,7 @@ type ThreadRow = {
   answer: string | null;
   answeredAt: string | null;
   createdAt: string;
+  isAnonymous: boolean;
 };
 
 type UserRow = {
@@ -27,11 +28,12 @@ type ThreadItem = {
   answeredAt: string | null;
   createdAt: string;
   status: "answered" | "pending";
+  isAnonymous: boolean;
   asker: { id: number; firstName: string; lastName: string; profilePic: string | null } | null;
   recipient: { id: number; firstName: string; lastName: string; profilePic: string | null } | null;
 };
 
-const SELECT_COLS = "id, askerId, recipientId, question, answer, answeredAt, createdAt";
+const SELECT_COLS = "id, askerId, recipientId, question, answer, answeredAt, createdAt, isAnonymous";
 
 async function enrichThreads(rows: ThreadRow[]): Promise<ThreadItem[]> {
   if (rows.length === 0) return [];
@@ -54,6 +56,7 @@ async function enrichThreads(rows: ThreadRow[]): Promise<ThreadItem[]> {
     answeredAt: r.answeredAt,
     createdAt: r.createdAt,
     status: r.answer !== null ? "answered" : "pending",
+    isAnonymous: r.isAnonymous ?? false,
     asker: byId.get(r.askerId) ?? null,
     recipient: byId.get(r.recipientId) ?? null,
   }));
@@ -124,7 +127,11 @@ export async function GET(request: Request) {
     }
 
     const rows = (data ?? []) as ThreadRow[];
-    const threads = await enrichThreads(rows);
+    const enriched = await enrichThreads(rows);
+    // Hide recipient identity in public feed for anonymous answers
+    const threads = enriched.map((t) =>
+      t.isAnonymous ? { ...t, recipient: null } : t
+    );
     const nextCursor =
       rows.length === limit ? (rows[rows.length - 1].answeredAt ?? null) : null;
 
@@ -223,6 +230,7 @@ export async function POST(request: Request) {
       answeredAt: null,
       createdAt: (inserted as ThreadRow).createdAt,
       status: "pending",
+      isAnonymous: false,
       asker: (asker as UserRow) ?? null,
       recipient: recipient as UserRow,
     };

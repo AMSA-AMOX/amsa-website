@@ -35,7 +35,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 
-    if (!["us_member", "board_member", "admin"].includes(user.role)) {
+    if (payload.role !== "admin" && !["us_member", "board_member", "admin"].includes(user.role)) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 

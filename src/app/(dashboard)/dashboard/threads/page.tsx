@@ -18,21 +18,10 @@ type ThreadItem = {
   answeredAt: string | null;
   createdAt: string;
   status: "answered" | "pending";
+  isAnonymous: boolean;
   asker: ThreadUser | null;
   recipient: ThreadUser | null;
 };
-
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 30) return `${d}d`;
-  return new Date(iso).toLocaleDateString();
-}
 
 function Avatar({
   user,
@@ -62,22 +51,27 @@ function Avatar({
 }
 
 function ThreadCard({ thread }: { thread: ThreadItem }) {
-  const recipientName = thread.recipient
-    ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
-    : "Member";
+  const recipientName = thread.isAnonymous
+    ? "Anonymous"
+    : thread.recipient
+      ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
+      : "Member";
 
   return (
     <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Question */}
       <div className="px-5 py-4 bg-gray-50">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
         <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
       </div>
-
-      {/* Answer */}
       <div className="px-5 py-4 bg-white border-t border-gray-100">
         <div className="flex items-center gap-2 mb-2.5">
-          <Avatar user={thread.recipient} size="w-7 h-7" />
+          {thread.isAnonymous ? (
+            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">
+              ?
+            </div>
+          ) : (
+            <Avatar user={thread.recipient} size="w-7 h-7" />
+          )}
           <span className="text-sm font-semibold text-gray-800">{recipientName}</span>
         </div>
         {thread.answer ? (
