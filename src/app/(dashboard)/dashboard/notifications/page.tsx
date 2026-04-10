@@ -116,55 +116,62 @@ export default function NotificationsPage() {
   );
 }
 
+function NotificationIcon({ item }: { item: NotificationItem }) {
+  if (item.avatarUrl) {
+    return <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />;
+  }
+  if (item.type === "event") {
+    return <img src="/header-logo.svg" alt="AMSA" className="w-6 h-6 object-contain" />;
+  }
+  if (item.type === "follow") {
+    return (
+      <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+      </svg>
+    );
+  }
+  if (item.type === "thread_question" || item.type === "thread_answered") {
+    return (
+      <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+      </svg>
+    );
+  }
+  // default bell
+  return (
+    <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+    </svg>
+  );
+}
+
 function NotificationRow({ item }: { item: NotificationItem }) {
   const timeText = formatTimeAgo(item.happenedAt);
   const rowClass = "block rounded-xl border border-gray-100 p-3 md:p-4";
+  const avatar = (
+    <div className="w-10 h-10 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] shrink-0 overflow-hidden">
+      <NotificationIcon item={item} />
+    </div>
+  );
+  const body = (
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+      <p className="text-sm text-gray-600 leading-snug">{item.description}</p>
+      <p className="text-xs text-gray-400 mt-1">{timeText}</p>
+    </div>
+  );
 
   if (!item.href) {
     return (
       <div className={rowClass}>
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] font-semibold shrink-0 overflow-hidden">
-            {item.avatarUrl ? (
-              <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />
-            ) : item.type === "follow" ? (
-              "F"
-            ) : item.type === "thread_question" || item.type === "thread_answered" ? (
-              "Q"
-            ) : (
-              "E"
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-            <p className="text-sm text-gray-600 leading-snug">{item.description}</p>
-            <p className="text-xs text-gray-400 mt-1">{timeText}</p>
-          </div>
-        </div>
+        <div className="flex items-start gap-3">{avatar}{body}</div>
       </div>
     );
   }
 
   return (
     <Link href={item.href} className={`${rowClass} hover:bg-gray-50 transition`}>
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] font-semibold shrink-0 overflow-hidden">
-          {item.avatarUrl ? (
-            <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />
-          ) : item.type === "follow" ? (
-            "F"
-          ) : item.type === "thread_question" || item.type === "thread_answered" ? (
-            "Q"
-          ) : (
-            "E"
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-          <p className="text-sm text-gray-600 leading-snug">{item.description}</p>
-          <p className="text-xs text-gray-400 mt-1">{timeText}</p>
-        </div>
-      </div>
+      <div className="flex items-start gap-3">{avatar}{body}</div>
     </Link>
   );
 }

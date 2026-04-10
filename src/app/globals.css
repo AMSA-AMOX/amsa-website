@@ -65,6 +65,10 @@
   transform: scale(0.95);
 }
 
+.hero-cta-sm {
+  font-size: 15px;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

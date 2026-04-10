@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -68,30 +68,29 @@ const HistoricalMemberCard = ({ member }: { member: TeamMemberInfo }) => {
 };
 
 const TeamSection = () => {
-  const [historicalMembers, setHistoricalMembers] = useState<Record<string, TeamMemberInfo[]> | null>(null);
-  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  // const [historicalMembers, setHistoricalMembers] = useState<Record<string, TeamMemberInfo[]> | null>(null);
+  // const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
-    const fetchHistoricalMembers = async () => {
-      try {
-        const response = await fetch("/api/user/members");
-        if (response.ok) {
-          const data = await response.json();
-          setHistoricalMembers(data.tuz || {});
-        }
-      } catch (err) {
-        console.error("Error fetching historical team members:", err);
-      }
-    };
-
-    fetchHistoricalMembers();
+    // const fetchHistoricalMembers = async () => {
+    //   try {
+    //     const response = await fetch("/api/user/members");
+    //     if (response.ok) {
+    //       const data = await response.json();
+    //       setHistoricalMembers(data.tuz || {});
+    //     }
+    //   } catch (err) {
+    //     console.error("Error fetching historical team members:", err);
+    //   }
+    // };
+    // fetchHistoricalMembers();
   }, []);
 
-  const currentYear = new Date().getFullYear();
-  const historicalYears = historicalMembers
-    ? Object.keys(historicalMembers).filter((year) => parseInt(year) !== currentYear && parseInt(year) !== currentYear + 1)
-    : [];
+  // const currentYear = new Date().getFullYear();
+  // const historicalYears = historicalMembers
+  //   ? Object.keys(historicalMembers).filter((year) => parseInt(year) !== currentYear && parseInt(year) !== currentYear + 1)
+  //   : [];
 
   return (
     <div className="w-full bg-[#001049] font-poppins">
@@ -251,8 +250,31 @@ const TeamSection = () => {
         </div>
       </section>
 
+      {/* ── Join the Team CTA ───────────────────────────────────────────────── */}
+      <section className="py-16 px-6 border-t border-white/10">
+        <div className="max-w-3xl mx-auto text-center" data-aos="fade-up">
+          <p className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest mb-4">Get Involved</p>
+          <h2 className="font-['Syne-Bold'] text-white text-3xl sm:text-4xl md:text-5xl mb-5 leading-tight">
+            Wanna join our team?
+          </h2>
+          <p className="text-white/60 text-base leading-relaxed mb-8 max-w-xl mx-auto">
+            We're always looking for passionate students to help build AMSA's mission. Check out our open internship positions.
+          </p>
+          <div className="flex justify-center">
+            <a href="/careers" className="hero-cta hero-cta-md">
+              View Open Positions
+              <span className="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── Past Cohorts ─────────────────────────────────────────────────────── */}
-      {historicalYears.length > 0 && (
+      {/* {historicalYears.length > 0 && (
         <section className="pb-24 max-w-7xl mx-auto px-6">
           <h2
             className="font-['Syne-Bold'] text-white text-center mb-12 leading-[1.4]"
@@ -308,7 +330,7 @@ const TeamSection = () => {
             </div>
           )}
         </section>
-      )}
+      )} */}
     </div>
   );
 };

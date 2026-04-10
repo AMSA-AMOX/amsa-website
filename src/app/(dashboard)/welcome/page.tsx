@@ -55,6 +55,26 @@ type ExpForm = {
   currentlyWorking: boolean; location: string; description: string;
 };
 
+type Education = {
+  id: number;
+  userId: number;
+  schoolName: string;
+  degreeLevel: string | null;
+  major: string | null;
+  schoolYear: string | null;
+  graduationYear: string | null;
+  currentlyEnrolled: boolean;
+};
+
+type EduForm = {
+  schoolName: string; degreeLevel: string; major: string;
+  schoolYear: string; graduationYear: string; currentlyEnrolled: boolean;
+};
+
+const EMPTY_EDU: EduForm = {
+  schoolName: "", degreeLevel: "", major: "", schoolYear: "", graduationYear: "", currentlyEnrolled: false,
+};
+
 type EditForm = {
   firstName: string; lastName: string; headline: string; bio: string; profilePic: string;
   schoolName: string; degreeLevel: string; major: string;
@@ -351,8 +371,8 @@ function UniLogo({ schoolName, size = 10 }: { schoolName: string | null | undefi
   const [err, setErr] = useState(false);
   const mappedDomain = schoolName ? findUniversityDomain(schoolName) : null;
   const domain = useLogoDomain(schoolName, true, mappedDomain);
-  const initial = schoolName?.trim()[0]?.toUpperCase() ?? "U";
   const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
+  const iconSize = `${Math.max(10, size * 2)}px`;
 
   useEffect(() => {
     setErr(false);
@@ -362,9 +382,11 @@ function UniLogo({ schoolName, size = 10 }: { schoolName: string | null | undefi
     return (
       <div
         style={boxSize}
-        className="rounded-lg bg-[#001049]/10 flex items-center justify-center text-[#001049] font-bold text-sm shrink-0"
+        className="rounded-lg bg-[#001049]/10 flex items-center justify-center text-[#001049] shrink-0"
       >
-        {initial}
+        <svg style={{ width: iconSize, height: iconSize }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+        </svg>
       </div>
     );
   }
@@ -382,8 +404,8 @@ function UniLogo({ schoolName, size = 10 }: { schoolName: string | null | undefi
 function CompanyLogo({ company, size = 12 }: { company: string; size?: number }) {
   const [err, setErr] = useState(false);
   const domain = useLogoDomain(company, false);
-  const initial = company.trim()[0]?.toUpperCase() ?? "?";
   const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
+  const iconSize = `${Math.max(10, size * 2)}px`;
 
   useEffect(() => {
     setErr(false);
@@ -393,9 +415,11 @@ function CompanyLogo({ company, size = 12 }: { company: string; size?: number })
     return (
       <div
         style={boxSize}
-        className="rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 font-bold text-base shrink-0"
+        className="rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 shrink-0"
       >
-        {initial}
+        <svg style={{ width: iconSize, height: iconSize }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+        </svg>
       </div>
     );
   }
@@ -617,6 +641,11 @@ export default function DashboardPage() {
 
   const [expModal, setExpModal] = useState<{ open: boolean; editing: Experience | null }>({ open: false, editing: null });
   const [expForm, setExpForm] = useState<ExpForm>(EMPTY_EXP);
+  const [educations, setEducations] = useState<Education[]>([]);
+  const [eduModal, setEduModal] = useState<{ open: boolean; editing: Education | null }>({ open: false, editing: null });
+  const [eduForm, setEduForm] = useState<EduForm>(EMPTY_EDU);
+  const [eduSaving, setEduSaving] = useState(false);
+  const [eduError, setEduError] = useState("");
   const [expSaving, setExpSaving] = useState(false);
   const [expError, setExpError] = useState("");
   const [expDeleting, setExpDeleting] = useState<number | null>(null);
@@ -807,6 +836,7 @@ export default function DashboardPage() {
     Promise.all([
       authFetch("/api/auth/me").then((d) => setProfile(d.user)).catch(() => {}),
       authFetch("/api/user/experience").then((d) => setExperiences(d.experiences ?? [])).catch(() => {}),
+      authFetch("/api/user/education").then((d) => setEducations(d.educations ?? [])).catch(() => {}),
       authFetch("/api/user/follows").then((d) => {
         setFollowersCount(d.followersCount ?? 0);
         setFollowingCount(d.followingCount ?? 0);
@@ -985,6 +1015,39 @@ export default function DashboardPage() {
       await authFetch(`/api/user/experience/${id}`, { method: "DELETE" });
       setExperiences((prev) => prev.filter((e) => e.id !== id));
     } catch { } finally { setExpDeleting(null); }
+  };
+
+  const openAddEdu = () => { setEduForm(EMPTY_EDU); setEduError(""); setEduModal({ open: true, editing: null }); };
+  const openEditEdu = (edu: Education) => {
+    setEduForm({
+      schoolName: edu.schoolName, degreeLevel: edu.degreeLevel ?? "",
+      major: edu.major ?? "", schoolYear: edu.schoolYear ?? "",
+      graduationYear: edu.graduationYear ?? "", currentlyEnrolled: edu.currentlyEnrolled,
+    });
+    setEduError(""); setEduModal({ open: true, editing: edu });
+  };
+
+  const handleEduSave = async () => {
+    if (!eduForm.schoolName.trim()) { setEduError("School name is required."); return; }
+    setEduSaving(true); setEduError("");
+    try {
+      if (eduModal.editing) {
+        const data = await authFetch(`/api/user/education/${eduModal.editing.id}`, { method: "PATCH", body: JSON.stringify(eduForm) });
+        setEducations((prev) => prev.map((e) => e.id === eduModal.editing!.id ? data.education : e));
+      } else {
+        const data = await authFetch("/api/user/education", { method: "POST", body: JSON.stringify(eduForm) });
+        setEducations((prev) => [data.education, ...prev]);
+      }
+      setEduModal({ open: false, editing: null });
+    } catch { setEduError("Failed to save. Please try again."); }
+    finally { setEduSaving(false); }
+  };
+
+  const handleEduDelete = async (id: number) => {
+    try {
+      await authFetch(`/api/user/education/${id}`, { method: "DELETE" });
+      setEducations((prev) => prev.filter((e) => e.id !== id));
+    } catch { }
   };
 
   if (!user) return null;
@@ -1397,29 +1460,65 @@ export default function DashboardPage() {
 
             {/* Education */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <SectionHeader title="Education" onAdd={openEdit} />
+              <SectionHeader title="Education" onAdd={openAddEdu} />
               {loadingProfile ? (
                 <div className="space-y-2 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
-              ) : profile?.schoolName ? (
-                <div className="flex gap-4">
-                  <UniLogo schoolName={profile.schoolName} size={12} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900">
-                      {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-0.5">{profile.schoolName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {[
-                        profile.schoolYear ? `${profile.schoolYear}` : null,
-                        profile.graduationYear ? `Class of ${profile.graduationYear}` : null,
-                      ].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                </div>
               ) : (
-                <button onClick={openEdit} className="w-full border-2 border-dashed border-gray-200 rounded-xl py-6 text-sm text-gray-400 hover:border-[#001049]/30 hover:text-[#001049]/60 transition">
-                  Add your education
-                </button>
+                <>
+                  {/* Primary school from profile */}
+                  {profile?.schoolName && (
+                    <div className="flex gap-4 group pb-4 border-b border-gray-100 mb-4 last:border-0 last:mb-0 last:pb-0">
+                      <UniLogo schoolName={profile.schoolName} size={12} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-900">
+                              {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-0.5">{profile.schoolName}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null].filter(Boolean).join(" · ")}
+                            </p>
+                          </div>
+                          <button onClick={openEdit} className="p-1.5 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition opacity-0 group-hover:opacity-100 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Additional education entries */}
+                  {educations.map((edu) => (
+                    <div key={edu.id} className="flex gap-4 group py-4 border-b border-gray-100 last:border-0 last:pb-0 first:pt-0">
+                      <UniLogo schoolName={edu.schoolName} size={12} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-900">
+                              {[edu.degreeLevel, edu.major].filter(Boolean).join(", ") || edu.schoolName}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-0.5">{edu.schoolName}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {edu.currentlyEnrolled ? "Currently enrolled" : [edu.schoolYear, edu.graduationYear ? `Class of ${edu.graduationYear}` : null].filter(Boolean).join(" · ")}
+                            </p>
+                          </div>
+                          <button onClick={() => openEditEdu(edu)} className="p-1.5 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition opacity-0 group-hover:opacity-100 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {!profile?.schoolName && educations.length === 0 && (
+                    <button onClick={openAddEdu} className="w-full border-2 border-dashed border-gray-200 rounded-xl py-6 text-sm text-gray-400 hover:border-[#001049]/30 hover:text-[#001049]/60 transition">
+                      Add your education
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
@@ -1695,7 +1794,7 @@ export default function DashboardPage() {
       {/* ── Experience modal ─────────────────────────────────────────────── */}
       {expModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !expSaving && setExpModal({ open: false, editing: null })} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => !expSaving && setExpModal({ open: false, editing: null })} />
           <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <h2 className="text-lg font-bold text-gray-900">{expModal.editing ? "Edit Experience" : "Add Experience"}</h2>
@@ -1781,6 +1880,75 @@ export default function DashboardPage() {
               <button onClick={() => !expSaving && setExpModal({ open: false, editing: null })} disabled={expSaving} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition disabled:opacity-40">Cancel</button>
               <button onClick={handleExpSave} disabled={expSaving} className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white hover:bg-[#073D97] transition disabled:opacity-50 flex items-center gap-2">
                 {expSaving ? (<><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Saving…</>) : expModal.editing ? "Save changes" : "Add experience"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Education modal ──────────────────────────────────────────────── */}
+      {eduModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => !eduSaving && setEduModal({ open: false, editing: null })} />
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+              <h2 className="text-lg font-bold text-gray-900">{eduModal.editing ? "Edit Education" : "Add Education"}</h2>
+              <button onClick={() => !eduSaving && setEduModal({ open: false, editing: null })} className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">School Name <span className="text-red-400">*</span></label>
+                <input type="text" value={eduForm.schoolName} onChange={(e) => setEduForm((f) => ({ ...f, schoolName: e.target.value }))} placeholder="e.g. University of Minnesota" className={inputCls} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Degree</label>
+                  <select value={eduForm.degreeLevel} onChange={(e) => setEduForm((f) => ({ ...f, degreeLevel: e.target.value }))} className={selectCls}>
+                    <option value="">Select…</option>
+                    {["Associate's", "Bachelor's", "Master's", "PhD", "MD", "JD", "MBA", "Other"].map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Major / Field</label>
+                  <input type="text" value={eduForm.major} onChange={(e) => setEduForm((f) => ({ ...f, major: e.target.value }))} placeholder="e.g. Computer Science" className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Year</label>
+                  <select value={eduForm.schoolYear} onChange={(e) => setEduForm((f) => ({ ...f, schoolYear: e.target.value }))} className={selectCls}>
+                    <option value="">Select…</option>
+                    {["Freshman", "Sophomore", "Junior", "Senior", "Graduate"].map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Graduation Year</label>
+                  <select value={eduForm.graduationYear} onChange={(e) => setEduForm((f) => ({ ...f, graduationYear: e.target.value }))} disabled={eduForm.currentlyEnrolled} className={selectCls}>
+                    <option value="">Year</option>
+                    {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" checked={eduForm.currentlyEnrolled} onChange={(e) => setEduForm((f) => ({ ...f, currentlyEnrolled: e.target.checked, graduationYear: "" }))} className="w-4 h-4 rounded border-gray-300 text-[#001049] focus:ring-[#001049]/30" />
+                <span className="text-sm text-gray-700">I currently study here</span>
+              </label>
+              {eduError && <p className="text-sm text-red-500">{eduError}</p>}
+            </div>
+            <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-white flex items-center gap-3">
+              {eduModal.editing && (
+                <button type="button" onClick={() => { handleEduDelete(eduModal.editing!.id); setEduModal({ open: false, editing: null }); }} className="text-sm text-red-500 hover:text-red-600 font-medium transition">
+                  Delete
+                </button>
+              )}
+              <div className="flex-1" />
+              <button onClick={() => !eduSaving && setEduModal({ open: false, editing: null })} disabled={eduSaving} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition disabled:opacity-40">Cancel</button>
+              <button onClick={handleEduSave} disabled={eduSaving} className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white hover:bg-[#073D97] transition disabled:opacity-50 flex items-center gap-2">
+                {eduSaving ? (<><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Saving…</>) : eduModal.editing ? "Save changes" : "Add education"}
               </button>
             </div>
           </div>
