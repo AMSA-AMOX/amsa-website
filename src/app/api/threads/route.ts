@@ -78,7 +78,7 @@ export async function GET(request: Request) {
 
   try {
     if (view === "inbox") {
-      const isRecipient = [ROLES.US_MEMBER, ROLES.ADMIN, ROLES.BOARD_MEMBER].includes(
+      const isRecipient = [ROLES.AMBASSADOR, ROLES.US_MEMBER, ROLES.ADMIN, ROLES.BOARD_MEMBER].includes(
         payload.role as any
       );
 
@@ -163,6 +163,7 @@ export async function POST(request: Request) {
     const recipientId = typeof body?.recipientId === "number" ? body.recipientId : null;
     const question =
       typeof body?.question === "string" ? body.question.trim() : "";
+    const isPublic = typeof body?.isPublic === "boolean" ? body.isPublic : true;
 
     if (!recipientId || !Number.isFinite(recipientId)) {
       return NextResponse.json({ message: "recipientId is required." }, { status: 400 });
@@ -190,7 +191,7 @@ export async function POST(request: Request) {
     if (
       recipientError ||
       !recipient ||
-      !["us_member", "board_member", "admin"].includes((recipient as UserRow).role ?? "")
+      !["ambassador", "us_member", "board_member", "admin"].includes((recipient as UserRow).role ?? "")
     ) {
       return NextResponse.json(
         { message: "Recipient not found or not eligible to receive questions." },
@@ -201,7 +202,7 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     const { data: inserted, error: insertError } = await supabase
       .from("Threads")
-      .insert({ askerId: payload.id, recipientId, question, createdAt: now, updatedAt: now })
+      .insert({ askerId: payload.id, recipientId, question, isPublic, createdAt: now, updatedAt: now })
       .select(SELECT_COLS)
       .single();
 

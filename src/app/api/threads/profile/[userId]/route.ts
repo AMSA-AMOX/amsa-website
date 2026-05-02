@@ -13,6 +13,7 @@ type ThreadRow = {
   answeredAt: string | null;
   createdAt: string;
   isAnonymous: boolean;
+  isPublic: boolean;
 };
 
 type UserRow = {
@@ -42,14 +43,14 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     let query = supabase
       .from("Threads")
-      .select("id, askerId, recipientId, question, answer, answeredAt, createdAt, isAnonymous")
+      .select("id, askerId, recipientId, question, answer, answeredAt, createdAt, isAnonymous, isPublic")
       .eq("recipientId", targetId)
       .not("answer", "is", null)
       .order("answeredAt", { ascending: false })
       .limit(30);
 
     if (!isOwner) {
-      query = query.eq("isAnonymous", false);
+      query = query.eq("isAnonymous", false).eq("isPublic", true);
     }
 
     const { data, error } = await query;
