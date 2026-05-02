@@ -20,6 +20,7 @@ export type SignupPayload = {
   password: string;
   firstName: string;
   lastName: string;
+  turnstileToken: string;
 };
 
 type AuthContextValue = {

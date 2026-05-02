@@ -3,10 +3,42 @@ import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 import { makeToken, isAmsaAdminEmail } from "@/lib/auth";
 
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY ?? "";
+
+/** Letters, spaces, hyphens, apostrophes only — no random strings or numbers. */
+function isValidName(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  return trimmed.length >= 1 && trimmed.length <= 50 && /^[\p{L}\p{M}' -]+$/u.test(trimmed);
+}
+
+async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
+  try {
+    const payload: { secret: string; response: string; remoteip?: string } = {
+      secret: TURNSTILE_SECRET,
+      response: token,
+    };
+    if (ip) payload.remoteip = ip;
+
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success !== true) {
+      console.error("[turnstile] verification failed", data["error-codes"] ?? []);
+    }
+    return data.success === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName } = body;
+    const { email, password, firstName, lastName, turnstileToken } = body;
 
     const eduEmail = email?.toLowerCase().trim();
 
@@ -15,6 +47,34 @@ export async function POST(request: Request) {
         { message: "Missing email or password" },
         { status: 400 }
       );
+    }
+
+    // Name validation
+    if (!isValidName(firstName) || !isValidName(lastName)) {
+      return NextResponse.json(
+        { message: "Please enter a valid first and last name." },
+        { status: 400 }
+      );
+    }
+
+    // Turnstile verification (skip only if secret key is not configured, e.g. local dev)
+    if (TURNSTILE_SECRET) {
+      if (!turnstileToken || typeof turnstileToken !== "string") {
+        return NextResponse.json(
+          { message: "Security check required." },
+          { status: 400 }
+        );
+      }
+      const clientIp =
+        request.headers.get("cf-connecting-ip") ??
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+      const valid = await verifyTurnstile(turnstileToken, clientIp);
+      if (!valid) {
+        return NextResponse.json(
+          { message: "Security check failed. Please try again." },
+          { status: 400 }
+        );
+      }
     }
 
     // Check for existing user

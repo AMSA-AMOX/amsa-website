@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 const EyeIcon = ({ open }: { open: boolean }) =>
   open ? (
@@ -18,12 +19,16 @@ const EyeIcon = ({ open }: { open: boolean }) =>
   );
 
 
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
 const SignupMember = () => {
   const { signup } = useAuth();
   const router = useRouter();
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "", firstName: "", lastName: "" });
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +38,12 @@ const SignupMember = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!turnstileToken) {
+      setError("Please complete the security check.");
+      return;
+    }
+
     setLoading(true);
     try {
       await signup({
@@ -40,10 +51,14 @@ const SignupMember = () => {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        turnstileToken,
       });
       router.push("/welcome");
     } catch (err: any) {
       setError(err?.message || "Registration failed");
+      // Reset widget so user can retry
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     } finally {
       setLoading(false);
     }
@@ -110,9 +125,21 @@ const SignupMember = () => {
             </div>
           </div>
 
-        <button
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={SITE_KEY}
+            onSuccess={setTurnstileToken}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => {
+              setTurnstileToken(null);
+              setError("Security check failed. Please refresh and try again.");
+            }}
+            options={{ theme: "light" }}
+          />
+
+          <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !turnstileToken}
             className="w-full bg-[#001049] text-white py-3 rounded-xl font-medium hover:bg-[#001A78] transition disabled:opacity-50 mt-2"
           >
             {loading ? "Creating account…" : "Create Account"}

@@ -143,6 +143,11 @@ export function validateMembershipSubmissionPayload(
     errors.push("mentorshipInterest is invalid");
   }
 
+  // School email must end in .edu
+  if (payload.email && !payload.email.toLowerCase().endsWith(".edu")) {
+    errors.push("email must be a school email address ending in .edu");
+  }
+
   if (errors.length > 0) {
     return { ok: false as const, errors };
   }

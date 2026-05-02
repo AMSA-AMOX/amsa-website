@@ -46,6 +46,7 @@ export const isAmsaAdminEmail = (email: string): boolean =>
 export const ROLES = {
   ADMIN: "admin",
   BOARD_MEMBER: "board_member",
+  AMBASSADOR: "ambassador",
   US_MEMBER: "us_member",
   MEMBER: "member",
 } as const;
@@ -56,6 +57,8 @@ export function getRoleLabel(role: string): string {
       return "Admin";
     case ROLES.BOARD_MEMBER:
       return "Board Member";
+    case ROLES.AMBASSADOR:
+      return "Ambassador";
     case ROLES.US_MEMBER:
       return "US Member";
     default:
