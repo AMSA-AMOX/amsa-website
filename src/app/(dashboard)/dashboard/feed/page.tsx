@@ -8,13 +8,6 @@ import type { PostItem } from "@/components/posts/types";
 import { POST_TOPICS } from "@/components/posts/types";
 import { useAuth } from "@/context/AuthContext";
 
-const SHOP_ITEMS = [
-  { key: "agm_ticket", label: "Ticket to AGM", cost: 20, description: "Priority seat + networking access." },
-  { key: "amsa_merch", label: "AMSA Merch", cost: 35, description: "Sticker pack + limited tee." },
-  { key: "ig_shoutout", label: "Shoutout on IG", cost: 25, description: "Member spotlight story mention." },
-  { key: "ig_post", label: "Post on IG", cost: 40, description: "Dedicated feature post." },
-] as const;
-
 export default function FeedPage() {
   const router = useRouter();
   const { user, loading, authFetch } = useAuth();
@@ -25,10 +18,6 @@ export default function FeedPage() {
   const [appreciating, setAppreciating] = useState<Set<number>>(new Set());
   const [policyOpen, setPolicyOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
-  const [shopOpen, setShopOpen] = useState(false);
-  const [tokens, setTokens] = useState(0);
-  const [shopMessage, setShopMessage] = useState("");
-  const [redeemingKey, setRedeemingKey] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
@@ -51,15 +40,6 @@ export default function FeedPage() {
     }
   }, [authFetch]);
 
-  const loadTokens = useCallback(async () => {
-    try {
-      const data = await authFetch("/api/user/tokens");
-      setTokens(Number(data.tokens ?? 0));
-    } catch {
-      setTokens(0);
-    }
-  }, [authFetch]);
-
   const loadFollowing = useCallback(async () => {
     try {
       const data = await authFetch("/api/user/follows");
@@ -76,9 +56,8 @@ export default function FeedPage() {
       return;
     }
     loadPosts();
-    loadTokens();
     loadFollowing();
-  }, [user, loading, router, loadPosts, loadTokens, loadFollowing]);
+  }, [user, loading, router, loadPosts, loadFollowing]);
 
   const onAppreciate = async (postId: number) => {
     if (appreciating.has(postId)) return;
@@ -109,7 +88,6 @@ export default function FeedPage() {
             : post
         )
       );
-      loadTokens();
     } catch {
       setPosts((prev) =>
         prev.map((post) =>
@@ -187,25 +165,10 @@ export default function FeedPage() {
     setPostOpen(false);
   };
 
-  const redeemItem = async (itemKey: string) => {
-    setRedeemingKey(itemKey);
-    setShopMessage("");
-    try {
-      const data = await authFetch("/api/shop/redeem", {
-        method: "POST",
-        body: JSON.stringify({ itemKey }),
-      });
-      setTokens(Number(data.tokens ?? 0));
-      setShopMessage(data.message ?? "Redemption request submitted.");
-    } catch (e: any) {
-      setShopMessage(e?.message ?? "Could not redeem item.");
-    } finally {
-      setRedeemingKey(null);
-    }
-  };
-
   const filteredPosts = selectedTopic
-    ? posts.filter((p) => p.topic === selectedTopic)
+    ? posts.filter((p) =>
+        p.topic?.split(",").map((t) => t.trim()).includes(selectedTopic)
+      )
     : posts;
 
   if (!user) return null;
@@ -232,21 +195,6 @@ export default function FeedPage() {
             className="flex-1 text-left px-4 py-3 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 hover:bg-gray-50 transition"
           >
             Share something with the community...
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShopMessage(""); setShopOpen(true); }}
-            className="relative p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-500 shrink-0"
-            aria-label={`Shop (${tokens} tokens)`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" />
-            </svg>
-            {tokens > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-[#001049] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                {tokens}
-              </span>
-            )}
           </button>
         </div>
       )}
@@ -370,42 +318,6 @@ export default function FeedPage() {
         </div>
       )}
 
-      {shopOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShopOpen(false)} />
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-[#001049]">AMSA Shop</h2>
-                <p className="text-xs text-gray-500 mt-1">Balance: {tokens} Tokens of Appreciation</p>
-              </div>
-              <button onClick={() => setShopOpen(false)} className="text-gray-400 hover:text-gray-600">
-                x
-              </button>
-            </div>
-            <div className="space-y-3">
-              {SHOP_ITEMS.map((item) => (
-                <div key={item.key} className="border border-gray-100 rounded-xl p-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[#001049]">{item.label}</p>
-                    <p className="text-xs text-gray-500">{item.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">Cost: {item.cost} tokens</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => redeemItem(item.key)}
-                    disabled={redeemingKey === item.key || tokens < item.cost}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Redeem
-                  </button>
-                </div>
-              ))}
-            </div>
-            {shopMessage && <p className="mt-4 text-sm text-gray-700">{shopMessage}</p>}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

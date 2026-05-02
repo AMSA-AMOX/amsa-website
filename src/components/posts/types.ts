@@ -15,6 +15,12 @@ export type PostAuthor = {
   profilePic: string | null;
 };
 
+export type PostCollege = {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+};
+
 export type PostItem = {
   id: number;
   title: string;
@@ -28,4 +34,5 @@ export type PostItem = {
   reviewNote?: string | null;
   topic?: string | null;
   author: PostAuthor | null;
+  college?: PostCollege | null;
 };

@@ -14,6 +14,7 @@ type RawPostRow = {
   reviewedAt: string | null;
   reviewNote: string | null;
   topic: string | null;
+  tagged_college_id: number | null;
 };
 
 type RawUserRow = {
@@ -22,6 +23,12 @@ type RawUserRow = {
   lastName: string;
   headline: string | null;
   profilePic: string | null;
+};
+
+type RawCollegeRow = {
+  unitid: number;
+  name: string;
+  school_url: string | null;
 };
 
 const normalizeImages = (value: unknown): string[] => {
@@ -47,6 +54,22 @@ const normalizeId = (value: unknown): number | null => {
 const canModerate = (role: string | null | undefined) =>
   role === ROLES.ADMIN || role === ROLES.BOARD_MEMBER;
 
+function deriveLogoUrl(website: string | null): string | null {
+  if (!website) return null;
+  try {
+    const host = new URL(website.startsWith("http") ? website : `https://${website}`).hostname;
+    if (!host) return null;
+    // Strip www. to match the root domain that img.logo.dev uses
+    const rootHost = host.startsWith("www.") ? host.slice(4) : host;
+    const token = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
+    return token
+      ? `https://img.logo.dev/${rootHost}?token=${encodeURIComponent(token)}`
+      : `https://img.logo.dev/${rootHost}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const limit = parseLimit(url.searchParams.get("limit"));
@@ -69,7 +92,7 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from("Posts")
-      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
+      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
       .order("createdAt", { ascending: false })
       .limit(limit);
 
@@ -123,6 +146,25 @@ export async function GET(request: Request) {
       );
     }
 
+    // Fetch college info for tagged posts
+    const collegeIds = Array.from(
+      new Set(
+        safePosts
+          .map((p) => p.tagged_college_id)
+          .filter((id): id is number => id !== null)
+      )
+    );
+    let collegesById = new Map<number, RawCollegeRow>();
+    if (collegeIds.length > 0) {
+      const { data: colleges } = await supabase
+        .from("colleges_base")
+        .select("unitid, name, school_url")
+        .in("unitid", collegeIds);
+      for (const c of (colleges ?? []) as RawCollegeRow[]) {
+        collegesById.set(c.unitid, c);
+      }
+    }
+
     let appreciationRows: Array<{ postId: number }> = [];
     if (viewerId) {
       const { data: helpfulData, error: helpfulError } = await supabase
@@ -142,23 +184,27 @@ export async function GET(request: Request) {
     const appreciationSet = new Set(appreciationRows.map((row) => row.postId));
 
     return NextResponse.json({
-      posts: safePosts.map((post) => ({
-        id: post.id,
-        title: post.title,
-        body: post.body,
-        images: normalizeImages(post.images),
-        createdAt: post.createdAt,
-        appreciationCount: post.helpfulCount ?? 0,
-        hasAppreciated: appreciationSet.has(post.id),
-        reviewStatus: post.reviewStatus,
-        reviewedAt: post.reviewedAt,
-        reviewNote: post.reviewNote,
-        topic: post.topic ?? null,
-        author: (() => {
-          const normalizedUserId = normalizeId(post.userId);
-          return normalizedUserId !== null ? usersById.get(normalizedUserId) ?? null : null;
-        })(),
-      })),
+      posts: safePosts.map((post) => {
+        const normalizedUserId = normalizeId(post.userId);
+        const collegeRow = post.tagged_college_id ? collegesById.get(post.tagged_college_id) : undefined;
+        return {
+          id: post.id,
+          title: post.title,
+          body: post.body,
+          images: normalizeImages(post.images),
+          createdAt: post.createdAt,
+          appreciationCount: post.helpfulCount ?? 0,
+          hasAppreciated: appreciationSet.has(post.id),
+          reviewStatus: post.reviewStatus,
+          reviewedAt: post.reviewedAt,
+          reviewNote: post.reviewNote,
+          topic: post.topic ?? null,
+          author: normalizedUserId !== null ? usersById.get(normalizedUserId) ?? null : null,
+          college: collegeRow
+            ? { id: collegeRow.unitid, name: collegeRow.name, logoUrl: deriveLogoUrl(collegeRow.school_url) }
+            : null,
+        };
+      }),
     });
   } catch (e) {
     console.error("List posts exception:", e);
@@ -190,11 +236,35 @@ export async function POST(request: Request) {
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const text = typeof body?.body === "string" ? body.body.trim() : "";
     const images = normalizeImages(body?.images).slice(0, 6);
-    const topic = typeof body?.topic === "string" && body.topic.trim().length > 0 ? body.topic.trim() : null;
+
+    // Accept topics array (new) or legacy single topic string
+    let topic: string | null = null;
+    if (Array.isArray(body?.topics) && body.topics.length > 0) {
+      const validTopics = body.topics
+        .filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0)
+        .slice(0, 3);
+      topic = validTopics.length > 0 ? validTopics.join(",") : null;
+    } else if (typeof body?.topic === "string" && body.topic.trim().length > 0) {
+      topic = body.topic.trim();
+    }
     const reviewStatus = payload.role === ROLES.US_MEMBER ? "pending" : "approved";
     const nowIso = new Date().toISOString();
     const startOfUtcDay = new Date();
     startOfUtcDay.setUTCHours(0, 0, 0, 0);
+
+    // Validate and resolve collegeId
+    const rawCollegeId = body?.collegeId;
+    let taggedCollegeId: number | null = null;
+    if (rawCollegeId != null) {
+      const parsed = Number(rawCollegeId);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        const { count } = await supabase
+          .from("colleges_base")
+          .select("unitid", { count: "exact", head: true })
+          .eq("unitid", parsed);
+        if ((count ?? 0) > 0) taggedCollegeId = parsed;
+      }
+    }
 
     const { count: todayCount, error: countError } = await supabase
       .from("Posts")
@@ -234,11 +304,12 @@ export async function POST(request: Request) {
         body: text,
         images,
         topic,
+        tagged_college_id: taggedCollegeId,
         reviewStatus,
         createdAt: nowIso,
         updatedAt: nowIso,
       })
-      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
+      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
       .single();
 
     if (error || !insertedPost) {
@@ -252,20 +323,38 @@ export async function POST(request: Request) {
       .eq("id", payload.id)
       .single();
 
+    let college = null;
+    const raw = insertedPost as RawPostRow;
+    if (raw.tagged_college_id) {
+      const { data: collegeRow } = await supabase
+        .from("colleges_base")
+        .select("unitid, name, school_url")
+        .eq("unitid", raw.tagged_college_id)
+        .maybeSingle();
+      if (collegeRow) {
+        college = {
+          id: (collegeRow as RawCollegeRow).unitid,
+          name: (collegeRow as RawCollegeRow).name,
+          logoUrl: deriveLogoUrl((collegeRow as RawCollegeRow).school_url),
+        };
+      }
+    }
+
     return NextResponse.json({
       post: {
-        id: insertedPost.id,
-        title: insertedPost.title,
-        body: insertedPost.body,
-        images: normalizeImages(insertedPost.images),
-        createdAt: insertedPost.createdAt,
-        appreciationCount: insertedPost.helpfulCount ?? 0,
+        id: raw.id,
+        title: raw.title,
+        body: raw.body,
+        images: normalizeImages(raw.images),
+        createdAt: raw.createdAt,
+        appreciationCount: raw.helpfulCount ?? 0,
         hasAppreciated: false,
-        reviewStatus: insertedPost.reviewStatus,
-        reviewedAt: insertedPost.reviewedAt,
-        reviewNote: insertedPost.reviewNote,
-        topic: (insertedPost as any).topic ?? null,
+        reviewStatus: raw.reviewStatus,
+        reviewedAt: raw.reviewedAt,
+        reviewNote: raw.reviewNote,
+        topic: raw.topic ?? null,
         author: author ?? null,
+        college,
       },
       requiresApproval: reviewStatus === "pending",
     });

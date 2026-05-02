@@ -61,15 +61,42 @@ export default function PostCard({
         <header className="px-5 pt-5 pb-3 flex items-center gap-3">
           {post.author ? (
             <Link href={`/dashboard/network/${post.author.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
-                {post.author.profilePic ? (
-                  <img
-                    src={post.author.profilePic}
-                    alt={`${post.author.firstName} ${post.author.lastName}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  initials
+              <div className="relative shrink-0">
+                <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden">
+                  {post.author.profilePic ? (
+                    <img
+                      src={post.author.profilePic}
+                      alt={`${post.author.firstName} ${post.author.lastName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                {post.college && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-white bg-white overflow-hidden flex items-center justify-center">
+                    {post.college.logoUrl ? (
+                      <img
+                        src={post.college.logoUrl}
+                        alt={post.college.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          el.style.display = "none";
+                          const parent = el.parentElement;
+                          if (parent) {
+                            parent.classList.add("bg-[#001049]");
+                            parent.textContent = post.college!.name[0].toUpperCase();
+                            parent.classList.add("text-white", "text-[8px]", "font-bold");
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="text-[8px] font-bold text-white bg-[#001049] w-full h-full flex items-center justify-center">
+                        {post.college.name[0].toUpperCase()}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="min-w-0">
@@ -83,8 +110,25 @@ export default function PostCard({
             </Link>
           ) : (
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
-                {initials}
+              <div className="relative shrink-0">
+                <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden">
+                  {initials}
+                </div>
+                {post.college && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-white bg-white overflow-hidden flex items-center justify-center">
+                    {post.college.logoUrl ? (
+                      <img
+                        src={post.college.logoUrl}
+                        alt={post.college.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-[8px] font-bold text-white bg-[#001049] w-full h-full flex items-center justify-center">
+                        {post.college.name[0].toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">Unknown user</p>
@@ -129,9 +173,13 @@ export default function PostCard({
           </div>
         )}
         {post.topic && (
-          <span className="inline-flex mb-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#001049]/8 text-[#001049]">
-            {post.topic}
-          </span>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {post.topic.split(",").map((t) => t.trim()).filter(Boolean).map((t) => (
+              <span key={t} className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#001049]/8 text-[#001049]">
+                {t}
+              </span>
+            ))}
+          </div>
         )}
         <h2 className="text-lg font-bold text-[#001049] leading-snug">{post.title}</h2>
         <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{post.body}</p>

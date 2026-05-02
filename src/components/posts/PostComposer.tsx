@@ -12,6 +12,12 @@ type PostComposerProps = {
   cannotPostMessage?: string;
 };
 
+type UserCollege = {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+};
+
 const MAX_TITLE = 180;
 const MAX_BODY = 4000;
 const MAX_IMAGES = 6;
@@ -25,10 +31,21 @@ export default function PostComposer({
   const { user, authFetch } = useAuth();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [topic, setTopic] = useState("");
+  const [topics, setTopics] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [userCollege, setUserCollege] = useState<UserCollege | null>(null);
+  const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    authFetch("/api/user/college")
+      .then((data) => {
+        if (data?.college) setUserCollege(data.college);
+      })
+      .catch(() => {});
+  }, [user]);
 
   const previewUrls = useMemo(
     () => files.map((file) => URL.createObjectURL(file)),
@@ -47,12 +64,13 @@ export default function PostComposer({
       canPost &&
       title.trim().length > 0 &&
       body.trim().length > 0 &&
-      topic.length > 0 &&
+      topics.length > 0 &&
+      topics.length <= 3 &&
       title.trim().length <= MAX_TITLE &&
       body.trim().length <= MAX_BODY &&
       files.length <= MAX_IMAGES
     );
-  }, [title, body, topic, files.length, submitting]);
+  }, [title, body, topics, files.length, submitting]);
 
   const onPickFiles = (event: ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files ?? []);
@@ -117,16 +135,18 @@ export default function PostComposer({
         body: JSON.stringify({
           title: title.trim(),
           body: body.trim(),
-          topic,
+          topics,
           images: imageUrls,
+          collegeId: selectedCollegeId,
         }),
       });
 
       onCreated(data.post as PostItem);
       setTitle("");
       setBody("");
-      setTopic("");
+      setTopics([]);
       setFiles([]);
+      setSelectedCollegeId(null);
     } catch (e: any) {
       setError(e?.message ?? "Could not create post.");
     } finally {
@@ -145,6 +165,46 @@ export default function PostComposer({
       )}
 
       <div className="mt-4 space-y-3">
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Post as</p>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              disabled={!canPost}
+              onClick={() => setSelectedCollegeId(null)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition disabled:opacity-50 ${
+                selectedCollegeId === null
+                  ? "bg-[#001049] text-white border-[#001049]"
+                  : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+              }`}
+            >
+              General
+            </button>
+            {userCollege && (
+              <button
+                type="button"
+                disabled={!canPost}
+                onClick={() => setSelectedCollegeId(userCollege.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition disabled:opacity-50 ${
+                  selectedCollegeId === userCollege.id
+                    ? "bg-[#001049] text-white border-[#001049]"
+                    : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+                }`}
+              >
+                {userCollege.logoUrl && (
+                  <img
+                    src={userCollege.logoUrl}
+                    alt={userCollege.name}
+                    className="w-4 h-4 object-contain rounded-sm shrink-0"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                )}
+                {userCollege.name}
+              </button>
+            )}
+          </div>
+        </div>
+
         <input
           type="text"
           placeholder="Post title"
@@ -165,26 +225,39 @@ export default function PostComposer({
         />
 
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Topic</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Topics <span className="text-gray-400 font-normal">(pick 1–3)</span>
+          </p>
           <div className="flex flex-wrap gap-2">
-            {POST_TOPICS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                disabled={!canPost}
-                onClick={() => setTopic(topic === t ? "" : t)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
-                  topic === t
-                    ? "bg-[#001049] text-white border-[#001049]"
-                    : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
-                } disabled:opacity-50`}
-              >
-                {t}
-              </button>
-            ))}
+            {POST_TOPICS.map((t) => {
+              const selected = topics.includes(t);
+              const atMax = topics.length >= 3;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  disabled={!canPost || (!selected && atMax)}
+                  onClick={() =>
+                    setTopics((prev) =>
+                      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+                    )
+                  }
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
+                    selected
+                      ? "bg-[#001049] text-white border-[#001049]"
+                      : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+                  } disabled:opacity-40`}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
-          {!topic && (
-            <p className="text-xs text-gray-400 mt-1.5">Select a topic to continue.</p>
+          {topics.length === 0 && (
+            <p className="text-xs text-gray-400 mt-1.5">Select at least one topic to continue.</p>
+          )}
+          {topics.length === 3 && (
+            <p className="text-xs text-amber-500 mt-1.5">Maximum of 3 topics selected.</p>
           )}
         </div>
 
