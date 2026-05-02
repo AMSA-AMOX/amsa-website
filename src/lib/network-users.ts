@@ -9,15 +9,17 @@ type BaseUserRow = {
   profilePic: string | null;
   schoolName: string | null;
   graduationYear: string | null;
+  role: string | null;
 };
 
-type SearchableMember = {
+export type SearchableMember = {
   id: number;
   firstName: string;
   lastName: string;
   profilePic: string | null;
   schoolName: string | null;
   graduationYear: string | null;
+  role: string;
   followersCount: number;
   followingCount: number;
   mutualCount: number;
@@ -56,7 +58,9 @@ const scoreMember = (member: SearchableMember, query: string) => {
     if (school.includes(token)) score += 22;
   }
 
-  // Slightly prioritize active members in discovery.
+  // Ambassadors are prioritized in search results.
+  if (member.role === "ambassador") score += 40;
+
   score += Math.min(member.followersCount, 15);
   score += Math.min(member.mutualCount * 3, 30);
 
@@ -76,8 +80,8 @@ export async function listNetworkMembersForUser(
   const candidateLimit = q ? Math.max(120, limit * 3) : limit;
   let usersQuery = supabase
     .from("Users")
-    .select("id, firstName, lastName, profilePic, schoolName, graduationYear")
-    .in("role", ["us_member", "board_member", "admin"])
+    .select("id, firstName, lastName, profilePic, schoolName, graduationYear, role")
+    .in("role", ["ambassador", "us_member", "board_member", "admin"])
     .neq("id", userId)
     .limit(candidateLimit);
 
@@ -96,6 +100,7 @@ export async function listNetworkMembersForUser(
     profilePic: member.profilePic,
     schoolName: member.schoolName,
     graduationYear: member.graduationYear,
+    role: member.role ?? "member",
     followersCount: 0,
     followingCount: 0,
     mutualCount: 0,
@@ -158,6 +163,7 @@ export async function listNetworkMembersForUser(
       profilePic: member.profilePic,
       schoolName: member.schoolName,
       graduationYear: member.graduationYear,
+      role: member.role ?? "member",
       followersCount: followersByUser.get(member.id) ?? 0,
       followingCount: followingByUser.get(member.id) ?? 0,
       mutualCount: mutualByUser.get(member.id) ?? 0,
@@ -171,12 +177,16 @@ export async function listNetworkMembersForUser(
 
   if (!q) {
     return enriched
-      .sort(
-        (a, b) =>
+      .sort((a, b) => {
+        const aIsAmbassador = a.role === "ambassador" ? 1 : 0;
+        const bIsAmbassador = b.role === "ambassador" ? 1 : 0;
+        return (
+          bIsAmbassador - aIsAmbassador ||
           b.mutualCount - a.mutualCount ||
           b.followersCount - a.followersCount ||
           a.firstName.localeCompare(b.firstName)
-      )
+        );
+      })
       .slice(0, limit);
   }
 

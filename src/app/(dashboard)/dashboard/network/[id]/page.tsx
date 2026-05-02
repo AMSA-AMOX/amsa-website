@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
+import { extractSchoolEmailDomain, getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
 
@@ -15,6 +15,7 @@ type NetworkProfile = {
   profilePic: string | null;
   bio: string | null;
   schoolName: string | null;
+  schoolEmail: string | null;
   major: string | null;
   degreeLevel: string | null;
   schoolYear: string | null;
@@ -129,11 +130,44 @@ type NextProfile = {
   sameYear: boolean;
 };
 
+const ROLE_BADGE: Record<string, { label: string; className: string }> = {
+  admin:        { label: "Admin",        className: "bg-red-50 text-red-600" },
+  board_member: { label: "Board Member", className: "bg-purple-50 text-purple-600" },
+  ambassador:   { label: "Ambassador",   className: "bg-amber-50 text-amber-600" },
+  us_member:    { label: "US Member",    className: "bg-blue-50 text-blue-600" },
+};
+
 const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
 const LOGO_DOMAIN_CACHE = new Map<string, string | null>();
 const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
 
 const normalizeLookupName = (value: string) => value.trim().toLowerCase();
+
+/**
+ * Score how well a Clearbit result name matches the query.
+ * Higher = better match. Based on word overlap so "University of Maryland"
+ * scores higher than "University of Mary" for the same query.
+ */
+function nameMatchScore(query: string, resultName: string): number {
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+  const q = normalize(query);
+  const r = normalize(resultName);
+
+  // Exact match wins
+  if (q === r) return 1000;
+
+  const qWords = q.split(" ").filter(Boolean);
+  const rWords = new Set(r.split(" ").filter(Boolean));
+
+  // How many query words appear in the result
+  const matchedWords = qWords.filter((w) => rWords.has(w)).length;
+  // Penalise extra words in the result not in the query
+  const extraWords = [...rWords].filter((w) => !qWords.includes(w)).length;
+
+  return matchedWords * 10 - extraWords;
+}
 
 const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promise<string | null> => {
   const known = getKnownSchoolDomain(name);
@@ -145,16 +179,21 @@ const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promis
       const query = encodeURIComponent(variant);
       const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
       if (!res.ok) continue;
-      const results = (await res.json()) as Array<{ domain?: string }>;
+      const results = (await res.json()) as Array<{ name?: string; domain?: string }>;
       if (!Array.isArray(results) || results.length === 0) continue;
 
-      if (preferEdu) {
-        const eduMatch = results.find((r) => r.domain?.toLowerCase().endsWith(".edu"));
-        if (eduMatch?.domain) return eduMatch.domain;
-      }
+      const pool = preferEdu
+        ? results.filter((r) => r.domain?.toLowerCase().endsWith(".edu"))
+        : results.filter((r) => !!r.domain);
 
-      const anyMatch = results.find((r) => !!r.domain)?.domain;
-      if (anyMatch) return anyMatch;
+      if (pool.length === 0) continue;
+
+      // Pick the result whose name best matches the query rather than just the first
+      const best = pool.reduce((a, b) =>
+        nameMatchScore(variant, b.name ?? "") > nameMatchScore(variant, a.name ?? "") ? b : a
+      );
+
+      if (best.domain) return best.domain;
     } catch {
       continue;
     }
@@ -182,11 +221,15 @@ const buildLogoUrl = (domain: string) => {
   return `${base}?token=${encodeURIComponent(LOGO_DEV_TOKEN)}`;
 };
 
-const useLogoDomain = (name: string | null | undefined, preferEdu: boolean) => {
-  const [domain, setDomain] = useState<string | null>(null);
+const useLogoDomain = (name: string | null | undefined, preferEdu: boolean, overrideDomain?: string | null) => {
+  const [domain, setDomain] = useState<string | null>(overrideDomain ?? null);
 
   useEffect(() => {
     let cancelled = false;
+    if (overrideDomain) {
+      setDomain(overrideDomain);
+      return;
+    }
     if (!name?.trim()) {
       setDomain(null);
       return;
@@ -197,7 +240,7 @@ const useLogoDomain = (name: string | null | undefined, preferEdu: boolean) => {
     return () => {
       cancelled = true;
     };
-  }, [name, preferEdu]);
+  }, [name, preferEdu, overrideDomain]);
 
   return domain;
 };
@@ -205,16 +248,18 @@ const useLogoDomain = (name: string | null | undefined, preferEdu: boolean) => {
 function EntityLogo({
   name,
   preferEdu,
+  emailDomain,
   size = 10,
   rounded = "rounded-lg",
 }: {
   name: string | null | undefined;
   preferEdu: boolean;
+  emailDomain?: string | null;
   size?: number;
   rounded?: string;
 }) {
   const [err, setErr] = useState(false);
-  const domain = useLogoDomain(name, preferEdu);
+  const domain = useLogoDomain(name, preferEdu, emailDomain);
   const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
   const iconSize = `${Math.max(10, size * 2)}px`;
 
@@ -276,6 +321,7 @@ export default function NetworkProfilePage() {
   const [threadsLoaded, setThreadsLoaded] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [questionDraft, setQuestionDraft] = useState("");
+  const [questionIsPublic, setQuestionIsPublic] = useState(true);
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
   const [questionMessage, setQuestionMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -357,9 +403,10 @@ export default function NetworkProfilePage() {
     try {
       await authFetch("/api/threads", {
         method: "POST",
-        body: JSON.stringify({ recipientId: profile.id, question: q }),
+        body: JSON.stringify({ recipientId: profile.id, question: q, isPublic: questionIsPublic }),
       });
       setQuestionDraft("");
+      setQuestionIsPublic(true);
       setAskOpen(false);
       setQuestionMessage({ text: "Your question has been sent!", ok: true });
       setTimeout(() => setQuestionMessage(null), 4000);
@@ -454,7 +501,7 @@ export default function NetworkProfilePage() {
     user?.role === "member" &&
     profile !== null &&
     profile.id !== user?.id &&
-    ["us_member", "board_member", "admin"].includes(profile?.role ?? "");
+    ["ambassador", "us_member", "board_member", "admin"].includes(profile?.role ?? "");
 
   if (!user) return null;
 
@@ -500,6 +547,11 @@ export default function NetworkProfilePage() {
                     )}
                   </div>
                   <h1 className="mt-3 text-xl font-bold text-gray-900 text-center leading-tight">{displayName}</h1>
+                  {ROLE_BADGE[profile.role] && (
+                    <span className={`mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[profile.role].className}`}>
+                      {ROLE_BADGE[profile.role].label}
+                    </span>
+                  )}
                   <div className="flex items-center gap-3 mt-2 text-sm">
                     <span className="text-gray-500">
                       <span className="font-semibold text-gray-900">{profile.followersCount}</span> followers
@@ -529,7 +581,7 @@ export default function NetworkProfilePage() {
                 <div className="px-5 py-4 space-y-3">
                   {profile.schoolName && (
                     <div className="flex items-center gap-2.5">
-                      <EntityLogo name={profile.schoolName} preferEdu={true} size={11} />
+                      <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={11} />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
                         <p className="text-xs text-gray-500">
@@ -609,6 +661,15 @@ export default function NetworkProfilePage() {
                         rows={4}
                         className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
                       />
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!questionIsPublic}
+                          onChange={(e) => setQuestionIsPublic(!e.target.checked)}
+                          className="rounded border-gray-300 accent-[#001049]"
+                        />
+                        <span className="text-xs text-gray-500">Keep private (only you and {profile.firstName} can see this)</span>
+                      </label>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -620,7 +681,7 @@ export default function NetworkProfilePage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionMessage(null); }}
+                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
                           className="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition"
                         >
                           Cancel
@@ -658,6 +719,11 @@ export default function NetworkProfilePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h1 className="text-lg font-bold text-gray-900">{displayName}</h1>
+                    {ROLE_BADGE[profile.role] && (
+                      <span className={`inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[profile.role].className}`}>
+                        {ROLE_BADGE[profile.role].label}
+                      </span>
+                    )}
                     <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
                       <span><strong className="text-gray-900">{profile.followersCount}</strong> followers</span>
                       <span>·</span>
@@ -738,6 +804,15 @@ export default function NetworkProfilePage() {
                         rows={4}
                         className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
                       />
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!questionIsPublic}
+                          onChange={(e) => setQuestionIsPublic(!e.target.checked)}
+                          className="rounded border-gray-300 accent-[#001049]"
+                        />
+                        <span className="text-xs text-gray-500">Keep private (only you and {profile.firstName} can see this)</span>
+                      </label>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -749,7 +824,7 @@ export default function NetworkProfilePage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionMessage(null); }}
+                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
                           className="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition"
                         >
                           Cancel
@@ -774,7 +849,7 @@ export default function NetworkProfilePage() {
                     <div className="mt-4">
                       {profile.schoolName ? (
                         <div className="flex gap-4">
-                          <EntityLogo name={profile.schoolName} preferEdu={true} size={12} />
+                          <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={12} />
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-gray-900">
                               {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}

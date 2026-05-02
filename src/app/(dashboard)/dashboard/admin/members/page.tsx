@@ -18,6 +18,7 @@ type Member = {
 const ROLES = [
   { value: "admin", label: "Admin" },
   { value: "board_member", label: "Board Member" },
+  { value: "ambassador", label: "Ambassador" },
   { value: "us_member", label: "US Member" },
   { value: "member", label: "Member" },
 ];
@@ -25,6 +26,7 @@ const ROLES = [
 const ROLE_STYLES: Record<string, string> = {
   admin: "bg-red-50 text-red-600",
   board_member: "bg-purple-50 text-purple-600",
+  ambassador: "bg-amber-50 text-amber-600",
   us_member: "bg-blue-50 text-blue-600",
   member: "bg-gray-100 text-gray-500",
 };
@@ -32,6 +34,7 @@ const ROLE_STYLES: Record<string, string> = {
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   board_member: "Board Member",
+  ambassador: "Ambassador",
   us_member: "US Member",
   member: "Member",
 };
@@ -59,6 +62,10 @@ export default function AdminMembersPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [promoting, setPromoting] = useState<Set<number>>(new Set());
   const [errors, setErrors] = useState<Record<number, string>>({});
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -114,14 +121,112 @@ export default function AdminMembersPage() {
     }
   };
 
+  const handleSyncColleges = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const data = await authFetch("/api/admin/sync-colleges", { method: "POST" });
+      setSyncResult({ ok: true, message: `Synced ${data.synced} colleges successfully.` });
+    } catch (e: any) {
+      setSyncResult({ ok: false, message: e?.message ?? "Sync failed." });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleImportIpeds = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const stored = localStorage.getItem("amsa_auth");
+      const token = stored ? JSON.parse(stored).token : null;
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/import-ipeds-sfa", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Import failed.");
+      setImportResult({ ok: true, message: `Imported ${data.upserted} schools from IPEDS SFA.` });
+    } catch (e: any) {
+      setImportResult({ ok: false, message: e?.message ?? "Import failed." });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (!user || user.role !== "admin") return null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#001049]">Members</h1>
-          <p className="text-sm text-gray-500 mt-1">Search and manage member roles.</p>
+        <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001049]">Members</h1>
+            <p className="text-sm text-gray-500 mt-1">Search and manage member roles.</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Import IPEDS SFA */}
+            <label className={`flex items-center gap-2 px-4 py-2 rounded-xl border border-[#001049] text-[#001049] text-sm font-semibold cursor-pointer hover:bg-[#001049]/5 transition ${importing ? "opacity-50 pointer-events-none" : ""}`}>
+              {importing ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  </svg>
+                  Importing…
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                  </svg>
+                  Import IPEDS SFA
+                </>
+              )}
+              <input type="file" accept=".csv" className="hidden" onChange={handleImportIpeds}/>
+            </label>
+            {/* Sync Colleges */}
+            <button
+              onClick={handleSyncColleges}
+              disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#001049] text-white text-sm font-semibold hover:bg-[#001049]/90 disabled:opacity-50 transition"
+            >
+              {syncing ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Syncing colleges…
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Colleges
+                </>
+              )}
+            </button>
+            </div>
+            {importResult && (
+              <p className={`text-xs font-medium ${importResult.ok ? "text-green-600" : "text-red-600"}`}>
+                {importResult.message}
+              </p>
+            )}
+            {syncResult && (
+              <p className={`text-xs font-medium ${syncResult.ok ? "text-green-600" : "text-red-600"}`}>
+                {syncResult.message}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Search */}

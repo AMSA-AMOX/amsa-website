@@ -16,6 +16,7 @@ type NetworkMember = {
   lastName: string;
   profilePic: string | null;
   schoolName: string | null;
+  role: string;
   followersCount: number;
   followingCount: number;
   mutualCount: number;
@@ -323,6 +324,12 @@ export default function NetworkPage() {
                   <h2 className="text-xl font-bold text-gray-900 leading-tight mt-3 line-clamp-1">
                     {member.firstName} {member.lastName}
                   </h2>
+
+                  {member.role === "ambassador" && (
+                    <span className="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFCA3A] text-[#001049]">
+                      Ambassador
+                    </span>
+                  )}
 
                   <div className="mt-1 text-sm text-gray-500 flex items-center justify-center gap-2 flex-wrap">
                     <span>

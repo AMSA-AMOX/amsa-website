@@ -68,7 +68,7 @@ export async function GET(request: Request) {
             const actor = userById.get(row.followerId);
             if (!actor) continue;
             const fullName = `${actor.firstName ?? ""} ${actor.lastName ?? ""}`.trim() || "Someone";
-            const canOpenProfile = ["us_member", "board_member", "admin"].includes(actor.role ?? "");
+            const canOpenProfile = ["ambassador", "us_member", "board_member", "admin"].includes(actor.role ?? "");
             notifications.push({
               id: `follow-${row.followerId}-${row.createdAt ?? "na"}`,
               type: "follow",
@@ -108,8 +108,8 @@ export async function GET(request: Request) {
       console.error("Notifications events feed error:", eventsError);
     }
 
-    // Thread question notifications (for US member+ only)
-    if (["us_member", "board_member", "admin"].includes(payload.role ?? "")) {
+    // Thread question notifications (for ambassador+ only)
+    if (["ambassador", "us_member", "board_member", "admin"].includes(payload.role ?? "")) {
       try {
         const { data: threadRows, error: threadError } = await supabase
           .from("Threads")

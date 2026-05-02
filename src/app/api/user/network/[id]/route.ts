@@ -26,18 +26,19 @@ export async function GET(request: Request, { params }: RouteContext) {
     const { data: user, error } = await supabase
       .from("Users")
       .select(
-        "id, firstName, lastName, role, profilePic, bio, schoolName, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x"
+        "id, firstName, lastName, role, profilePic, bio, schoolName, schoolEmail, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x"
       )
       .eq("id", targetId)
-      .single();
+      .maybeSingle();
 
-    if (error || !user) {
+    if (error) {
+      console.error("Network profile user fetch error:", error);
+      return NextResponse.json({ message: "Failed to load member profile" }, { status: 500 });
+    }
+    if (!user) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 
-    if (payload.role !== "admin" && !["us_member", "board_member", "admin"].includes(user.role)) {
-      return NextResponse.json({ message: "Member not found" }, { status: 404 });
-    }
 
     const { data: experiences, error: experienceError } = await supabase
       .from("Experiences")
@@ -112,6 +113,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         profilePic: user.profilePic,
         bio: user.bio,
         schoolName: user.schoolName,
+        schoolEmail: user.schoolEmail,
         major: user.major,
         degreeLevel: user.degreeLevel,
         schoolYear: user.schoolYear,

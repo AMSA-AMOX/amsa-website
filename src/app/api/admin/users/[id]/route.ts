@@ -4,7 +4,7 @@ import { ROLES, verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const VALID_ROLES = [ROLES.ADMIN, ROLES.BOARD_MEMBER, ROLES.US_MEMBER, ROLES.MEMBER];
+const VALID_ROLES = [ROLES.ADMIN, ROLES.BOARD_MEMBER, ROLES.AMBASSADOR, ROLES.US_MEMBER, ROLES.MEMBER];
 
 // PATCH /api/admin/users/[id] — change a user's role
 export async function PATCH(request: Request, context: RouteContext) {
