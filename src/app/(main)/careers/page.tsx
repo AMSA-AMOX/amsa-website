@@ -10,27 +10,19 @@ type Position = {
 const positions: Position[] = [
   {
     id: 1,
-    title: "Marketing Intern",
-    type: "Internship",
-    location: "Remote",
-    shortDesc: "Shape AMSA's brand voice and grow our community presence across digital channels.",
-    applyUrl: "https://forms.google.com/",
-  },
-  {
-    id: 2,
     title: "Public Relations Intern",
     type: "Internship",
     location: "Remote",
     shortDesc: "Represent AMSA externally and build the relationships that expand our community's reach.",
-    applyUrl: "https://forms.google.com/",
+    applyUrl: "https://forms.gle/wPYWuNNSwHNtbg3V6",
   },
   {
-    id: 3,
-    title: "Software Engineer Intern",
+    id: 2,
+    title: "Software Developer Intern",
     type: "Internship",
     location: "Remote",
     shortDesc: "Build the platform that powers the Mongolian student community across America.",
-    applyUrl: "https://forms.google.com/",
+    applyUrl: "https://forms.gle/wPYWuNNSwHNtbg3V6",
   },
 ];
 
