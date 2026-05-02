@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
+import { extractSchoolEmailDomain, getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
 
@@ -24,6 +24,7 @@ type FullProfile = {
   bio: string | null;
   createdAt: string;
   schoolName: string | null;
+  schoolEmail: string | null;
   major: string | null;
   degreeLevel: string | null;
   graduationYear: string | null;
@@ -77,7 +78,7 @@ const EMPTY_EDU: EduForm = {
 
 type EditForm = {
   firstName: string; lastName: string; headline: string; bio: string; profilePic: string;
-  schoolName: string; degreeLevel: string; major: string;
+  schoolName: string; schoolEmail: string; degreeLevel: string; major: string;
   schoolYear: string; graduationYear: string;
   x: string; facebook: string; instagram: string; linkedin: string;
 };
@@ -116,92 +117,6 @@ const DEGREE_LEVELS = ["Associate's","Bachelor's","Master's","PhD / Doctorate","
 const SCHOOL_YEARS = ["Freshman","Sophomore","Junior","Senior","Graduate Student","Alumni"];
 const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
 
-const UNIVERSITIES: { name: string; domain: string }[] = [
-  { name: "Arizona State University", domain: "asu.edu" },
-  { name: "Boston College", domain: "bc.edu" },
-  { name: "Boston University", domain: "bu.edu" },
-  { name: "Brandeis University", domain: "brandeis.edu" },
-  { name: "Brown University", domain: "brown.edu" },
-  { name: "California Institute of Technology", domain: "caltech.edu" },
-  { name: "Carnegie Mellon University", domain: "cmu.edu" },
-  { name: "Case Western Reserve University", domain: "case.edu" },
-  { name: "Columbia University", domain: "columbia.edu" },
-  { name: "Cornell University", domain: "cornell.edu" },
-  { name: "Dartmouth College", domain: "dartmouth.edu" },
-  { name: "Duke University", domain: "duke.edu" },
-  { name: "Emory University", domain: "emory.edu" },
-  { name: "Florida State University", domain: "fsu.edu" },
-  { name: "Fordham University", domain: "fordham.edu" },
-  { name: "George Washington University", domain: "gwu.edu" },
-  { name: "Georgetown University", domain: "georgetown.edu" },
-  { name: "Georgia Institute of Technology", domain: "gatech.edu" },
-  { name: "Harvard University", domain: "harvard.edu" },
-  { name: "Indiana University", domain: "iu.edu" },
-  { name: "Iowa State University", domain: "iastate.edu" },
-  { name: "Johns Hopkins University", domain: "jhu.edu" },
-  { name: "Louisiana State University", domain: "lsu.edu" },
-  { name: "Massachusetts Institute of Technology", domain: "mit.edu" },
-  { name: "Michigan State University", domain: "msu.edu" },
-  { name: "New York University", domain: "nyu.edu" },
-  { name: "North Carolina State University", domain: "ncsu.edu" },
-  { name: "Northeastern University", domain: "northeastern.edu" },
-  { name: "Northwestern University", domain: "northwestern.edu" },
-  { name: "Ohio State University", domain: "osu.edu" },
-  { name: "Penn State University", domain: "psu.edu" },
-  { name: "Princeton University", domain: "princeton.edu" },
-  { name: "Purdue University", domain: "purdue.edu" },
-  { name: "Rice University", domain: "rice.edu" },
-  { name: "Rutgers University", domain: "rutgers.edu" },
-  { name: "Stanford University", domain: "stanford.edu" },
-  { name: "Stony Brook University", domain: "stonybrook.edu" },
-  { name: "Syracuse University", domain: "syr.edu" },
-  { name: "Temple University", domain: "temple.edu" },
-  { name: "Tufts University", domain: "tufts.edu" },
-  { name: "Tulane University", domain: "tulane.edu" },
-  { name: "UC Berkeley", domain: "berkeley.edu" },
-  { name: "UC Davis", domain: "ucdavis.edu" },
-  { name: "UC Irvine", domain: "uci.edu" },
-  { name: "UC Los Angeles (UCLA)", domain: "ucla.edu" },
-  { name: "UC San Diego", domain: "ucsd.edu" },
-  { name: "UC Santa Barbara", domain: "ucsb.edu" },
-  { name: "University of Alabama", domain: "ua.edu" },
-  { name: "University of Arizona", domain: "arizona.edu" },
-  { name: "University of Chicago", domain: "uchicago.edu" },
-  { name: "University of Colorado Boulder", domain: "colorado.edu" },
-  { name: "University of Connecticut", domain: "uconn.edu" },
-  { name: "University of Florida", domain: "ufl.edu" },
-  { name: "University of Georgia", domain: "uga.edu" },
-  { name: "University of Houston", domain: "uh.edu" },
-  { name: "University of Illinois Urbana-Champaign", domain: "illinois.edu" },
-  { name: "University of Iowa", domain: "uiowa.edu" },
-  { name: "University of Kansas", domain: "ku.edu" },
-  { name: "University of Kentucky", domain: "uky.edu" },
-  { name: "University of Maryland", domain: "umd.edu" },
-  { name: "University of Massachusetts Amherst", domain: "umass.edu" },
-  { name: "University of Miami", domain: "miami.edu" },
-  { name: "University of Michigan", domain: "umich.edu" },
-  { name: "University of Minnesota", domain: "umn.edu" },
-  { name: "University of Missouri", domain: "missouri.edu" },
-  { name: "University of North Carolina at Chapel Hill", domain: "unc.edu" },
-  { name: "University of Notre Dame", domain: "nd.edu" },
-  { name: "University of Oregon", domain: "uoregon.edu" },
-  { name: "University of Pennsylvania", domain: "upenn.edu" },
-  { name: "University of Pittsburgh", domain: "pitt.edu" },
-  { name: "University of Rochester", domain: "rochester.edu" },
-  { name: "University of South Carolina", domain: "sc.edu" },
-  { name: "University of Southern California", domain: "usc.edu" },
-  { name: "University of Tennessee", domain: "utk.edu" },
-  { name: "University of Texas at Austin", domain: "utexas.edu" },
-  { name: "University of Utah", domain: "utah.edu" },
-  { name: "University of Virginia", domain: "virginia.edu" },
-  { name: "University of Washington", domain: "uw.edu" },
-  { name: "University of Wisconsin-Madison", domain: "wisc.edu" },
-  { name: "Vanderbilt University", domain: "vanderbilt.edu" },
-  { name: "Virginia Tech", domain: "vt.edu" },
-  { name: "Wake Forest University", domain: "wfu.edu" },
-  { name: "Washington University in St. Louis", domain: "wustl.edu" },
-  { name: "Yale University", domain: "yale.edu" },
-];
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -272,17 +187,21 @@ const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
 const normalizeLookupName = (value: string) => value.trim().toLowerCase();
 
 const findUniversityDomain = (schoolName: string) => {
-  const known = getKnownSchoolDomain(schoolName);
-  if (known) return known;
-
-  const variants = getLookupNameVariants(schoolName);
-  for (const variant of variants) {
-    const match = UNIVERSITIES.find((u) => u.name.toLowerCase() === variant.toLowerCase());
-    if (match?.domain) return match.domain;
-  }
-
-  return null;
+  return getKnownSchoolDomain(schoolName);
 };
+
+function nameMatchScore(query: string, resultName: string): number {
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  const q = normalize(query);
+  const r = normalize(resultName);
+  if (q === r) return 1000;
+  const qWords = q.split(" ").filter(Boolean);
+  const rWords = new Set(r.split(" ").filter(Boolean));
+  const matchedWords = qWords.filter((w) => rWords.has(w)).length;
+  const extraWords = [...rWords].filter((w) => !qWords.includes(w)).length;
+  return matchedWords * 10 - extraWords;
+}
 
 const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promise<string | null> => {
   const known = getKnownSchoolDomain(name);
@@ -294,16 +213,19 @@ const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promis
       const query = encodeURIComponent(variant);
       const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
       if (!res.ok) continue;
-      const results = await res.json() as Array<{ domain?: string }>;
+      const results = await res.json() as Array<{ name?: string; domain?: string }>;
       if (!Array.isArray(results) || results.length === 0) continue;
 
-      if (preferEdu) {
-        const eduMatch = results.find((r) => r.domain?.toLowerCase().endsWith(".edu"));
-        if (eduMatch?.domain) return eduMatch.domain;
-      }
+      const pool = preferEdu
+        ? results.filter((r) => r.domain?.toLowerCase().endsWith(".edu"))
+        : results.filter((r) => !!r.domain);
 
-      const anyMatch = results.find((r) => !!r.domain)?.domain;
-      if (anyMatch) return anyMatch;
+      if (pool.length === 0) continue;
+
+      const best = pool.reduce((a, b) =>
+        nameMatchScore(variant, b.name ?? "") > nameMatchScore(variant, a.name ?? "") ? b : a
+      );
+      if (best.domain) return best.domain;
     } catch {
       continue;
     }
@@ -367,9 +289,10 @@ const useLogoDomain = (
   return domain;
 };
 
-function UniLogo({ schoolName, size = 10 }: { schoolName: string | null | undefined; size?: number }) {
+function UniLogo({ schoolName, schoolEmail, size = 10 }: { schoolName: string | null | undefined; schoolEmail?: string | null; size?: number }) {
   const [err, setErr] = useState(false);
-  const mappedDomain = schoolName ? findUniversityDomain(schoolName) : null;
+  const emailDomain = extractSchoolEmailDomain(schoolEmail);
+  const mappedDomain = emailDomain ?? (schoolName ? findUniversityDomain(schoolName) : null);
   const domain = useLogoDomain(schoolName, true, mappedDomain);
   const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
   const iconSize = `${Math.max(10, size * 2)}px`;
@@ -625,7 +548,7 @@ export default function DashboardPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<EditForm>({
     firstName: "", lastName: "", headline: "", bio: "", profilePic: "",
-    schoolName: "", degreeLevel: "", major: "", schoolYear: "", graduationYear: "",
+    schoolName: "", schoolEmail: "", degreeLevel: "", major: "", schoolYear: "", graduationYear: "",
     x: "", facebook: "", instagram: "", linkedin: "",
   });
   const [majorFieldCount, setMajorFieldCount] = useState(1);
@@ -633,6 +556,7 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [schoolSuggestionsOpen, setSchoolSuggestionsOpen] = useState(false);
+  const [schoolSuggestions, setSchoolSuggestions] = useState<Array<{ id: number; name: string; domain: string | null }>>([]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarRemoved, setAvatarRemoved] = useState(false);
@@ -858,7 +782,8 @@ export default function DashboardPage() {
     setForm({
       firstName: profile.firstName ?? "", lastName: profile.lastName ?? "",
       headline: profile.headline ?? "", bio: profile.bio ?? "", profilePic: profile.profilePic ?? "",
-      schoolName: profile.schoolName ?? "", degreeLevel: profile.degreeLevel ?? "",
+      schoolName: profile.schoolName ?? "", schoolEmail: profile.schoolEmail ?? "",
+      degreeLevel: profile.degreeLevel ?? "",
       major: serializeMajors(majors), schoolYear: profile.schoolYear ?? "",
       graduationYear: profile.graduationYear ?? "",
       x: profile.x ?? "", facebook: profile.facebook ?? "", instagram: profile.instagram ?? "", linkedin: profile.linkedin ?? "",
@@ -892,19 +817,16 @@ export default function DashboardPage() {
     });
   };
 
-  const filteredUniversities = useMemo(() => {
-    const query = form.schoolName.trim().toLowerCase();
-    return UNIVERSITIES
-      .map((u) => {
-        const normalizedName = u.name.toLowerCase();
-        const startsWith = query && normalizedName.startsWith(query);
-        const includes = query && normalizedName.includes(query);
-        const rank = !query ? 0 : startsWith ? 2 : includes ? 1 : -1;
-        return { ...u, rank };
-      })
-      .filter((u) => u.rank >= 0)
-      .sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name))
-      .slice(0, 8);
+  useEffect(() => {
+    const q = form.schoolName.trim();
+    if (q.length < 2) { setSchoolSuggestions([]); return; }
+    const timer = setTimeout(() => {
+      fetch(`/api/colleges/search?q=${encodeURIComponent(q)}`)
+        .then((r) => r.ok ? r.json() : { colleges: [] })
+        .then((d) => setSchoolSuggestions(d.colleges ?? []))
+        .catch(() => {});
+    }, 250);
+    return () => clearTimeout(timer);
   }, [form.schoolName]);
 
   const compressImage = (file: File, maxDim = 400, quality = 0.8): Promise<Blob> =>
@@ -1100,7 +1022,7 @@ export default function DashboardPage() {
               <div className="px-5 py-4 space-y-3 border-b border-gray-100">
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
-                    <UniLogo schoolName={profile.schoolName} size={11} />
+                    <UniLogo schoolName={profile.schoolName} schoolEmail={profile.schoolEmail} size={11} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
                       {schoolLine && <p className="text-xs text-gray-500">{schoolLine}</p>}
@@ -1468,7 +1390,7 @@ export default function DashboardPage() {
                   {/* Primary school from profile */}
                   {profile?.schoolName && (
                     <div className="flex gap-4 group pb-4 border-b border-gray-100 mb-4 last:border-0 last:mb-0 last:pb-0">
-                      <UniLogo schoolName={profile.schoolName} size={12} />
+                      <UniLogo schoolName={profile.schoolName} schoolEmail={profile.schoolEmail} size={12} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -1690,11 +1612,11 @@ export default function DashboardPage() {
                         className={inputCls}
                         autoComplete="off"
                       />
-                      {schoolSuggestionsOpen && filteredUniversities.length > 0 && (
+                      {schoolSuggestionsOpen && schoolSuggestions.length > 0 && (
                         <div className="absolute z-30 top-full left-0 right-0 mt-1 max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white shadow-lg">
-                          {filteredUniversities.map((u) => (
+                          {schoolSuggestions.map((u) => (
                             <button
-                              key={u.domain}
+                              key={u.id}
                               type="button"
                               onMouseDown={(e) => {
                                 e.preventDefault();
@@ -1709,7 +1631,7 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-400">Showing up to 8 matches.</p>
+                    <p className="text-[11px] text-gray-400">Live search across all universities.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <SelectField label="Degree Level" name="degreeLevel" value={form.degreeLevel} onChange={handleField} options={DEGREE_LEVELS} />
@@ -1750,6 +1672,20 @@ export default function DashboardPage() {
                     </div>
                     <SelectField label="School Year" name="schoolYear" value={form.schoolYear} onChange={handleField} options={SCHOOL_YEARS} />
                     <Field label="Graduation Year" name="graduationYear" value={form.graduationYear} onChange={handleField} placeholder="2026" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      School Email <span className="text-gray-400 font-normal normal-case">(e.g. you@umd.edu)</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={form.schoolEmail}
+                      onChange={(e) => handleField("schoolEmail", e.target.value)}
+                      placeholder="your.name@university.edu"
+                      className={inputCls}
+                      autoComplete="off"
+                    />
+                    <p className="text-[11px] text-gray-400">Used to show the correct school logo. Not visible to other members.</p>
                   </div>
                 </div>
               </div>

@@ -20,14 +20,17 @@ export default function ResourcesPage() {
       <div className="max-w-7xl mx-auto px-10 pb-24">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-3 md:p-5">
           <iframe
-            src="https://publuu.com/flip-book/1080174/2408563/page/1?embed"
-            width="100%"
-            height="900"
-            scrolling="no"
-            frameBorder={0}
-            allow="clipboard-write; autoplay; fullscreen"
             allowFullScreen
-            className="publuuflip rounded-xl"
+            allow="clipboard-write"
+            scrolling="no"
+            className="fp-iframe rounded-xl"
+            src="https://heyzine.com/flip-book/367fd7c423.html"
+            style={{
+              border: "1px solid lightgray",
+              width: "100%",
+              height: "72vh",
+              minHeight: "620px",
+            }}
             title="AMSA Resources"
           />
         </div>

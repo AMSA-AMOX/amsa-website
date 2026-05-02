@@ -95,7 +95,7 @@ export default function ProgramsPage() {
       </div>
 
       {/* Original program cards */}
-      <div className="py-8 px-4 text-center font-poppins">
+      <div className="py-20 px-4 text-center font-poppins">
         <div className="flex flex-col gap-16 md:gap-24 max-w-6xl mx-auto">
           {programs.map((program, index) => (
             <div
