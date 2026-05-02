@@ -87,7 +87,7 @@ export default function VerificationPage() {
             city: membership.city ?? "",
             major: membership.major ?? "",
             expectedGraduation: membership.expectedGraduation ?? "",
-            email: membership.email ?? "",
+            email: membership.email ?? (user as any).schoolEmail ?? "",
             socialMedia: membership.socialMedia ?? "",
             phone: membership.phone ?? "",
             careerInterests: membership.careerInterests ?? [],
@@ -105,7 +105,8 @@ export default function VerificationPage() {
           setForm((prev) => ({
             ...prev,
             fullName: `${user.firstName} ${user.lastName}`.trim(),
-            email: user.email,
+            // Pre-fill school email if already saved on profile; leave blank otherwise
+            email: (user as any).schoolEmail ?? "",
           }));
         }
       } catch (e: any) {
@@ -151,6 +152,11 @@ export default function VerificationPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isLocked) return;
+
+    if (!form.email.toLowerCase().endsWith(".edu")) {
+      setError("Please enter a valid school email address ending in .edu");
+      return;
+    }
 
     setSubmitting(true);
     setError("");
@@ -239,7 +245,7 @@ export default function VerificationPage() {
                 <TextField label="City" value={form.city} onChange={(v) => updateField("city", v)} required disabled={isLocked} placeholder="Enter your city" />
                 <TextField label="Major" value={form.major} onChange={(v) => updateField("major", v)} required disabled={isLocked} placeholder="Enter your major" />
                 <TextField label="Expected Graduation" value={form.expectedGraduation} onChange={(v) => updateField("expectedGraduation", v)} required disabled={isLocked} placeholder="e.g., June 2029" />
-                <TextField label="Email" type="email" value={form.email} onChange={(v) => updateField("email", v)} required disabled={isLocked} placeholder="Enter your email address" />
+                <TextField label="School Email (.edu)" type="email" value={form.email} onChange={(v) => updateField("email", v)} required disabled={isLocked} placeholder="you@university.edu" hint={!isLocked ? "Must end in .edu — used to verify enrollment" : undefined} />
                 <TextField label="Phone" value={form.phone} onChange={(v) => updateField("phone", v)} required disabled={isLocked} placeholder="Enter your phone number" />
               </div>
               <TextField
@@ -379,6 +385,7 @@ function TextField({
   disabled = false,
   type = "text",
   placeholder,
+  hint,
 }: {
   label: string;
   value: string;
@@ -387,6 +394,7 @@ function TextField({
   disabled?: boolean;
   type?: string;
   placeholder?: string;
+  hint?: string;
 }) {
   return (
     <div className="space-y-1">
@@ -403,6 +411,7 @@ function TextField({
         placeholder={placeholder ?? `Enter ${label.toLowerCase()}`}
         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001049]/20 focus:border-[#001049] bg-white transition disabled:bg-gray-50"
       />
+      {hint && <p className="text-[11px] text-gray-400">{hint}</p>}
     </div>
   );
 }

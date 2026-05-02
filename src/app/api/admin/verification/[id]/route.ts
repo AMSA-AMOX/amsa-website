@@ -38,9 +38,9 @@ export async function PATCH(
 
     const { data: existing, error: existingError } = await supabase
       .from("amsa_memberships")
-      .select("id, user_id")
+      .select("id, user_id, email")
       .eq("id", id)
-      .single<{ id: string; user_id: number }>();
+      .single<{ id: string; user_id: number; email: string }>();
 
     if (existingError || !existing) {
       return NextResponse.json({ message: "Verification submission not found" }, { status: 404 });
@@ -73,7 +73,13 @@ export async function PATCH(
 
     const userUpdates =
       reviewStatus === "approved"
-        ? { role: assignedRole, acceptanceStatus: "approved", emailVerified: true }
+        ? {
+            role: assignedRole,
+            acceptanceStatus: "approved",
+            emailVerified: true,
+            // Confirm the .edu email on the user's profile
+            ...(existing.email?.endsWith(".edu") ? { schoolEmail: existing.email } : {}),
+          }
         : { role: "member", acceptanceStatus: "approved" };
 
     const { error: userError } = await supabase

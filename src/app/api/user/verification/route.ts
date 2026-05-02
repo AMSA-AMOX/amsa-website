@@ -214,6 +214,12 @@ export async function POST(request: Request) {
       membership = created;
     }
 
+    // Immediately sync the verified .edu email to the user's profile for logo lookup
+    await supabase
+      .from("Users")
+      .update({ schoolEmail: normalized.email })
+      .eq("id", payload.id);
+
     return NextResponse.json({ membership: toClientPayload(membership) }, { status: 201 });
   } catch (error) {
     console.error("POST /api/user/verification failed:", error);
