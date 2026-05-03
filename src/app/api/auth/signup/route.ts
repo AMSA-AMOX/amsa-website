@@ -125,6 +125,7 @@ export async function POST(request: Request) {
           id: user.id,
           email: eduEmail,
           role,
+          roles: [role],
           firstName,
           lastName,
           acceptanceStatus,

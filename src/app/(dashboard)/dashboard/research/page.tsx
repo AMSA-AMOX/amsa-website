@@ -891,88 +891,96 @@ function TopFilterBar({
   );
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1.5">Search schools</span>
-          <input
-            type="text"
-            value={filters.searchQuery}
-            onChange={(e) => set("searchQuery", e.target.value)}
-            placeholder="School name, city, state..."
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700"
-          />
-        </label>
-
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1.5">Field of study</span>
-          <select
-            value={filters.selectedField}
-            onChange={(e) => set("selectedField", e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 bg-white"
-          >
-            <option value="Any">Any field</option>
-            {sortedFieldOptions.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
-          {filters.selectedField !== "Any" && (
-            <button
-              type="button"
-              onClick={() => set("selectedField", "Any")}
-              className="mt-1.5 text-xs text-[#001049]/60 hover:text-[#001049] underline"
-            >
-              Clear field filter
-            </button>
-          )}
-        </label>
-
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1.5">Sort results by</span>
-          <select
-            value={filters.sortBy}
-            onChange={(e) => set("sortBy", e.target.value as Filters["sortBy"])}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700"
-          >
-            <option value="ranking">US National Ranking</option>
-            <option value="affordability">Financial Accessibility Score</option>
-          </select>
-        </label>
-
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1.5">Min % international students</span>
-          <input
-            type="number"
-            min={0}
-            max={40}
-            step={1}
-            value={filters.minInternationalPercent}
-            onChange={(e) => set("minInternationalPercent", Number(e.target.value))}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700"
-          />
-        </label>
-
-        <label className="text-sm">
-          <span className="block text-gray-600 mb-1.5">Max net cost (USD/year)</span>
-          <input
-            type="number"
-            min={10000}
-            max={200000}
-            step={1000}
-            value={filters.maxNetCost}
-            onChange={(e) => set("maxNetCost", Number(e.target.value))}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700"
-          />
-        </label>
-
-        <label className="text-sm flex items-end">
+    <div className="mb-5 space-y-2">
+      {/* Search bar — standalone */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+        <input
+          type="text"
+          value={filters.searchQuery}
+          onChange={(e) => set("searchQuery", e.target.value)}
+          placeholder="Search schools by name, city, or state…"
+          className="flex-1 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+        />
+        {filters.searchQuery && (
           <button
-            onClick={() => onChange(DEFAULT_FILTERS)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold text-gray-600 hover:text-[#001049] hover:border-[#001049]/30"
+            type="button"
+            onClick={() => set("searchQuery", "")}
+            className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
           >
-            Reset filters
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
           </button>
-        </label>
+        )}
+      </div>
+
+      {/* Filters row — separate */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+          <div className="text-sm">
+            <span className="block text-gray-500 text-xs font-medium mb-1.5">Field of study</span>
+            <select
+              value={filters.selectedField}
+              onChange={(e) => set("selectedField", e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 bg-white"
+            >
+              <option value="Any">Any field</option>
+              {sortedFieldOptions.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="text-sm">
+            <span className="block text-gray-500 text-xs font-medium mb-1.5">Sort by</span>
+            <select
+              value={filters.sortBy}
+              onChange={(e) => set("sortBy", e.target.value as Filters["sortBy"])}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 bg-white"
+            >
+              <option value="ranking">US National Ranking</option>
+              <option value="affordability">Financial Accessibility Score</option>
+            </select>
+          </div>
+
+          <div className="text-sm">
+            <span className="block text-gray-500 text-xs font-medium mb-1.5">Min % intl. students</span>
+            <input
+              type="number"
+              min={0}
+              max={40}
+              step={1}
+              value={filters.minInternationalPercent}
+              onChange={(e) => set("minInternationalPercent", Number(e.target.value))}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+            />
+          </div>
+
+          <div className="text-sm">
+            <span className="block text-gray-500 text-xs font-medium mb-1.5">Max net cost (USD/yr)</span>
+            <input
+              type="number"
+              min={10000}
+              max={200000}
+              step={1000}
+              value={filters.maxNetCost}
+              onChange={(e) => set("maxNetCost", Number(e.target.value))}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
+            />
+          </div>
+
+          <div className="text-sm flex items-end">
+            <button
+              onClick={() => onChange(DEFAULT_FILTERS)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-500 hover:text-[#001049] hover:border-[#001049]/30 transition-colors"
+            >
+              Reset filters
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

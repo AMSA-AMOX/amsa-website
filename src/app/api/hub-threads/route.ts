@@ -5,7 +5,11 @@ import { verifyToken } from "@/lib/auth";
 type HubThreadRow = {
   id: number;
   askerId: number;
+  title: string;
   question: string;
+  category: string;
+  categoryDomain: string | null;
+  images: string[];
   status: string;
   isAnon: boolean;
   approvedBy: number | null;
@@ -37,7 +41,11 @@ async function enrichThreads(rows: HubThreadRow[], commentCounts: Map<number, nu
 
   return rows.map((r) => ({
     id: r.id,
-    question: r.question,
+    title: r.title ?? "",
+    body: r.question,
+    category: r.category ?? "general",
+    categoryDomain: r.categoryDomain ?? null,
+    images: r.images ?? [],
     status: r.status,
     isAnon: r.isAnon,
     asker: r.isAnon ? null : (userMap.get(r.askerId) ?? null),
@@ -47,7 +55,7 @@ async function enrichThreads(rows: HubThreadRow[], commentCounts: Map<number, nu
   }));
 }
 
-// GET /api/hub-threads — approved threads feed (cursor-paginated)
+// GET /api/hub-threads — approved feed (cursor-paginated)
 // GET /api/hub-threads?view=pending — board member+ pending queue
 export async function GET(request: Request) {
   let payload;
@@ -63,16 +71,17 @@ export async function GET(request: Request) {
   const limitRaw = Number(url.searchParams.get("limit") ?? "20");
   const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 20));
 
+  const SELECT = "id, askerId, title, question, category, categoryDomain, images, status, isAnon, approvedBy, approvedAt, createdAt, updatedAt";
+
   try {
     const isBoardPlus = ["board_member", "admin"].includes(payload.role);
 
     if (view === "pending") {
-      if (!isBoardPlus) {
-        return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-      }
+      if (!isBoardPlus) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
       const { data, error } = await supabase
         .from("HubThreads")
-        .select("id, askerId, question, status, isAnon, approvedBy, approvedAt, createdAt, updatedAt")
+        .select(SELECT)
         .eq("status", "pending")
         .order("createdAt", { ascending: true })
         .limit(limit);
@@ -83,22 +92,18 @@ export async function GET(request: Request) {
       }
 
       const rows = (data ?? []) as HubThreadRow[];
-      const counts = new Map<number, number>();
-      const threads = await enrichThreads(rows, counts);
+      const threads = await enrichThreads(rows, new Map());
       return NextResponse.json({ threads });
     }
 
-    // Default: approved threads feed
     let query = supabase
       .from("HubThreads")
-      .select("id, askerId, question, status, isAnon, approvedBy, approvedAt, createdAt, updatedAt")
+      .select(SELECT)
       .eq("status", "approved")
       .order("approvedAt", { ascending: false })
       .limit(limit);
 
-    if (cursor) {
-      query = query.lt("approvedAt", cursor);
-    }
+    if (cursor) query = query.lt("approvedAt", cursor);
 
     const { data, error } = await query;
     if (error) {
@@ -108,9 +113,8 @@ export async function GET(request: Request) {
 
     const rows = (data ?? []) as HubThreadRow[];
 
-    // Fetch comment counts
-    const threadIds = rows.map((r) => r.id);
     const commentCounts = new Map<number, number>();
+    const threadIds = rows.map((r) => r.id);
     if (threadIds.length > 0) {
       const { data: commentRows } = await supabase
         .from("HubComments")
@@ -122,8 +126,7 @@ export async function GET(request: Request) {
     }
 
     const threads = await enrichThreads(rows, commentCounts);
-    const nextCursor =
-      rows.length === limit ? (rows[rows.length - 1].approvedAt ?? null) : null;
+    const nextCursor = rows.length === limit ? (rows[rows.length - 1].approvedAt ?? null) : null;
 
     return NextResponse.json({ threads, nextCursor });
   } catch (e) {
@@ -132,7 +135,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/hub-threads — any authenticated user submits a question
+// POST /api/hub-threads — any authenticated user submits a thread
 export async function POST(request: Request) {
   let payload;
   try {
@@ -143,31 +146,37 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const question = typeof body?.question === "string" ? body.question.trim() : "";
+    const title = typeof body?.title === "string" ? body.title.trim() : "";
+    const question = typeof body?.body === "string" ? body.body.trim() : "";
+    const category = typeof body?.category === "string" ? body.category.trim() : "general";
+    const categoryDomain = typeof body?.categoryDomain === "string" ? body.categoryDomain.trim() : null;
     const isAnon = typeof body?.isAnon === "boolean" ? body.isAnon : false;
+    const images: string[] = Array.isArray(body?.images)
+      ? body.images.filter((u: unknown) => typeof u === "string").slice(0, 3)
+      : [];
 
-    if (!question || question.length > 600) {
-      return NextResponse.json(
-        { message: "Question must be between 1 and 600 characters." },
-        { status: 400 }
-      );
+    if (!title || title.length > 150) {
+      return NextResponse.json({ message: "Title must be between 1 and 150 characters." }, { status: 400 });
+    }
+    if (question.length > 2000) {
+      return NextResponse.json({ message: "Body must be at most 2000 characters." }, { status: 400 });
     }
 
     const now = new Date().toISOString();
-    const { data: inserted, error: insertError } = await supabase
+    const { data: inserted, error } = await supabase
       .from("HubThreads")
-      .insert({ askerId: payload.id, question, isAnon, status: "pending", createdAt: now, updatedAt: now })
-      .select("id, askerId, question, status, isAnon, approvedBy, approvedAt, createdAt, updatedAt")
+      .insert({ askerId: payload.id, title, question, category, categoryDomain, images, isAnon, status: "pending", createdAt: now, updatedAt: now })
+      .select("id")
       .single();
 
-    if (insertError) {
-      console.error("POST /api/hub-threads insert failed:", insertError);
-      return NextResponse.json({ message: "Failed to submit question." }, { status: 500 });
+    if (error) {
+      console.error("POST /api/hub-threads insert failed:", error);
+      return NextResponse.json({ message: "Failed to submit post." }, { status: 500 });
     }
 
     return NextResponse.json({ thread: inserted }, { status: 201 });
   } catch (e) {
     console.error("POST /api/hub-threads exception:", e);
-    return NextResponse.json({ message: "Failed to submit question." }, { status: 500 });
+    return NextResponse.json({ message: "Failed to submit post." }, { status: 500 });
   }
 }

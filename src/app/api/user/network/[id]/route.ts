@@ -104,12 +104,19 @@ export async function GET(request: Request, { params }: RouteContext) {
       .slice(0, 8)
       .map(({ rankScore: _rankScore, ...member }) => member);
 
+    // Compute visible roles for others: admin is hidden, us_member shown instead
+    const primaryRole: string = user.role ?? "member";
+    const visibleRoles = primaryRole === "admin"
+      ? ["us_member"]
+      : primaryRole !== "member" ? [primaryRole] : [];
+
     return NextResponse.json({
       user: {
         id: user.id,
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
-        role: user.role,
+        role: primaryRole === "admin" ? "us_member" : primaryRole,
+        roles: visibleRoles,
         profilePic: user.profilePic,
         bio: user.bio,
         schoolName: user.schoolName,

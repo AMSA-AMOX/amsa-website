@@ -17,6 +17,7 @@ type FullProfile = {
   firstName: string;
   lastName: string;
   role: string;
+  roles: string[];
   acceptanceStatus: string;
   profilePic: string | null;
   level: string | null;
@@ -121,8 +122,17 @@ const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   board_member: "Board Member",
+  ambassador: "Ambassador",
   us_member: "US Member",
   member: "Member",
+};
+
+const roleBadgeStyle = (role: string): string => {
+  if (role === "admin")        return "bg-purple-100 text-purple-700";
+  if (role === "board_member") return "bg-[#FFCA3A]/20 text-[#001049]";
+  if (role === "ambassador")   return "bg-amber-100 text-amber-700";
+  if (role === "us_member")    return "bg-blue-100 text-blue-700";
+  return "bg-gray-100 text-gray-600";
 };
 
 const parseMajors = (value: string | null | undefined): string[] =>
@@ -1030,16 +1040,15 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Role badge */}
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    user.role === "admin" ? "bg-purple-100 text-purple-700" :
-                    user.role === "board_member" ? "bg-[#FFCA3A]/20 text-[#001049]" :
-                    user.role === "us_member" ? "bg-blue-100 text-blue-700" :
-                    "bg-gray-100 text-gray-600"
-                  }`}>
-                    {ROLE_LABELS[user.role] ?? "Member"}
-                  </span>
+                {/* Role badges (all roles shown on own profile) */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(user.roles?.length ? user.roles : [user.role])
+                    .filter((r) => r !== "member")
+                    .map((r) => (
+                      <span key={r} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${roleBadgeStyle(r)}`}>
+                        {ROLE_LABELS[r] ?? r}
+                      </span>
+                    ))}
                   {profile?.level && (
                     <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
                       Level {profile.level}
@@ -1076,41 +1085,43 @@ export default function DashboardPage() {
 
               {/* Share + Edit */}
               <div className="px-5 py-4 flex gap-2">
-                <div ref={shareRef} className="relative flex-1">
-                  <button
-                    onClick={() => setShareOpen((o) => !o)}
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    Share
-                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 transition-transform ${shareOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </svg>
-                  </button>
-                  {shareOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20">
-                      <button
-                        onClick={() => { navigator.clipboard.writeText(window.location.href); setShareOpen(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition text-left"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-                        </svg>
-                        Copy profile link
-                      </button>
-                      {profile?.linkedin && (
-                        <a
-                          href={`mailto:?subject=Check out my profile&body=${profile.linkedin}`}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                {user.role !== "member" && (
+                  <div ref={shareRef} className="relative flex-1">
+                    <button
+                      onClick={() => setShareOpen((o) => !o)}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      Share
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 transition-transform ${shareOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                    {shareOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20">
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(window.location.href); setShareOpen(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition text-left"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
                           </svg>
-                          Share via email
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
+                          Copy profile link
+                        </button>
+                        {profile?.linkedin && (
+                          <a
+                            href={`mailto:?subject=Check out my profile&body=${profile.linkedin}`}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                            </svg>
+                            Share via email
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={openEdit}
                   disabled={loadingProfile}
@@ -1494,13 +1505,6 @@ export default function DashboardPage() {
           {/* ── Right sidebar ─────────────────────────────────────────────── */}
           <aside className="w-72 shrink-0 space-y-4 sticky top-4 self-start hidden xl:block">
 
-            {/* Board member badge */}
-            {user.role === "board_member" && (
-              <div className="bg-[#001049] rounded-2xl p-4">
-                <p className="text-xs font-bold text-[#FFCA3A] mb-1">Board Member</p>
-                <p className="text-xs text-blue-200 leading-snug">Full access to create events, articles, and more.</p>
-              </div>
-            )}
 
           </aside>
 

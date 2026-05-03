@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import SchoolBadge from "@/components/threads/SchoolBadge";
 
 type ThreadUser = {
   id: number;
@@ -14,7 +15,11 @@ type ThreadUser = {
 
 type HubThread = {
   id: number;
-  question: string;
+  title: string;
+  body: string;
+  category: string;
+  categoryDomain: string | null;
+  images: string[];
   status: string;
   isAnon: boolean;
   asker: ThreadUser | null;
@@ -30,17 +35,13 @@ type HubComment = {
   createdAt: string;
 };
 
-function Avatar({ user, size = "w-8 h-8" }: { user: ThreadUser | null; size?: string }) {
+function Avatar({ user, size = "w-6 h-6" }: { user: ThreadUser | null; size?: string }) {
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
   return (
-    <div className={`${size} rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden`}>
-      {user?.profilePic ? (
-        <img src={user.profilePic} alt={`${user.firstName} ${user.lastName}`} className="w-full h-full object-cover" />
-      ) : (
-        initials
-      )}
+    <div className={`${size} rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-[10px] font-bold shrink-0 overflow-hidden`}>
+      {user?.profilePic ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" /> : initials}
     </div>
   );
 }
@@ -55,6 +56,43 @@ function formatRelative(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 30) return `${d}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+function ImageGallery({ images }: { images: string[] }) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  if (images.length === 0) return null;
+
+  return (
+    <>
+      <div className={`grid gap-2 mt-4 ${images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+        {images.map((url, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setLightbox(url)}
+            className="relative overflow-hidden rounded-xl bg-gray-100 aspect-square hover:opacity-90 transition"
+          >
+            <img src={url} alt="" className="w-full h-full object-cover" />
+          </button>
+        ))}
+      </div>
+
+      {lightbox && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" className="max-w-full max-h-full rounded-xl object-contain shadow-xl" onClick={(e) => e.stopPropagation()} />
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function ThreadDetailPage() {
@@ -88,7 +126,6 @@ export default function ThreadDetailPage() {
       })
       .catch(() => { if (!active) return; setError("Thread not found or not yet approved."); })
       .finally(() => { if (!active) return; setPageLoading(false); });
-
     return () => { active = false; };
   }, [threadId, loading, user, router, authFetch]);
 
@@ -118,8 +155,8 @@ export default function ThreadDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-6 px-4 md:px-8">
         <div className="max-w-2xl mx-auto space-y-3">
-          <div className="h-32 bg-white rounded-2xl border border-gray-100 animate-pulse" />
-          <div className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+          <div className="h-48 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+          <div className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />
         </div>
       </div>
     );
@@ -138,18 +175,15 @@ export default function ThreadDetailPage() {
     );
   }
 
-  const askerName = thread.isAnon ? "Anonymous" : thread.asker
-    ? `${thread.asker.firstName} ${thread.asker.lastName}`.trim()
-    : "Member";
+  const askerName = thread.isAnon ? "Anonymous"
+    : thread.asker ? `${thread.asker.firstName} ${thread.asker.lastName}`.trim() : "Member";
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 md:px-8">
       <div className="max-w-2xl mx-auto">
+
         <div className="mb-4">
-          <Link
-            href="/dashboard/threads"
-            className="inline-flex items-center gap-1.5 text-sm text-[#001049] hover:underline"
-          >
+          <Link href="/dashboard/threads" className="inline-flex items-center gap-1.5 text-sm text-[#001049] hover:underline">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 19.5-7.5-7.5 7.5-7.5" />
             </svg>
@@ -157,47 +191,52 @@ export default function ThreadDetailPage() {
           </Link>
         </div>
 
-        {/* Question */}
+        {/* Post */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
           <div className="px-6 py-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Question</p>
-            <p className="text-base text-gray-800 leading-relaxed">{thread.question}</p>
-          </div>
-          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center gap-2">
-            {thread.isAnon ? (
-              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-[10px] font-bold shrink-0">?</div>
-            ) : (
-              <Avatar user={thread.asker} size="w-6 h-6" />
+            {/* Meta row */}
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <SchoolBadge category={thread.category} categoryDomain={thread.categoryDomain} size="md" />
+              {thread.isAnon
+                ? <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-[9px] font-bold shrink-0">?</div>
+                : <Avatar user={thread.asker} />}
+              <span className="text-xs text-gray-500">{askerName}</span>
+              <span className="text-gray-300">·</span>
+              <span className="text-xs text-gray-400">{formatRelative(thread.approvedAt ?? thread.createdAt)}</span>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-xl font-bold text-gray-900 leading-snug">{thread.title}</h1>
+
+            {/* Body */}
+            {thread.body && (
+              <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{thread.body}</p>
             )}
-            <span className="text-xs text-gray-500">{askerName}</span>
-            <span className="text-gray-300">·</span>
-            <span className="text-xs text-gray-400">{formatRelative(thread.approvedAt ?? thread.createdAt)}</span>
+
+            <ImageGallery images={thread.images} />
           </div>
         </div>
 
         {/* Comments */}
         <div className="mb-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            {comments.length} {comments.length === 1 ? "Answer" : "Answers"}
+            {comments.length} {comments.length === 1 ? "Comment" : "Comments"}
           </p>
           {comments.length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
-              <p className="text-sm text-gray-400">No answers yet. Be the first to respond!</p>
+              <p className="text-sm text-gray-400">No comments yet. Be the first to respond!</p>
             </div>
           )}
           <div className="space-y-3">
             {comments.map((c) => {
-              const authorName = c.isAnon ? "Anonymous" : c.author
-                ? `${c.author.firstName} ${c.author.lastName}`.trim()
-                : "Member";
+              const authorName = c.isAnon ? "Anonymous"
+                : c.author ? `${c.author.firstName} ${c.author.lastName}`.trim() : "Member";
               return (
                 <div key={c.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
                   <div className="flex items-center gap-2 mb-2">
-                    {c.isAnon ? (
-                      <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-[10px] font-bold shrink-0">?</div>
-                    ) : (
-                      <Avatar user={c.author} size="w-6 h-6" />
-                    )}
+                    {c.isAnon
+                      ? <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-[10px] font-bold shrink-0">?</div>
+                      : <Avatar user={c.author} />}
                     <span className="text-xs font-semibold text-gray-700">{authorName}</span>
                     <span className="text-gray-300">·</span>
                     <span className="text-xs text-gray-400">{formatRelative(c.createdAt)}</span>
@@ -211,14 +250,14 @@ export default function ThreadDetailPage() {
 
         {/* Add comment */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-sm font-semibold text-gray-900 mb-3">Leave an answer</p>
+          <p className="text-sm font-semibold text-gray-900 mb-3">Leave a comment</p>
           {submitMsg && (
             <p className={`text-xs mb-2 ${submitMsg.ok ? "text-green-600" : "text-red-500"}`}>{submitMsg.text}</p>
           )}
           <textarea
             value={commentDraft}
             onChange={(e) => setCommentDraft(e.target.value)}
-            placeholder="Share your answer or perspective… (max 2000 chars)"
+            placeholder="Share your thoughts… (max 2000 chars)"
             maxLength={2000}
             rows={4}
             className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
@@ -231,7 +270,7 @@ export default function ThreadDetailPage() {
                 onChange={(e) => setCommentIsAnon(e.target.checked)}
                 className="rounded border-gray-300 accent-[#001049]"
               />
-              <span className="text-xs text-gray-500">Post anonymously</span>
+              <span className="text-xs text-gray-500">Comment anonymously</span>
             </label>
             <button
               type="button"
@@ -239,7 +278,7 @@ export default function ThreadDetailPage() {
               onClick={handleSubmitComment}
               className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
             >
-              {submitting ? "Posting…" : "Post Answer"}
+              {submitting ? "Posting…" : "Post Comment"}
             </button>
           </div>
         </div>

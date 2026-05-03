@@ -7,7 +7,11 @@ type RouteContext = { params: Promise<{ id: string }> };
 type HubThreadRow = {
   id: number;
   askerId: number;
+  title: string;
   question: string;
+  category: string;
+  categoryDomain: string | null;
+  images: string[];
   status: string;
   isAnon: boolean;
   approvedBy: number | null;
@@ -49,7 +53,7 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const { data: thread, error } = await supabase
       .from("HubThreads")
-      .select("id, askerId, question, status, isAnon, approvedBy, approvedAt, createdAt")
+      .select("id, askerId, title, question, category, categoryDomain, images, status, isAnon, approvedBy, approvedAt, createdAt")
       .eq("id", threadId)
       .single();
 
@@ -72,7 +76,6 @@ export async function GET(request: Request, context: RouteContext) {
 
     const commentRows = (comments ?? []) as HubCommentRow[];
 
-    // Gather user IDs to enrich (excluding anonymous entries)
     const userIds = Array.from(new Set([
       ...(t.isAnon ? [] : [t.askerId]),
       ...commentRows.filter((c) => !c.isAnon).map((c) => c.authorId),
@@ -90,7 +93,11 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({
       thread: {
         id: t.id,
-        question: t.question,
+        title: t.title ?? "",
+        body: t.question,
+        category: t.category ?? "general",
+        categoryDomain: t.categoryDomain ?? null,
+        images: t.images ?? [],
         status: t.status,
         isAnon: t.isAnon,
         asker: t.isAnon ? null : (userMap.get(t.askerId) ?? null),
@@ -140,12 +147,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const now = new Date().toISOString();
     const { data: updated, error } = await supabase
       .from("HubThreads")
-      .update({
-        status,
-        approvedBy: payload.id,
-        approvedAt: status === "approved" ? now : null,
-        updatedAt: now,
-      })
+      .update({ status, approvedBy: payload.id, approvedAt: status === "approved" ? now : null, updatedAt: now })
       .eq("id", threadId)
       .select("id, status, approvedAt")
       .single();
@@ -159,5 +161,38 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (e) {
     console.error("PATCH /api/hub-threads/[id] exception:", e);
     return NextResponse.json({ message: "Failed to update thread." }, { status: 500 });
+  }
+}
+
+// DELETE /api/hub-threads/[id] — admin only
+export async function DELETE(request: Request, context: RouteContext) {
+  let payload;
+  try {
+    payload = verifyToken(request);
+  } catch (res) {
+    return res as NextResponse;
+  }
+
+  if (payload.role !== "admin") {
+    return NextResponse.json({ message: "Only admins can delete threads." }, { status: 403 });
+  }
+
+  const { id } = await context.params;
+  const threadId = Number(id);
+  if (!Number.isFinite(threadId)) {
+    return NextResponse.json({ message: "Invalid thread ID." }, { status: 400 });
+  }
+
+  try {
+    await supabase.from("HubComments").delete().eq("threadId", threadId);
+    const { error } = await supabase.from("HubThreads").delete().eq("id", threadId);
+    if (error) {
+      console.error("DELETE /api/hub-threads/[id] failed:", error);
+      return NextResponse.json({ message: "Failed to delete thread." }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("DELETE /api/hub-threads/[id] exception:", e);
+    return NextResponse.json({ message: "Failed to delete thread." }, { status: 500 });
   }
 }

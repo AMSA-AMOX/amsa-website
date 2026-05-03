@@ -62,6 +62,9 @@ export async function POST(request: Request) {
         .eq("id", user.id);
     }
 
+    // Compute roles from primary role (admin always gets us_member too)
+    const roles = role === "admin" ? ["admin", "us_member"] : [role];
+
     const token = makeToken({ id: user.id, role });
 
     return NextResponse.json({
@@ -70,6 +73,7 @@ export async function POST(request: Request) {
         id: user.id,
         email: normalizedEmail,
         role,
+        roles,
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         acceptanceStatus,
