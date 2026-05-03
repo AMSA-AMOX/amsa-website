@@ -79,7 +79,7 @@ export async function GET(
   }
 
   // Try to serve from DB first
-  const { data: rawRow, error: dbErr } = await supabase
+  const { data: row, error: dbErr } = await supabase
     .from("colleges_base")
     .select(
       "sat_avg, sat_read_25, sat_read_75, sat_math_25, sat_math_75," +
@@ -95,8 +95,6 @@ export async function GET(
     )
     .eq("unitid", unitid)
     .maybeSingle();
-
-  const row = rawRow as any;
 
   if (!dbErr && row) {
     // Cast to any: these columns exist in the DB but aren't in the local generated types yet
