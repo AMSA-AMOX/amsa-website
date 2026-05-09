@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 type NotificationItem = {
   id: string;
-  type: "follow" | "event" | "thread_question" | "thread_answered";
+  type: "follow" | "event" | "thread_question" | "thread_answered" | "welcome";
   title: string;
   description: string;
   happenedAt: string;
@@ -120,7 +120,7 @@ function NotificationIcon({ item }: { item: NotificationItem }) {
   if (item.avatarUrl) {
     return <img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" />;
   }
-  if (item.type === "event") {
+  if (item.type === "welcome" || item.type === "event") {
     return <img src="/header-logo.svg" alt="AMSA" className="w-6 h-6 object-contain" />;
   }
   if (item.type === "follow") {

@@ -28,6 +28,7 @@ type NetworkProfile = {
   followingCount: number;
   isFollowing: boolean;
   role: string;
+  roles: string[];
 };
 
 type ThreadUser = {
@@ -131,7 +132,6 @@ type NextProfile = {
 };
 
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
-  admin:        { label: "Admin",        className: "bg-red-50 text-red-600" },
   board_member: { label: "Board Member", className: "bg-purple-50 text-purple-600" },
   ambassador:   { label: "Ambassador",   className: "bg-amber-50 text-amber-600" },
   us_member:    { label: "US Member",    className: "bg-blue-50 text-blue-600" },
@@ -497,11 +497,14 @@ export default function NetworkProfilePage() {
     return `${profile.firstName} ${profile.lastName}`.trim();
   }, [profile]);
 
+  const visibleRoles = (profile?.roles?.length ? profile.roles : [profile?.role ?? ""])
+    .filter((r) => r && ROLE_BADGE[r]);
+
   const canAskQuestion =
     user?.role === "member" &&
     profile !== null &&
     profile.id !== user?.id &&
-    ["ambassador", "us_member", "board_member", "admin"].includes(profile?.role ?? "");
+    (profile.roles?.some((r) => ["ambassador", "us_member", "board_member"].includes(r)) ?? false);
 
   if (!user) return null;
 
@@ -547,10 +550,14 @@ export default function NetworkProfilePage() {
                     )}
                   </div>
                   <h1 className="mt-3 text-xl font-bold text-gray-900 text-center leading-tight">{displayName}</h1>
-                  {ROLE_BADGE[profile.role] && (
-                    <span className={`mt-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[profile.role].className}`}>
-                      {ROLE_BADGE[profile.role].label}
-                    </span>
+                  {visibleRoles.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1 mt-1.5">
+                      {visibleRoles.map((r) => (
+                        <span key={r} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[r].className}`}>
+                          {ROLE_BADGE[r].label}
+                        </span>
+                      ))}
+                    </div>
                   )}
                   <div className="flex items-center gap-3 mt-2 text-sm">
                     <span className="text-gray-500">
@@ -719,10 +726,14 @@ export default function NetworkProfilePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h1 className="text-lg font-bold text-gray-900">{displayName}</h1>
-                    {ROLE_BADGE[profile.role] && (
-                      <span className={`inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[profile.role].className}`}>
-                        {ROLE_BADGE[profile.role].label}
-                      </span>
+                    {visibleRoles.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {visibleRoles.map((r) => (
+                          <span key={r} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[r].className}`}>
+                            {ROLE_BADGE[r].label}
+                          </span>
+                        ))}
+                      </div>
                     )}
                     <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
                       <span><strong className="text-gray-900">{profile.followersCount}</strong> followers</span>

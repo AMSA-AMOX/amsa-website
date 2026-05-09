@@ -5,7 +5,7 @@ import { getFollowsTableName } from "@/lib/follows-table";
 
 type NotificationItem = {
   id: string;
-  type: "follow" | "event" | "thread_question" | "thread_answered";
+  type: "follow" | "event" | "thread_question" | "thread_answered" | "welcome";
   title: string;
   description: string;
   happenedAt: string;
@@ -33,6 +33,24 @@ export async function GET(request: Request) {
 
   try {
     const notifications: NotificationItem[] = [];
+
+    // Fetch current user info for welcome notification
+    const { data: currentUser } = await supabase
+      .from("Users")
+      .select("firstName, createdAt")
+      .eq("id", payload.id)
+      .single();
+
+    if (currentUser?.createdAt) {
+      notifications.push({
+        id: `welcome-${payload.id}`,
+        type: "welcome",
+        title: `Welcome to AMSA, ${currentUser.firstName ?? ""}!`.trim(),
+        description: "Your account is all set. Explore the network and connect with other Mongolian students.",
+        happenedAt: currentUser.createdAt,
+        href: "/dashboard/feed",
+      });
+    }
 
     try {
       const followsTable = await getFollowsTableName();

@@ -23,7 +23,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ user });
+    const role = user.role ?? "member";
+    const roles = role === "admin" ? ["admin", "us_member"] : [role];
+
+    return NextResponse.json({ user: { ...user, roles } });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

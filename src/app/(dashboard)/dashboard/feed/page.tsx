@@ -22,6 +22,7 @@ export default function FeedPage() {
   const [followingInProgress, setFollowingInProgress] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const canPost =
     user?.role === "us_member" || user?.role === "admin" || user?.role === "board_member";
   const canSeeTopActions = user?.role !== "member";
@@ -199,33 +200,54 @@ export default function FeedPage() {
         </div>
       )}
 
-      {/* Topic filter bar */}
-      <div className="mb-5 -mx-1 px-1 flex gap-2 overflow-x-auto scrollbar-none pb-1">
+      {/* Topic filter — single toggle button */}
+      <div className="mb-5">
         <button
           type="button"
-          onClick={() => setSelectedTopic(null)}
-          className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
-            selectedTopic === null
-              ? "bg-[#001049] text-white border-[#001049]"
-              : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
-          }`}
+          onClick={() => setFilterOpen((v) => !v)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-gray-300 transition"
         >
-          All
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25" />
+          </svg>
+          Filter
+          {selectedTopic && (
+            <span className="text-[#001049]">· {selectedTopic}</span>
+          )}
+          <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 text-gray-400 transition-transform ${filterOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
-        {POST_TOPICS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setSelectedTopic(selectedTopic === t ? null : t)}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
-              selectedTopic === t
-                ? "bg-[#001049] text-white border-[#001049]"
-                : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+
+        {filterOpen && (
+          <div className="mt-2.5 flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => { setSelectedTopic(null); setFilterOpen(false); }}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold border transition ${
+                selectedTopic === null
+                  ? "bg-[#001049] text-white border-[#001049]"
+                  : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+              }`}
+            >
+              All
+            </button>
+            {POST_TOPICS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { setSelectedTopic(selectedTopic === t ? null : t); setFilterOpen(false); }}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold border transition ${
+                  selectedTopic === t
+                    ? "bg-[#001049] text-white border-[#001049]"
+                    : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {error && (

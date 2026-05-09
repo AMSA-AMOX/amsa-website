@@ -124,6 +124,8 @@ export default function ResearchComparePage() {
   const [journal, setJournal] = useState<JournalData>(emptyJournal());
   const [editingColId, setEditingColId] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   // ── Load journal from storage on mount ──
   useEffect(() => {
@@ -176,11 +178,31 @@ export default function ResearchComparePage() {
   };
 
   const moveRow = (idx: number, dir: -1 | 1) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= rows.length) return;
+    const idA = rows[idx].id;
+    const idB = rows[targetIdx].id;
     update((prev) => {
       const order = [...prev.rowOrder];
-      const target = idx + dir;
-      if (target < 0 || target >= order.length) return prev;
-      [order[idx], order[target]] = [order[target], order[idx]];
+      const posA = order.indexOf(idA);
+      const posB = order.indexOf(idB);
+      if (posA === -1 || posB === -1) return prev;
+      [order[posA], order[posB]] = [order[posB], order[posA]];
+      return { ...prev, rowOrder: order };
+    });
+  };
+
+  const reorderRow = (fromIdx: number, toIdx: number) => {
+    const fromId = rows[fromIdx]?.id;
+    const toId = rows[toIdx]?.id;
+    if (fromId === undefined || toId === undefined || fromId === toId) return;
+    update((prev) => {
+      const order = [...prev.rowOrder];
+      const fromPos = order.indexOf(fromId);
+      const toPos = order.indexOf(toId);
+      if (fromPos === -1 || toPos === -1) return prev;
+      order.splice(fromPos, 1);
+      order.splice(toPos, 0, fromId);
       return { ...prev, rowOrder: order };
     });
   };
@@ -310,7 +332,7 @@ export default function ResearchComparePage() {
         <>
           {/* Legend */}
           <div className="flex items-center gap-3 flex-wrap text-xs text-gray-400 mb-3">
-            <span>↑↓ to reorder priority</span>
+            <span>Drag ⠿ or use ↑↓ to reorder</span>
             <span className="text-gray-200">·</span>
             <span>Click column headers to rename</span>
             <span className="text-gray-200">·</span>
@@ -430,16 +452,46 @@ export default function ResearchComparePage() {
                   return (
                     <tr
                       key={college.id}
-                      className="border-b border-gray-100 last:border-b-0 hover:bg-[#001049]/[0.015] group transition-colors"
+                      onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIdx !== null && dragIdx !== idx) reorderRow(dragIdx, idx);
+                        setDragIdx(null);
+                        setDragOverIdx(null);
+                      }}
+                      className={`border-b border-gray-100 last:border-b-0 group transition-colors ${
+                        dragIdx === idx
+                          ? "opacity-40 bg-gray-50"
+                          : dragOverIdx === idx && dragIdx !== null
+                          ? "bg-[#001049]/[0.04]"
+                          : "hover:bg-[#001049]/[0.015]"
+                      }`}
                     >
                       {/* ── Priority cell ── */}
-                      <td className="px-2 py-3">
+                      <td
+                        draggable
+                        onDragStart={(e) => {
+                          setDragIdx(idx);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                        className="px-2 py-3 cursor-grab active:cursor-grabbing select-none"
+                      >
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-base font-bold text-[#001049] leading-none mb-1">
+                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current text-gray-300 mb-0.5" aria-hidden="true">
+                            <circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/>
+                            <circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/>
+                            <circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/>
+                          </svg>
+                          <span className="text-sm font-bold text-[#001049] leading-none">
                             {idx + 1}
                           </span>
                           <button
                             onClick={() => moveRow(idx, -1)}
+                            onDragStart={(e) => e.preventDefault()}
                             disabled={idx === 0}
                             className="w-5 h-4 flex items-center justify-center text-gray-300 hover:text-[#001049] disabled:opacity-0 transition-colors"
                             title="Move up"
@@ -450,6 +502,7 @@ export default function ResearchComparePage() {
                           </button>
                           <button
                             onClick={() => moveRow(idx, 1)}
+                            onDragStart={(e) => e.preventDefault()}
                             disabled={idx === rows.length - 1}
                             className="w-5 h-4 flex items-center justify-center text-gray-300 hover:text-[#001049] disabled:opacity-0 transition-colors"
                             title="Move down"

@@ -7,36 +7,22 @@ import { STATE_DATA } from "../../state-data";
 import { useCollegesData } from "../../use-colleges-data";
 import type { StatePhoto } from "@/app/api/state-photos/[abbr]/route";
 
-// ─── Wikipedia summary ────────────────────────────────────────────────────────
+type PlacePhoto = { thumb: string; large: string; alt: string; photographer: string; photographerUrl: string };
 
-type WikiSummary = { extract: string; thumbnail?: { source: string } };
-
-function useWikiSummary(name: string) {
-  const [data, setData] = useState<WikiSummary | null>(null);
+function usePlacePhoto(place: string) {
+  const [photo, setPhoto] = useState<PlacePhoto | null>(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    if (!name) return;
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`, {
-      headers: { "Api-User-Agent": "amsa-website/1.0" },
-    })
+    if (!place) return;
+    setLoading(true);
+    fetch(`/api/place-photo?q=${encodeURIComponent(place)}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setData(d))
-      .catch(() => null);
-  }, [name]);
-  return data;
-}
-
-function usePlaceThumb(place: string) {
-  const [thumb, setThumb] = useState<string | null>(null);
-  useEffect(() => {
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(place)}`, {
-      headers: { "Api-User-Agent": "amsa-website/1.0" },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d?.thumbnail?.source && setThumb(d.thumbnail.source))
-      .catch(() => null);
+      .then((d) => { if (d?.photo) setPhoto(d.photo); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [place]);
-  return thumb;
+  return { photo, loading };
 }
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -70,15 +56,10 @@ function IcCity() {
 function IcCloud() {
   return <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>;
 }
-function IcLightbulb() {
-  return <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 21h6M12 3a6 6 0 0 1 6 6c0 2.4-1.4 4.5-3.5 5.6L14 17H10l-.5-2.4C7.4 13.5 6 11.4 6 9a6 6 0 0 1 6-6z"/></svg>;
-}
 function IcMapPin() {
   return <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 }
-function IcExternalLink() {
-  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>;
-}
+
 function IcChevronLeft() {
   return <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>;
 }
@@ -207,24 +188,21 @@ function PhotoSidebar({ abbr }: { abbr: string }) {
   );
 }
 
-// ─── Place Card (Wikipedia thumbnail) ────────────────────────────────────────
+// ─── Place Card (Pexels photo) ────────────────────────────────────────────────
 
 function PlaceCard({ place }: { place: string }) {
-  const thumb = usePlaceThumb(place);
+  const { photo, loading } = usePlacePhoto(place);
 
   return (
-    <a
-      href={`https://en.wikipedia.org/wiki/${encodeURIComponent(place)}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group rounded-2xl overflow-hidden border border-gray-100 hover:border-[#001049]/25 shadow-sm hover:shadow-md transition-all bg-white"
-    >
+    <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-white">
       <div className="aspect-video bg-gradient-to-br from-[#001049]/5 to-[#001049]/10 overflow-hidden relative">
-        {thumb ? (
+        {loading ? (
+          <div className="w-full h-full animate-pulse bg-gray-100" />
+        ) : photo ? (
           <img
-            src={thumb}
+            src={photo.thumb}
             alt={place}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover"
             loading="lazy"
           />
         ) : (
@@ -232,15 +210,11 @@ function PlaceCard({ place }: { place: string }) {
             <IcMapPin />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
       </div>
-      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-gray-700 group-hover:text-[#001049] leading-snug">{place}</p>
-        <span className="text-gray-300 group-hover:text-[#001049]/50 shrink-0">
-          <IcExternalLink />
-        </span>
+      <div className="px-3 py-2.5">
+        <p className="text-sm font-semibold text-gray-800 leading-snug">{place}</p>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -250,7 +224,6 @@ export default function StateDetailPage() {
   const { abbr } = useParams<{ abbr: string }>();
   const upperAbbr = abbr?.toUpperCase() ?? "";
   const info = STATE_DATA[upperAbbr];
-  const wiki = useWikiSummary(info?.name ?? "");
   const { colleges } = useCollegesData();
 
   const stateColleges = colleges.filter((c) => c.state?.trim().toUpperCase() === upperAbbr);
@@ -308,34 +281,48 @@ export default function StateDetailPage() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
+            <div className="grid grid-cols-3 divide-x divide-gray-100">
               {[
                 { icon: <IcHome />, label: "Monthly Rent", value: info.monthlyRent, sub: "1-bedroom apt" },
                 { icon: <IcBus />, label: "Public Transit", value: TRANSPORT_LABEL[info.publicTransport], sub: "in major cities", color: TRANSPORT_COLOR[info.publicTransport] },
                 { icon: <IcDollar />, label: "Avg Total COA", value: avgCOA != null ? fmt(avgCOA) + "/yr" : "N/A", sub: "tracked schools" },
-                { icon: <IcCity />, label: "Major Cities", value: info.cities.slice(0, 2).join(", "), sub: info.cities.length > 2 ? `+${info.cities.length - 2} more` : "" },
               ].map(({ icon, label, value, sub, color }) => (
-                <div key={label} className="px-5 py-4">
-                  <div className="flex items-center gap-1.5 text-[#001049]/50 mb-2">{icon}<p className="text-xs font-medium text-gray-400">{label}</p></div>
-                  <p className={`text-lg font-bold ${color ?? "text-[#001049]"}`}>{value}</p>
-                  {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+                <div key={label} className="px-6 py-6">
+                  <div className="flex items-center gap-1.5 text-[#001049]/40 mb-3">{icon}<p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p></div>
+                  <p className={`text-2xl font-bold ${color ?? "text-[#001049]"}`}>{value}</p>
+                  {sub && <p className="text-sm text-gray-400 mt-1">{sub}</p>}
                 </div>
               ))}
             </div>
 
-            {/* Climate + tip */}
+            {/* Climate + transit */}
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-              <div className="px-5 py-4">
-                <div className="flex items-center gap-1.5 text-[#001049]/50 mb-2">
+              <div className="px-6 py-6">
+                <div className="flex items-center gap-1.5 text-[#001049]/50 mb-3">
                   <IcCloud /><p className="text-xs font-bold text-[#001049] uppercase tracking-wide">Climate</p>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{info.climate}</p>
+                <p className="text-base text-gray-600 leading-relaxed">{info.climate}</p>
+                <p className="text-sm font-medium text-[#001049]/70 mt-2">{info.tempRange}</p>
               </div>
-              <div className="px-5 py-4 bg-[#FFFCF3]">
-                <div className="flex items-center gap-1.5 text-amber-600 mb-2">
-                  <IcLightbulb /><p className="text-xs font-bold text-amber-700 uppercase tracking-wide">Tip for International Students</p>
+              <div className="px-6 py-6">
+                <div className="flex items-center gap-1.5 text-[#001049]/50 mb-3">
+                  <IcBus /><p className="text-xs font-bold text-[#001049] uppercase tracking-wide">Public Transit</p>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{info.intlTip}</p>
+                <p className="text-base text-gray-600 leading-relaxed">{info.transitInfo}</p>
+              </div>
+            </div>
+
+            {/* Cities */}
+            <div className="px-6 py-6 border-t border-gray-100">
+              <div className="flex items-center gap-1.5 text-[#001049]/50 mb-3">
+                <IcCity /><p className="text-xs font-bold text-[#001049] uppercase tracking-wide">Major Cities</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {info.cities.map((city) => (
+                  <span key={city} className="px-3 py-1.5 rounded-full bg-[#001049]/5 border border-[#001049]/10 text-sm font-medium text-[#001049]">
+                    {city}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -349,28 +336,11 @@ export default function StateDetailPage() {
         </div>
       </div>
 
-      {/* ── About ── */}
-      {wiki?.extract && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-6">
-          <p className="text-xs font-bold text-[#001049] uppercase tracking-wide mb-2">About {info.name}</p>
-          <p className="text-sm text-gray-600 leading-relaxed line-clamp-5">{wiki.extract}</p>
-          <a
-            href={`https://en.wikipedia.org/wiki/${encodeURIComponent(info.name)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-[#001049]/60 hover:text-[#001049] mt-2 transition-colors"
-          >
-            Read more on Wikipedia <IcExternalLink />
-          </a>
-        </div>
-      )}
-
       {/* ── Places to Visit ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <IcMapPin />
           <h2 className="text-base font-bold text-[#001049]">Places to Visit</h2>
-          <span className="text-xs text-gray-400">· click to open Wikipedia</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {info.places.map((place) => (

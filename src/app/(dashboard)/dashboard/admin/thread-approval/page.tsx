@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import SchoolBadge from "@/components/threads/SchoolBadge";
 
 type ThreadUser = {
   id: number;
@@ -13,7 +14,11 @@ type ThreadUser = {
 
 type HubThread = {
   id: number;
-  question: string;
+  title: string;
+  body: string;
+  category: string;
+  categoryDomain: string | null;
+  images: string[];
   status: string;
   isAnon: boolean;
   asker: ThreadUser | null;
@@ -22,17 +27,13 @@ type HubThread = {
   createdAt: string;
 };
 
-function Avatar({ user, size = "w-8 h-8" }: { user: ThreadUser | null; size?: string }) {
+function Avatar({ user }: { user: ThreadUser | null }) {
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
   return (
-    <div className={`${size} rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden`}>
-      {user?.profilePic ? (
-        <img src={user.profilePic} alt={`${user.firstName} ${user.lastName}`} className="w-full h-full object-cover" />
-      ) : (
-        initials
-      )}
+    <div className="w-5 h-5 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-[9px] font-bold shrink-0 overflow-hidden">
+      {user?.profilePic ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" /> : initials}
     </div>
   );
 }
@@ -54,23 +55,41 @@ function PendingCard({ thread, onApprove, onReject }: {
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
 }) {
-  const askerName = thread.isAnon ? "Anonymous" : thread.asker
-    ? `${thread.asker.firstName} ${thread.asker.lastName}`.trim()
-    : "Member";
+  const askerName = thread.isAnon ? "Anonymous"
+    : thread.asker ? `${thread.asker.firstName} ${thread.asker.lastName}`.trim() : "Member";
 
   return (
     <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4">
-        <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
-        <div className="flex items-center gap-2 mt-2">
-          {thread.isAnon ? (
-            <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-[10px] font-bold shrink-0">?</div>
-          ) : (
-            <Avatar user={thread.asker} size="w-5 h-5" />
-          )}
+        {/* Meta */}
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <SchoolBadge category={thread.category} categoryDomain={thread.categoryDomain} />
+          {thread.isAnon
+            ? <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-[8px] font-bold shrink-0">?</div>
+            : <Avatar user={thread.asker} />}
           <span className="text-xs text-gray-400">{askerName} · {formatRelative(thread.createdAt)}</span>
         </div>
+
+        {/* Title */}
+        <p className="font-semibold text-gray-900 leading-snug">{thread.title}</p>
+
+        {/* Body snippet */}
+        {thread.body && (
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{thread.body}</p>
+        )}
+
+        {/* Image thumbnails */}
+        {thread.images?.length > 0 && (
+          <div className="mt-2 flex gap-1.5">
+            {thread.images.slice(0, 3).map((url, i) => (
+              <div key={i} className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
       <div className="px-5 py-3 border-t border-amber-100 flex items-center gap-2 bg-amber-50/50">
         <span className="flex-1 text-xs text-amber-700 font-medium">Pending review</span>
         <button
@@ -140,28 +159,28 @@ export default function ThreadApprovalPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[#001049]">Thread Approval</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Review and approve community questions before they appear on the public feed.
+            Review and approve community posts before they appear on the public feed.
           </p>
         </div>
 
         {pageLoading && (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm h-24 animate-pulse" />
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm h-28 animate-pulse" />
             ))}
           </div>
         )}
 
         {!pageLoading && threads.length === 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-            <p className="text-sm font-semibold text-gray-500">No pending threads.</p>
-            <p className="text-xs text-gray-400 mt-1">All questions have been reviewed.</p>
+            <p className="text-sm font-semibold text-gray-500">No pending posts.</p>
+            <p className="text-xs text-gray-400 mt-1">All posts have been reviewed.</p>
           </div>
         )}
 
         {!pageLoading && threads.length > 0 && (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 mb-1">{threads.length} thread{threads.length !== 1 ? "s" : ""} awaiting review</p>
+            <p className="text-xs text-gray-500 mb-1">{threads.length} post{threads.length !== 1 ? "s" : ""} awaiting review</p>
             {threads.map((t) => (
               <PendingCard
                 key={t.id}
