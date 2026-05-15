@@ -996,14 +996,13 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 py-4 px-3 md:px-5">
-        <div className="max-w-[1500px] mx-auto flex gap-4 items-start">
+      <div className="flex flex-1 min-h-0 bg-gray-50">
+        <div className="flex flex-1 min-h-0">
 
           {/* ── Left sidebar ─────────────────────────────────────────────── */}
-          <aside className="w-80 shrink-0 space-y-4 sticky top-4 self-start hidden lg:block">
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r border-gray-200 overflow-y-auto px-6 pt-6">
               {/* Avatar */}
-              <div className="flex flex-col items-center pt-8 pb-5 px-5 border-b border-gray-100">
+              <div className="flex flex-col items-start pb-5 border-b border-gray-200">
                 <div className="w-24 h-24 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-3xl font-bold shrink-0 overflow-hidden ring-4 ring-white shadow-md">
                   {profile?.profilePic
                     ? <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" />
@@ -1029,7 +1028,7 @@ export default function DashboardPage() {
               </div>
 
               {/* School + role info */}
-              <div className="px-5 py-4 space-y-3 border-b border-gray-100">
+              <div className="py-4 space-y-3 border-b border-gray-200">
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
                     <UniLogo schoolName={profile.schoolName} schoolEmail={profile.schoolEmail} size={11} />
@@ -1056,15 +1055,6 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Membership status */}
-                {user.acceptanceStatus?.toLowerCase() === "approved" && (
-                  <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                    Member
-                  </div>
-                )}
                 {user.role === "member" && (
                   <div className="text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-2 space-y-1.5">
                     <div className="flex items-center gap-2">
@@ -1084,7 +1074,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Share + Edit */}
-              <div className="px-5 py-4 flex gap-2">
+              <div className="py-4 flex gap-2 border-b border-gray-200">
                 {user.role !== "member" && (
                   <div ref={shareRef} className="relative flex-1">
                     <button
@@ -1133,7 +1123,7 @@ export default function DashboardPage() {
 
               {/* Links */}
               {(profile?.x || profile?.linkedin || profile?.instagram || profile?.facebook) && (
-                <div className="px-5 pb-4 border-t border-gray-100 pt-4 space-y-2">
+                <div className="pt-4 pb-4 space-y-2">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Links</p>
                   <div className="space-y-1.5">
                     {profile?.x && (
@@ -1165,14 +1155,13 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
-            </div>
           </aside>
 
           {/* ── Center content ─────────────────────────────────────────────── */}
-          <main className="flex-1 min-w-0 space-y-3">
+          <main className="flex-1 min-w-0 min-h-0 overflow-y-auto border-r border-gray-200">
 
             {/* Tab nav */}
-            <div className="flex justify-center gap-8 border-b border-gray-200">
+            <div className="flex gap-8 border-b border-gray-200 px-8">
               {(["profile", "posts", "threads"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -1194,7 +1183,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Mobile: compact profile header */}
-            <div className="lg:hidden bg-white rounded-2xl shadow-sm p-5">
+            <div className="lg:hidden px-6 py-5 border-b border-gray-200">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xl font-bold shrink-0 overflow-hidden">
                   {profile?.profilePic ? <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" /> : initials}
@@ -1223,9 +1212,14 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 {!loadingPosts && posts.length === 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                    <p className="text-sm font-semibold text-[#001049]">No posts yet</p>
-                    <p className="text-xs text-gray-400 mt-1">Posts you create will appear here.</p>
+                  <div className="py-16 flex flex-col items-center gap-3 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500">No posts yet</p>
+                      <p className="text-xs text-gray-400 mt-1">Posts you create will appear here.</p>
+                    </div>
                   </div>
                 )}
                 {!loadingPosts &&
@@ -1246,32 +1240,32 @@ export default function DashboardPage() {
             {activeTab === "threads" && (
               <div className="space-y-3">
                 {/* Sub-tabs */}
-                <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 w-fit shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => handleThreadsViewChange("answered")}
-                    className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition ${
-                      threadsView === "answered" ? "bg-[#001049] text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
-                    }`}
-                  >
-                    Answered
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleThreadsViewChange("unanswered")}
-                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition ${
-                      threadsView === "unanswered" ? "bg-[#001049] text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
-                    }`}
-                  >
-                    Unanswered
-                    {pendingThreads.length > 0 && (
-                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                        threadsView === "unanswered" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-600"
-                      }`}>
-                        {pendingThreads.length}
-                      </span>
-                    )}
-                  </button>
+                <div className="flex justify-center py-4">
+                  <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => handleThreadsViewChange("answered")}
+                      className={`px-8 py-3 text-base font-semibold border-r border-gray-200 transition ${
+                        threadsView === "answered" ? "text-gray-900" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      Answered
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleThreadsViewChange("unanswered")}
+                      className={`flex items-center gap-2 px-8 py-3 text-base font-semibold transition ${
+                        threadsView === "unanswered" ? "text-gray-900" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      Unanswered
+                      {pendingThreads.length > 0 && (
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600">
+                          {pendingThreads.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Answered */}
@@ -1281,9 +1275,14 @@ export default function DashboardPage() {
                       <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
                     ))}
                     {!loadingThreads && threads.length === 0 && (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                        <p className="text-sm font-semibold text-[#001049]">No answered threads yet</p>
-                        <p className="text-xs text-gray-400 mt-1">Questions you answer will appear here.</p>
+                      <div className="py-16 flex flex-col items-center gap-3 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-500">No answered threads yet</p>
+                          <p className="text-xs text-gray-400 mt-1">Questions you answer will appear here.</p>
+                        </div>
                       </div>
                     )}
                     {!loadingThreads && threads.map((t) => {
@@ -1339,9 +1338,14 @@ export default function DashboardPage() {
                       <div key={idx} className="bg-white rounded-2xl shadow-sm h-44 animate-pulse border border-gray-100" />
                     ))}
                     {!pendingLoading && pendingThreads.length === 0 && (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                        <p className="text-sm font-semibold text-gray-500">No unanswered questions.</p>
-                        <p className="text-xs text-gray-400 mt-1">You're all caught up.</p>
+                      <div className="py-16 flex flex-col items-center gap-3 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-500">All caught up</p>
+                          <p className="text-xs text-gray-400 mt-1">No unanswered questions.</p>
+                        </div>
                       </div>
                     )}
                     {!pendingLoading && pendingThreads.map((t) => {
@@ -1377,10 +1381,10 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {activeTab === "profile" && <>
+            {activeTab === "profile" && <div className="px-8">
 
             {/* About */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="py-6 border-b border-gray-200">
               <SectionHeader title="About" />
               {loadingProfile ? (
                 <div className="space-y-2 animate-pulse">{[1,2].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
@@ -1392,7 +1396,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Education */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="py-6 border-b border-gray-200">
               <SectionHeader title="Education" onAdd={openAddEdu} />
               {loadingProfile ? (
                 <div className="space-y-2 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
@@ -1456,7 +1460,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Work Experience */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="py-6 border-b border-gray-200">
               <SectionHeader title="Work Experience" onAdd={openAddExp} />
               {experiences.length === 0 ? (
                 <button onClick={openAddExp} className="w-full border-2 border-dashed border-gray-200 rounded-xl py-6 flex flex-col items-center gap-1.5 text-gray-400 hover:border-[#001049]/30 hover:text-[#001049]/60 transition">
@@ -1498,15 +1502,9 @@ export default function DashboardPage() {
               )}
             </div>
 
-            </>}
+            </div>}
 
           </main>
-
-          {/* ── Right sidebar ─────────────────────────────────────────────── */}
-          <aside className="w-72 shrink-0 space-y-4 sticky top-4 self-start hidden xl:block">
-
-
-          </aside>
 
         </div>
       </div>
