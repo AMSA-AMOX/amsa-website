@@ -216,22 +216,23 @@ export default function DashboardSidebar() {
   );
   const topItems = visibleNavItems.filter((item) => item.section === "top");
   const socialItems = visibleNavItems.filter((item) => item.section === "social");
-  const toolItems = visibleNavItems.filter((item) => item.section === "tools");
+  const toolItems = visibleNavItems.filter((item) => item.section === "tools" && !item.allowedRoles);
+  const adminItems = visibleNavItems.filter((item) => item.section === "tools" && !!item.allowedRoles);
 
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/10">
+      <div className="px-6 py-5 border-b border-gray-200">
         <Link href="/welcome" className="flex items-center gap-3">
-          <img src="/header-logo.svg" alt="AMSA" className="h-14 w-auto" />
+          <img src="/assets/logo.png" alt="AMSA" className="h-14 w-auto" />
         </Link>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-6">
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {topItems.map((item) => {
             const active = pathname === item.href;
             const badge = item.href === "/dashboard/notifications" && notifCount > 0
@@ -242,10 +243,10 @@ export default function DashboardSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
                   active
-                    ? "bg-white text-[#001049]"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
+                    ? "bg-gray-200 text-gray-900"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
                 }`}
               >
                 {item.icon}
@@ -259,8 +260,8 @@ export default function DashboardSidebar() {
             );
           })}
         </div>
-        <div className="my-4 border-t border-white/10" />
-        <div className="space-y-1">
+        <div className="my-4 border-t border-gray-300" />
+        <div className="space-y-0.5">
           {socialItems.map((item) => {
             const active = pathname === item.href;
             return (
@@ -268,10 +269,10 @@ export default function DashboardSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
                   active
-                    ? "bg-white text-[#001049]"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
+                    ? "bg-gray-200 text-gray-900"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
                 }`}
               >
                 {item.icon}
@@ -280,8 +281,8 @@ export default function DashboardSidebar() {
             );
           })}
         </div>
-        <div className="my-4 border-t border-white/10" />
-        <div className="space-y-1">
+        <div className="my-4 border-t border-gray-300" />
+        <div className="space-y-0.5">
           {toolItems.map((item) => {
             const active = pathname === item.href;
             const count = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
@@ -291,10 +292,10 @@ export default function DashboardSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
                   active
-                    ? "bg-white text-[#001049]"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
+                    ? "bg-gray-200 text-gray-900"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
                 }`}
               >
                 {item.icon}
@@ -308,10 +309,43 @@ export default function DashboardSidebar() {
             );
           })}
         </div>
+        {adminItems.length > 0 && (
+          <>
+            <div className="my-4 border-t border-gray-300" />
+            <p className="px-4 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</p>
+            <div className="space-y-0.5">
+              {adminItems.map((item) => {
+                const active = pathname === item.href;
+                const count = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
+                const badge = count > 0 ? (count > 9 ? "9+" : String(count)) : null;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                      active
+                        ? "bg-gray-200 text-gray-900"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="flex-1">{item.label}</span>
+                    {badge && (
+                      <span className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center leading-none">
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </>
+        )}
       </nav>
 
       {/* User footer */}
-      <div className="px-4 py-4 border-t border-white/10">
+      <div className="px-4 py-4 border-t border-gray-200">
         <div className="flex items-center gap-3 px-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
             {user?.profilePic ? (
@@ -321,13 +355,13 @@ export default function DashboardSidebar() {
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-white text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
-            <p className="text-white/50 text-xs truncate">{user?.email}</p>
+            <p className="text-gray-800 text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
+            <p className="text-gray-500 text-xs truncate">{user?.email}</p>
           </div>
         </div>
         <button
           onClick={() => { logout(); router.push("/"); }}
-          className="w-full flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all"
+          className="w-full flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
@@ -341,22 +375,22 @@ export default function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-[#001049] min-h-screen fixed top-0 left-0 z-40">
+      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-100 min-h-screen fixed top-0 left-0 z-40 border-r border-gray-200">
         <SidebarContent />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#001049] flex items-center justify-between px-4 py-3 border-b border-white/10">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-100 flex items-center justify-between px-4 py-3 border-b border-gray-200">
         <Link href="/welcome" className="flex items-center gap-2">
-          <img src="/header-logo.svg" alt="AMSA" className="h-12 w-auto" />
+          <img src="/assets/logo.png" alt="AMSA" className="h-12 w-auto" />
         </Link>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="text-white p-1">
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="text-gray-600 p-1">
           {mobileOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           )}
@@ -367,7 +401,7 @@ export default function DashboardSidebar() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-[#001049] flex flex-col">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-gray-100 border-r border-gray-200 flex flex-col">
             <SidebarContent />
           </aside>
         </div>
