@@ -1117,7 +1117,6 @@ export default function ResearchPage() {
     <div className="py-8 px-4 md:px-7">
       <div className="flex items-start justify-between gap-4 mb-1">
         <div>
-          <h1 className="text-2xl font-bold text-[#001049]">College Research Tool</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-3xl">
             Compare schools by ranking, affordability, and fit. Built for all applicants, including international and domestic students.
           </p>

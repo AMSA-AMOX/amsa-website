@@ -157,7 +157,6 @@ export default function ThreadApprovalPage() {
     <div className="min-h-screen bg-gray-50 py-6 px-4 md:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#001049]">Thread Approval</h1>
           <p className="text-sm text-gray-500 mt-1">
             Review and approve community posts before they appear on the public feed.
           </p>

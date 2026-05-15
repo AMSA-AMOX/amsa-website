@@ -224,10 +224,8 @@ export default function DashboardSidebar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-200">
-        <Link href="/welcome" className="flex items-center gap-3">
-          <img src="/assets/logo.png" alt="AMSA" className="h-14 w-auto" />
-        </Link>
+      <div className="px-6 py-5">
+        <img src="/assets/logo.png" alt="AMSA" className="h-14 w-auto" />
       </div>
 
       {/* Nav */}
@@ -375,7 +373,7 @@ export default function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-100 min-h-screen fixed top-0 left-0 z-40 border-r border-gray-200">
+      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-50 min-h-screen fixed top-0 left-0 z-40 border-r border-gray-200">
         <SidebarContent />
       </aside>
 

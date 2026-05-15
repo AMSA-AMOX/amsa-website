@@ -153,7 +153,6 @@ export default function AdminVerificationPage() {
   return (
     <div className="py-8 px-4 md:px-8 max-w-7xl mx-auto">
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-[#001049]">Verification Queue</h1>
         <p className="text-sm text-gray-500 mt-1">
           Review verification forms, assign role, and approve or reject users.
         </p>

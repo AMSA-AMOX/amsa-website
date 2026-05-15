@@ -68,7 +68,6 @@ export default function NotificationsPage() {
   return (
     <div className="py-8 px-4 md:px-8 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#001049] mb-1">Notifications</h1>
         <p className="text-sm text-gray-500">Your recent activity across network and events.</p>
       </div>
 

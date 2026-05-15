@@ -176,7 +176,6 @@ export default function FeedPage() {
 
   return (
     <div className="py-8 px-4 md:px-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#001049] mb-1">Feed</h1>
       <p className="text-gray-500 text-sm mb-6">
         Community posts from AMSA members. Appreciate posts to send Tokens of Appreciation.
       </p>

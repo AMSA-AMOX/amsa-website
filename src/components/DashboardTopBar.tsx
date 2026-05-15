@@ -1,0 +1,40 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
+const TITLE_MAP: Record<string, string> = {
+  "/welcome": "Profile",
+  "/dashboard/feed": "Feed",
+  "/dashboard/notifications": "Notifications",
+  "/dashboard/research": "Research",
+  "/dashboard/research/compare": "Compare",
+  "/dashboard/guide": "Guide",
+  "/dashboard/threads": "Threads",
+  "/dashboard/events": "Events",
+  "/dashboard/network": "Network",
+  "/dashboard/inbox": "Inbox",
+  "/dashboard/blogs": "Blogs",
+  "/dashboard/admin/members": "Members",
+  "/dashboard/admin/verification": "Verification Queue",
+  "/dashboard/admin/posts": "Post Approval",
+  "/dashboard/admin/thread-approval": "Thread Approval",
+};
+
+function resolveTitle(pathname: string): string {
+  if (TITLE_MAP[pathname]) return TITLE_MAP[pathname];
+  // Dynamic segments — e.g. /dashboard/research/state/CA
+  if (pathname.startsWith("/dashboard/research/state/")) return "State Details";
+  if (pathname.startsWith("/dashboard/research/college/")) return "College Details";
+  return "";
+}
+
+export default function DashboardTopBar() {
+  const pathname = usePathname();
+  const title = resolveTitle(pathname);
+
+  return (
+    <div className="sticky top-0 z-30 bg-gray-50 border-b border-gray-200 px-6 py-4">
+      <h1 className="text-lg font-bold text-gray-900">{title}</h1>
+    </div>
+  );
+}

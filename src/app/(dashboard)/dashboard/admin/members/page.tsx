@@ -167,7 +167,6 @@ export default function AdminMembersPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-[#001049]">Members</h1>
             <p className="text-sm text-gray-500 mt-1">Search and manage member roles.</p>
           </div>
           <div className="flex flex-col items-end gap-2">

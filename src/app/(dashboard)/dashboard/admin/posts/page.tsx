@@ -125,7 +125,6 @@ export default function AdminPostsQueuePage() {
   return (
     <div className="py-8 px-4 md:px-8 max-w-6xl mx-auto">
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-[#001049]">Post Approval Queue</h1>
         <p className="text-sm text-gray-500 mt-1">
           Review US member posts and approve or reject before publishing to the feed.
         </p>

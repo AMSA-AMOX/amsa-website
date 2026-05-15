@@ -242,7 +242,6 @@ export default function NetworkPage() {
     <div className="py-7 px-4 md:px-7 lg:px-9 max-w-[1500px] mx-auto">
       <div className="mb-5 flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-[#001049] mb-1">Network</h1>
           <p className="text-gray-500 text-sm">
             Discover members, view profiles, and build your AMSA connections.
           </p>

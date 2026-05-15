@@ -869,7 +869,6 @@ export default function EventsPage() {
     <div className="py-10 px-4 md:px-8 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-[#001049] mb-1">Events</h1>
           <p className="text-gray-500 text-base">Upcoming and past AMSA events.</p>
         </div>
         {isAdmin && (

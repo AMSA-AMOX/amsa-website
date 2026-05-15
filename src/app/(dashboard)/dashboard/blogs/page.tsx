@@ -94,7 +94,6 @@ export default function BlogsPage() {
   return (
     <div className="py-8 px-4 md:px-8 max-w-4xl mx-auto space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-[#001049] mb-1">Creator Dashboard</h1>
         <p className="text-gray-500 text-sm">
           Review your posts and track moderation status. Create new posts from{" "}
           <Link href="/dashboard/feed" className="text-[#001049] font-medium hover:underline">
