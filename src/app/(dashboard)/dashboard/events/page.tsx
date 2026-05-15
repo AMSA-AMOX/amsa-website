@@ -75,6 +75,8 @@ type CreateEventForm = {
   eventMode: "virtual" | "in_person" | "hybrid";
   virtualMeetingUrl: string;
   virtualLinkSoon: boolean;
+  inPersonLinkType: "reserve" | "link";
+  inPersonLinkUrl: string;
 };
 
 type SelectedImage = {
@@ -218,6 +220,8 @@ const initialForm: CreateEventForm = {
   eventMode: "in_person",
   virtualMeetingUrl: "",
   virtualLinkSoon: false,
+  inPersonLinkType: "reserve",
+  inPersonLinkUrl: "",
 };
 
 function formatDate(date: string) {
@@ -474,8 +478,13 @@ export default function EventsPage() {
           : UNLIMITED_SEATS,
         isMemberExclusive: form.isMemberExclusive,
         eventMode: form.eventMode ?? "in_person",
-        virtualMeetingUrl: (form.virtualMeetingUrl ?? "").trim() || null,
-        virtualLinkSoon: Boolean(form.virtualLinkSoon),
+        virtualMeetingUrl:
+          form.eventMode === "in_person"
+            ? form.inPersonLinkType === "link"
+              ? (form.inPersonLinkUrl ?? "").trim() || null
+              : null
+            : (form.virtualMeetingUrl ?? "").trim() || null,
+        virtualLinkSoon: form.eventMode === "in_person" ? false : Boolean(form.virtualLinkSoon),
         images: finalImages,
       };
 
@@ -589,8 +598,10 @@ export default function EventsPage() {
           : "",
       isMemberExclusive: Boolean(event.isMemberExclusive),
       eventMode: event.eventMode || "in_person",
-      virtualMeetingUrl: event.virtualMeetingUrl || "",
+      virtualMeetingUrl: event.eventMode === "in_person" ? "" : (event.virtualMeetingUrl || ""),
       virtualLinkSoon: Boolean(event.virtualLinkSoon),
+      inPersonLinkType: event.eventMode === "in_person" && event.virtualMeetingUrl ? "link" : "reserve",
+      inPersonLinkUrl: event.eventMode === "in_person" ? (event.virtualMeetingUrl || "") : "",
     });
     setExistingImageUrls(sortedImages);
     for (const image of selectedImages) {
@@ -626,6 +637,7 @@ export default function EventsPage() {
     const isVirtualOnly = event.eventMode === "virtual";
     const isVirtualJoinEnabled =
       event.eventMode === "virtual" || event.eventMode === "hybrid";
+    const isInPersonLink = event.eventMode === "in_person" && Boolean(event.virtualMeetingUrl);
     const now = Date.now();
     const startAtMs = new Date(event.startAt).getTime();
     const endAtMs = new Date(event.endAt).getTime();
@@ -726,7 +738,7 @@ export default function EventsPage() {
                 ? formatMoney(event.feeAmount, event.currency)
                 : "Free"}
             </p>
-            {!isVirtualOnly && (
+            {!isVirtualOnly && !isInPersonLink && (
               <p>
                 Seats left:{" "}
                 {Number(event.totalSeats || 0) >= UNLIMITED_SEATS
@@ -734,7 +746,7 @@ export default function EventsPage() {
                   : event.seatsRemaining}
               </p>
             )}
-            {!isVirtualOnly && <p>Waitlist: {event.waitlistCount}</p>}
+            {!isVirtualOnly && !isInPersonLink && <p>Waitlist: {event.waitlistCount}</p>}
             <p>Audience: {event.isMemberExclusive ? "Members only" : "All logged-in users"}</p>
           </div>
 
@@ -774,7 +786,18 @@ export default function EventsPage() {
               </>
             )}
 
-            {!isVirtualOnly && !myReservation && (
+            {isInPersonLink && (
+              <a
+                href={event.virtualMeetingUrl!}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2.5 text-sm rounded-lg bg-[#001049] text-white hover:bg-[#122371]"
+              >
+                Register
+              </a>
+            )}
+
+            {!isVirtualOnly && !isInPersonLink && !myReservation && (
               <button
                 type="button"
                 onClick={() => handleReserve(event.id)}
@@ -785,7 +808,7 @@ export default function EventsPage() {
               </button>
             )}
 
-            {!isVirtualOnly && myReservation && (
+            {!isVirtualOnly && !isInPersonLink && myReservation && (
               <>
                 {(myReservation.status === "reserved" || myReservation.status === "paid") && (
                   <button
@@ -810,7 +833,7 @@ export default function EventsPage() {
               </>
             )}
 
-            {isAdmin && (
+            {isAdmin && !isInPersonLink && (
               <button
                 type="button"
                 onClick={() => {
@@ -844,7 +867,7 @@ export default function EventsPage() {
             )}
           </div>
 
-          {!isVirtualOnly && myReservation && (
+          {!isVirtualOnly && !isInPersonLink && myReservation && (
             <div className="text-sm rounded-lg bg-gray-50 border border-gray-100 px-4 py-3 text-gray-700">
               <p>Status: {myReservation.status}</p>
               {myReservation.status === "waitlisted" && myReservation.waitlistPosition ? (
@@ -1113,6 +1136,48 @@ export default function EventsPage() {
                   <option value="hybrid">Hybrid</option>
                 </select>
               </label>
+
+              {(form.eventMode ?? "in_person") === "in_person" && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-700">Registration type</p>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="inPersonLinkType"
+                        value="reserve"
+                        checked={form.inPersonLinkType === "reserve"}
+                        onChange={() => setForm((prev) => ({ ...prev, inPersonLinkType: "reserve", inPersonLinkUrl: "" }))}
+                      />
+                      Reserve spot
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="inPersonLinkType"
+                        value="link"
+                        checked={form.inPersonLinkType === "link"}
+                        onChange={() => setForm((prev) => ({ ...prev, inPersonLinkType: "link" }))}
+                      />
+                      External link
+                    </label>
+                  </div>
+                  {form.inPersonLinkType === "link" && (
+                    <label className="text-sm text-gray-700 block">
+                      Registration URL
+                      <input
+                        type="url"
+                        value={form.inPersonLinkUrl}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, inPersonLinkUrl: e.target.value }))
+                        }
+                        placeholder="https://..."
+                        className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
 
               {((form.eventMode ?? "in_person") === "virtual" ||
                 (form.eventMode ?? "in_person") === "hybrid") && (

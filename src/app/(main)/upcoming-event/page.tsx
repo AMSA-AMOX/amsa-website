@@ -4,17 +4,10 @@ import { useState } from "react";
 import { notFound } from "next/navigation";
 import upcomingEvent from "@/config/upcomingEvent";
 
-const OFFSET = 24;         // px gap between stacked cards
-const DRAG_DAMPEN = 0.45;  // card moves at 45% of pointer speed — feels resistant
-const SWIPE_THRESHOLD = 60; // px (raw pointer) before a drag counts as a swipe
-const FLING_DISTANCE = 900; // px the card travels when flung off
+const OFFSET = 24; // px gap between stacked cards
 
 function CardDeck({ images }: { images: string[] }) {
   const [topIndex, setTopIndex] = useState(0);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isFlinging, setIsFlinging] = useState(false);
   const count = images.length;
 
   function stackPos(i: number) {
@@ -25,69 +18,13 @@ function CardDeck({ images }: { images: string[] }) {
     setTopIndex((prev) => (prev + 1) % count);
   }
 
-  function resetDrag() {
-    setIsDragging(false);
-    setDragOffset({ x: 0, y: 0 });
-    setDragStart(null);
-  }
-
-  function onPointerDown(e: React.PointerEvent) {
-    if (isFlinging) return;
-    // Capture so move/up fire even if pointer leaves the element
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setIsDragging(true);
-    setDragOffset({ x: 0, y: 0 });
-  }
-
-  function onPointerMove(e: React.PointerEvent) {
-    if (!isDragging || !dragStart || isFlinging) return;
-    setDragOffset({
-      x: (e.clientX - dragStart.x) * DRAG_DAMPEN,
-      y: (e.clientY - dragStart.y) * DRAG_DAMPEN,
-    });
-  }
-
-  function onPointerUp() {
-    if (!isDragging || !dragStart) return;
-    const { x: dx, y: dy } = dragOffset;
-    const dist = Math.hypot(dx, dy);
-    const isTap = dist < 8;
-
-    if (isTap) {
-      resetDrag();
-      advance();
-      return;
-    }
-
-    if (dist >= SWIPE_THRESHOLD) {
-      // Fling the card off in the drag direction then advance
-      const angle = Math.atan2(dy, dx);
-      setIsDragging(false);
-      setIsFlinging(true);
-      setDragOffset({ x: Math.cos(angle) * FLING_DISTANCE, y: Math.sin(angle) * FLING_DISTANCE });
-      setTimeout(() => {
-        advance();
-        setDragOffset({ x: 0, y: 0 });
-        setDragStart(null);
-        setIsFlinging(false);
-      }, 380);
-    } else {
-      // Not far enough — snap back
-      resetDrag();
-    }
-  }
-
   const cardWidth = `calc(100% - ${(count - 1) * OFFSET}px)`;
 
   return (
     <div
-      className="relative select-none"
+      className="relative select-none cursor-pointer"
       style={{ paddingRight: (count - 1) * OFFSET, paddingBottom: (count - 1) * OFFSET }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={resetDrag}
+      onClick={advance}
     >
       {/* Invisible spacer — natural image height, zero white bars */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,39 +32,16 @@ function CardDeck({ images }: { images: string[] }) {
 
       {images.map((src, i) => {
         const pos = stackPos(i);
-        const isTop = pos === 0;
-        const stackX = pos * OFFSET;
-        const stackY = pos * OFFSET;
-        const stackRot = pos * 3;
-
-        // Live drag offset + tilt only on the top card
-        const extraX = isTop ? dragOffset.x : 0;
-        const extraY = isTop ? dragOffset.y : 0;
-        // Tilt follows horizontal drag: max ~15deg
-        const extraRot = isTop ? Math.max(-15, Math.min(15, dragOffset.x * 0.06)) : 0;
-
-        // Shadow deepens while dragging to give a "lifted" feel
-        const shadow = isTop && isDragging
-          ? "0 24px 60px rgba(0,0,0,0.35)"
-          : "0 8px 30px rgba(0,0,0,0.18)";
-
-        // Disable transition while finger is moving; enable for snap-back & fling
-        const transition = isDragging && !isFlinging
-          ? "none"
-          : "transform 370ms cubic-bezier(0.25,0.46,0.45,0.94), opacity 370ms, box-shadow 200ms";
-
         return (
           <div
             key={src}
-            className="absolute top-0 left-0 rounded-2xl overflow-hidden"
+            className="absolute top-0 left-0 rounded-2xl overflow-hidden shadow-xl"
             style={{
               width: cardWidth,
-              transform: `translateX(${stackX + extraX}px) translateY(${stackY + extraY}px) rotate(${stackRot + extraRot}deg)`,
+              transform: `translateX(${pos * OFFSET}px) translateY(${pos * OFFSET}px) rotate(${pos * 3}deg)`,
               zIndex: count - pos,
               opacity: pos > 3 ? 0 : 1,
-              cursor: isTop ? (isDragging ? "grabbing" : "grab") : "default",
-              boxShadow: shadow,
-              transition,
+              transition: "transform 370ms cubic-bezier(0.25,0.46,0.45,0.94), opacity 370ms",
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
