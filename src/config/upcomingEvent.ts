@@ -14,7 +14,7 @@ const upcomingEvent = {
   // Section heading & subtext
   title: "Change Your Future 2026",
   subtitle:
-    "Join hundreds of Mongolian students across America for a weekend of networking, workshops, and community.",
+    "АНУ болон бусад орны топ их сургуулиудад тэнцсэн оюутнуудтай уулзах, туршлагыг нь сонсох боломжыг бүү алдаарай! Панел хэлэлцүүлгээс эхлээд богино сургалт болон дэлхийн шилдэг их дээд сургуулийн цогц экспо болно гээд боддоо! 🤩\n\nХүсэл мөрөөдлөө тодорхой болгож, зорилгынхоо төлөө эхний алхмаа эндээс та хийгээрэй!",
 
   // Date / location blurb shown next to the card deck
   date: "06/21/2026",
