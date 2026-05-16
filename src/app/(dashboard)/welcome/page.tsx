@@ -1000,9 +1000,9 @@ export default function DashboardPage() {
         <div className="flex flex-1 min-h-0">
 
           {/* ── Left sidebar ─────────────────────────────────────────────── */}
-          <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r border-gray-200 overflow-y-auto px-6 pt-6">
+          <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r-2 border-gray-300 overflow-y-auto px-6 pt-6">
               {/* Avatar */}
-              <div className="flex flex-col items-start pb-5 border-b border-gray-200">
+              <div className="flex flex-col items-start pb-5 border-b-2 border-gray-300">
                 <div className="w-24 h-24 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-3xl font-bold shrink-0 overflow-hidden ring-4 ring-white shadow-md">
                   {profile?.profilePic
                     ? <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" />
@@ -1028,7 +1028,7 @@ export default function DashboardPage() {
               </div>
 
               {/* School + role info */}
-              <div className="py-4 space-y-3 border-b border-gray-200">
+              <div className="py-4 space-y-3 border-b-2 border-gray-300">
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
                     <UniLogo schoolName={profile.schoolName} schoolEmail={profile.schoolEmail} size={11} />
@@ -1074,7 +1074,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Share + Edit */}
-              <div className="py-4 flex gap-2 border-b border-gray-200">
+              <div className="py-4 flex gap-2 border-b-2 border-gray-300">
                 {user.role !== "member" && (
                   <div ref={shareRef} className="relative flex-1">
                     <button
@@ -1158,10 +1158,10 @@ export default function DashboardPage() {
           </aside>
 
           {/* ── Center content ─────────────────────────────────────────────── */}
-          <main className="flex-1 min-w-0 min-h-0 overflow-y-auto border-r border-gray-200">
+          <main className="flex-1 min-w-0 min-h-0 overflow-y-auto border-r-2 border-gray-300">
 
             {/* Tab nav */}
-            <div className="flex gap-8 border-b border-gray-200 px-8">
+            <div className="flex gap-8 border-b-2 border-gray-300 px-8">
               {(["profile", "posts", "threads"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -1204,13 +1204,18 @@ export default function DashboardPage() {
             {activeTab === "posts" && (
               <div className="space-y-3">
                 {loadingPosts &&
-                  Array.from({ length: 3 }).map((_, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl shadow-sm p-5 space-y-3 animate-pulse border border-gray-100">
-                      <div className="h-5 bg-gray-100 rounded w-3/4" />
-                      <div className="h-4 bg-gray-100 rounded w-full" />
-                      <div className="h-4 bg-gray-100 rounded w-4/5" />
-                    </div>
-                  ))}
+                  <div className="divide-y-2 divide-gray-300 animate-pulse">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                        <div className="flex-1 space-y-2 pt-1">
+                          <div className="h-4 bg-gray-200 rounded w-1/3" />
+                          <div className="h-3 bg-gray-200 rounded w-full" />
+                          <div className="h-3 bg-gray-200 rounded w-4/5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>}
                 {!loadingPosts && posts.length === 0 && (
                   <div className="py-16 flex flex-col items-center gap-3 text-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
@@ -1271,9 +1276,20 @@ export default function DashboardPage() {
                 {/* Answered */}
                 {threadsView === "answered" && (
                   <>
-                    {loadingThreads && Array.from({ length: 2 }).map((_, idx) => (
-                      <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
-                    ))}
+                    {loadingThreads &&
+                      <div className="divide-y-2 divide-gray-300 animate-pulse">
+                        {Array.from({ length: 2 }).map((_, idx) => (
+                          <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                            <div className="flex-1 space-y-2 pt-1">
+                              <div className="h-4 bg-gray-200 rounded w-1/3" />
+                              <div className="h-3 bg-gray-200 rounded w-full" />
+                              <div className="h-3 bg-gray-200 rounded w-3/4" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    }
                     {!loadingThreads && threads.length === 0 && (
                       <div className="py-16 flex flex-col items-center gap-3 text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
@@ -1334,9 +1350,21 @@ export default function DashboardPage() {
                 {/* Unanswered */}
                 {threadsView === "unanswered" && (
                   <>
-                    {pendingLoading && Array.from({ length: 2 }).map((_, idx) => (
-                      <div key={idx} className="bg-white rounded-2xl shadow-sm h-44 animate-pulse border border-gray-100" />
-                    ))}
+                    {pendingLoading &&
+                      <div className="divide-y-2 divide-gray-300 animate-pulse">
+                        {Array.from({ length: 2 }).map((_, idx) => (
+                          <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                            <div className="flex-1 space-y-2 pt-1">
+                              <div className="h-4 bg-gray-200 rounded w-1/3" />
+                              <div className="h-3 bg-gray-200 rounded w-full" />
+                              <div className="h-3 bg-gray-200 rounded w-3/4" />
+                              <div className="h-3 bg-gray-200 rounded w-1/2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    }
                     {!pendingLoading && pendingThreads.length === 0 && (
                       <div className="py-16 flex flex-col items-center gap-3 text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>

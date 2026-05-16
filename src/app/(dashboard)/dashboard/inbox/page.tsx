@@ -35,7 +35,7 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function Avatar({ user, size = "w-9 h-9" }: { user: ThreadUser | null; size?: string }) {
+function Avatar({ user, size = "w-10 h-10" }: { user: ThreadUser | null; size?: string }) {
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
@@ -56,7 +56,6 @@ function Avatar({ user, size = "w-9 h-9" }: { user: ThreadUser | null; size?: st
   );
 }
 
-// Card shown to the recipient (US member+) — can answer pending questions
 function ReceivedThreadCard({
   thread,
   answerDraft,
@@ -89,64 +88,44 @@ function ReceivedThreadCard({
   const timeText = formatRelative(thread.createdAt);
 
   return (
-    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-        <Avatar user={thread.asker} />
-        <div className="flex-1 min-w-0">
+    <article className="flex items-start gap-3 px-4 py-4">
+      <div
+        className={`mt-2 w-2 h-2 rounded-full shrink-0 ${
+          thread.status === "pending" ? "bg-[#001049]" : "bg-transparent"
+        }`}
+      />
+      <Avatar user={thread.asker} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-0.5">
           <p className="text-sm font-semibold text-gray-900">{askerName}</p>
-          <p className="text-xs text-gray-400">{timeText}</p>
+          <p className="text-xs text-gray-400 shrink-0">{timeText}</p>
         </div>
-        {thread.status === "answered" ? (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-600">
-            Answered
-          </span>
-        ) : (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
-            Pending
-          </span>
-        )}
-      </div>
+        <p className="text-sm text-gray-700 leading-snug">{thread.question}</p>
 
-      <div className="divide-y divide-gray-100">
-        <div className="px-5 py-4 bg-gray-50">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
-          <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
-        </div>
-        <div className="px-5 py-4 bg-white">
-          <div className="flex items-center gap-2 mb-2.5">
-            <Avatar user={thread.recipient} />
-            <span className="text-sm font-semibold text-gray-800">
-              {thread.recipient ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim() : "You"}
-            </span>
-          </div>
+        <div className="mt-3">
           {thread.status === "answered" ? (
             <>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Avatar user={thread.recipient} size="w-6 h-6" />
+                <span className="text-xs font-medium text-gray-500">
+                  {thread.recipient
+                    ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
+                    : "You"}
+                </span>
+              </div>
               <p className="text-sm text-gray-600 leading-relaxed">{thread.answer}</p>
-              {/* Actions for answered threads */}
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-3 mt-3">
                 <button
                   type="button"
                   onClick={onToggleAnon}
                   disabled={toggling || deleting}
-                  className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#001049] disabled:opacity-50 transition"
+                  className="text-xs font-medium text-gray-400 hover:text-[#001049] disabled:opacity-50 transition"
                 >
-                  {toggling ? (
-                    "Updating…"
-                  ) : thread.isAnonymous ? (
-                    <>
-                      <span className="w-4 h-4 inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                        &#128065;
-                      </span>
-                      Make public
-                    </>
-                  ) : (
-                    <>
-                      <span className="w-4 h-4 inline-flex items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                        &#128100;
-                      </span>
-                      Go anonymous
-                    </>
-                  )}
+                  {toggling
+                    ? "Updating…"
+                    : thread.isAnonymous
+                    ? "Make public"
+                    : "Go anonymous"}
                 </button>
                 {thread.isAnonymous && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">
@@ -227,7 +206,6 @@ function ReceivedThreadCard({
   );
 }
 
-// Card shown to the asker (member) — their sent questions + status
 function SentThreadCard({ thread }: { thread: ThreadItem }) {
   const recipientName = thread.recipient
     ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
@@ -235,38 +213,20 @@ function SentThreadCard({ thread }: { thread: ThreadItem }) {
   const timeText = formatRelative(thread.createdAt);
 
   return (
-    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-        <Avatar user={thread.recipient} />
-        <div className="flex-1 min-w-0">
+    <article className="flex items-start gap-3 px-4 py-4">
+      <div
+        className={`mt-2 w-2 h-2 rounded-full shrink-0 ${
+          thread.status === "pending" ? "bg-[#001049]" : "bg-transparent"
+        }`}
+      />
+      <Avatar user={thread.recipient} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-0.5">
           <p className="text-sm font-semibold text-gray-900">{recipientName}</p>
-          <p className="text-xs text-gray-400">{timeText}</p>
+          <p className="text-xs text-gray-400 shrink-0">{timeText}</p>
         </div>
-        {thread.status === "answered" ? (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-600">
-            Answered
-          </span>
-        ) : (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
-            Pending
-          </span>
-        )}
-      </div>
-
-      <div className="divide-y divide-gray-100">
-        <div className="px-5 py-4 bg-gray-50">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
-          <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
-        </div>
-        <div className="px-5 py-4 bg-white">
-          <div className="flex items-center gap-2 mb-2.5">
-            <Avatar user={thread.recipient} />
-            <span className="text-sm font-semibold text-gray-800">
-              {thread.recipient
-                ? `${thread.recipient.firstName} ${thread.recipient.lastName}`.trim()
-                : "Member"}
-            </span>
-          </div>
+        <p className="text-sm text-gray-700 leading-snug">{thread.question}</p>
+        <div className="mt-2">
           {thread.answer ? (
             <p className="text-sm text-gray-600 leading-relaxed">{thread.answer}</p>
           ) : (
@@ -429,18 +389,22 @@ export default function InboxPage() {
         </div>
 
         {pageLoading && (
-          <div className="space-y-3">
+          <div className="bg-white divide-y divide-gray-100">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm h-36 animate-pulse"
-              />
+              <div key={i} className="flex items-start gap-3 px-4 py-4 animate-pulse">
+                <div className="mt-2 w-2 h-2 rounded-full bg-gray-200 shrink-0" />
+                <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 rounded w-2/3" />
+                </div>
+              </div>
             ))}
           </div>
         )}
 
         {!pageLoading && threads.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+          <div className="bg-white px-4 py-10 text-center">
             <p className="text-sm font-semibold text-gray-500">
               {isRecipient ? "No questions yet." : "You haven't asked any questions yet."}
             </p>
@@ -456,10 +420,10 @@ export default function InboxPage() {
           <div className="space-y-6">
             {pending.length > 0 && (
               <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">
                   Pending ({pending.length})
                 </h2>
-                <div className="space-y-3">
+                <div className="bg-white divide-y divide-gray-100">
                   {pending.map((t) => (
                     <div key={t.id}>
                       <ReceivedThreadCard
@@ -480,7 +444,7 @@ export default function InboxPage() {
                         deleting={deleting.has(t.id)}
                       />
                       {errors[t.id] && (
-                        <p className="text-xs text-red-500 mt-1 px-1">{errors[t.id]}</p>
+                        <p className="text-xs text-red-500 pb-3 px-4">{errors[t.id]}</p>
                       )}
                     </div>
                   ))}
@@ -489,10 +453,10 @@ export default function InboxPage() {
             )}
             {answered.length > 0 && (
               <section>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">
                   Answered ({answered.length})
                 </h2>
-                <div className="space-y-3">
+                <div className="bg-white divide-y divide-gray-100">
                   {answered.map((t) => (
                     <div key={t.id}>
                       <ReceivedThreadCard
@@ -509,7 +473,7 @@ export default function InboxPage() {
                         deleting={deleting.has(t.id)}
                       />
                       {errors[t.id] && (
-                        <p className="text-xs text-red-500 mt-1 px-1">{errors[t.id]}</p>
+                        <p className="text-xs text-red-500 pb-3 px-4">{errors[t.id]}</p>
                       )}
                     </div>
                   ))}
@@ -520,7 +484,7 @@ export default function InboxPage() {
         )}
 
         {!pageLoading && !isRecipient && threads.length > 0 && (
-          <div className="space-y-3">
+          <div className="bg-white divide-y divide-gray-100">
             {threads.map((t) => (
               <SentThreadCard key={t.id} thread={t} />
             ))}

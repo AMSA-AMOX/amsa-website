@@ -33,7 +33,7 @@ export default function DashboardTopBar() {
   const title = resolveTitle(pathname);
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+    <div className="bg-gray-50 border-b-2 border-gray-300 px-6 py-4">
       <h1 className="text-lg font-bold text-gray-900">{title}</h1>
     </div>
   );

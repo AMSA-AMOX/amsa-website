@@ -258,7 +258,7 @@ export default function DashboardSidebar() {
             );
           })}
         </div>
-        <div className="my-4 border-t border-gray-300" />
+        <div className="my-4 border-t-2 border-gray-300" />
         <div className="space-y-0.5">
           {socialItems.map((item) => {
             const active = pathname === item.href;
@@ -279,7 +279,7 @@ export default function DashboardSidebar() {
             );
           })}
         </div>
-        <div className="my-4 border-t border-gray-300" />
+        <div className="my-4 border-t-2 border-gray-300" />
         <div className="space-y-0.5">
           {toolItems.map((item) => {
             const active = pathname === item.href;
@@ -309,7 +309,7 @@ export default function DashboardSidebar() {
         </div>
         {adminItems.length > 0 && (
           <>
-            <div className="my-4 border-t border-gray-300" />
+            <div className="my-4 border-t-2 border-gray-300" />
             <p className="px-4 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</p>
             <div className="space-y-0.5">
               {adminItems.map((item) => {
@@ -343,7 +343,7 @@ export default function DashboardSidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="px-4 py-4 border-t border-gray-200">
+      <div className="px-4 py-4 border-t-2 border-gray-300">
         <div className="flex items-center gap-3 px-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
             {user?.profilePic ? (
@@ -373,12 +373,12 @@ export default function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-50 min-h-screen fixed top-0 left-0 z-40 border-r border-gray-200">
+      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-50 min-h-screen fixed top-0 left-0 z-40 border-r-2 border-gray-300">
         <SidebarContent />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-100 flex items-center justify-between px-4 py-3 border-b border-gray-200">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-100 flex items-center justify-between px-4 py-3 border-b-2 border-gray-300">
         <Link href="/welcome" className="flex items-center gap-2">
           <img src="/assets/logo.png" alt="AMSA" className="h-12 w-auto" />
         </Link>
@@ -399,7 +399,7 @@ export default function DashboardSidebar() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-gray-100 border-r border-gray-200 flex flex-col">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-gray-100 border-r-2 border-gray-300 flex flex-col">
             <SidebarContent />
           </aside>
         </div>
