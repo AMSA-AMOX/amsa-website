@@ -23,7 +23,6 @@ export type PostCollege = {
 
 export type PostItem = {
   id: number;
-  title: string;
   body: string;
   images: string[];
   createdAt: string;

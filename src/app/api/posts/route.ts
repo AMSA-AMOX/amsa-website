@@ -5,7 +5,6 @@ import { ROLES, verifyToken } from "@/lib/auth";
 type RawPostRow = {
   id: number;
   userId: number | string | null;
-  title: string;
   body: string;
   images: string[] | null;
   helpfulCount: number | null;
@@ -92,7 +91,7 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from("Posts")
-      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
+      .select("id, userId, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
       .order("createdAt", { ascending: false })
       .limit(limit);
 
@@ -189,7 +188,6 @@ export async function GET(request: Request) {
         const collegeRow = post.tagged_college_id ? collegesById.get(post.tagged_college_id) : undefined;
         return {
           id: post.id,
-          title: post.title,
           body: post.body,
           images: normalizeImages(post.images),
           createdAt: post.createdAt,
@@ -233,7 +231,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const title = typeof body?.title === "string" ? body.title.trim() : "";
     const text = typeof body?.body === "string" ? body.body.trim() : "";
     const images = normalizeImages(body?.images).slice(0, 6);
 
@@ -283,15 +280,15 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!title || !text) {
+    if (!text) {
       return NextResponse.json(
-        { message: "Title and body are required." },
+        { message: "Body is required." },
         { status: 400 }
       );
     }
-    if (title.length > 180 || text.length > 4000) {
+    if (text.length > 4000) {
       return NextResponse.json(
-        { message: "Title or body exceeds allowed length." },
+        { message: "Body exceeds allowed length." },
         { status: 400 }
       );
     }
@@ -300,7 +297,6 @@ export async function POST(request: Request) {
       .from("Posts")
       .insert({
         userId: payload.id,
-        title,
         body: text,
         images,
         topic,
@@ -309,7 +305,7 @@ export async function POST(request: Request) {
         createdAt: nowIso,
         updatedAt: nowIso,
       })
-      .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
+      .select("id, userId, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
       .single();
 
     if (error || !insertedPost) {
@@ -343,7 +339,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       post: {
         id: raw.id,
-        title: raw.title,
         body: raw.body,
         images: normalizeImages(raw.images),
         createdAt: raw.createdAt,

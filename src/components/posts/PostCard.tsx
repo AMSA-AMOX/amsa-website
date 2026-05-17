@@ -181,8 +181,7 @@ export default function PostCard({
             ))}
           </div>
         )}
-        <h2 className="text-lg font-bold text-[#001049] leading-snug">{post.title}</h2>
-        <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{post.body}</p>
+        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{post.body}</p>
 
         {post.images.length > 0 && (
           <div className={`mt-4 ${imageGridClass}`}>
@@ -190,7 +189,7 @@ export default function PostCard({
               <img
                 key={`${post.id}-image-${idx}`}
                 src={src}
-                alt={`${post.title} image ${idx + 1}`}
+                alt={`Post image ${idx + 1}`}
                 className="w-full h-56 md:h-64 object-cover rounded-xl border border-gray-100 bg-gray-50"
               />
             ))}

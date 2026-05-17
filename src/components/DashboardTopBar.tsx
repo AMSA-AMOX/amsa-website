@@ -18,6 +18,7 @@ const TITLE_MAP: Record<string, string> = {
   "/dashboard/admin/verification": "Verification Queue",
   "/dashboard/admin/posts": "Post Approval",
   "/dashboard/admin/thread-approval": "Thread Approval",
+  "/verification": "Membership Form",
 };
 
 function resolveTitle(pathname: string): string {

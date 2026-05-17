@@ -1002,7 +1002,7 @@ export default function DashboardPage() {
           {/* ── Left sidebar ─────────────────────────────────────────────── */}
           <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r-2 border-gray-300 overflow-y-auto px-6 pt-6">
               {/* Avatar */}
-              <div className="flex flex-col items-start pb-5 border-b-2 border-gray-300">
+              <div className="flex flex-col items-center pb-5 border-b-2 border-gray-300">
                 <div className="w-24 h-24 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-3xl font-bold shrink-0 overflow-hidden ring-4 ring-white shadow-md">
                   {profile?.profilePic
                     ? <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" />

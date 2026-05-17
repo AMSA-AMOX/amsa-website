@@ -181,19 +181,19 @@ export default function FeedPage() {
       </p>
 
       {canSeeTopActions && (
-        <div className="mb-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
-            {user.profilePic ? (
-              <img src={user.profilePic} alt={user.firstName} className="w-full h-full object-cover" />
-            ) : (
-              `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
-            )}
-          </div>
+        <div className="mb-6">
           <button
             type="button"
             onClick={() => setPostOpen(true)}
-            className="flex-1 text-left px-4 py-3 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 hover:bg-gray-50 transition"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 hover:bg-gray-50 transition"
           >
+            <div className="w-10 h-10 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
+              {user.profilePic ? (
+                <img src={user.profilePic} alt={user.firstName} className="w-full h-full object-cover" />
+              ) : (
+                `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+              )}
+            </div>
             Share something with the community...
           </button>
         </div>
@@ -334,6 +334,7 @@ export default function FeedPage() {
               onCreated={onCreated}
               canPost={Boolean(canPost)}
               cannotPostMessage="Only US members, board members, and admins can post."
+              onClose={() => setPostOpen(false)}
             />
           </div>
         </div>

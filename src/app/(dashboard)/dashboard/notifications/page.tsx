@@ -150,7 +150,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
 
   const visual = hasLogo ? (
     item.avatarUrl
-      ? <img src={item.avatarUrl} alt={item.title} className="w-12 h-12 object-cover rounded-lg shrink-0" />
+      ? <div className="w-12 h-12 rounded-full bg-[#FFCA3A] flex items-center justify-center shrink-0 overflow-hidden"><img src={item.avatarUrl} alt={item.title} className="w-full h-full object-cover" /></div>
       : <img src="/header-logo.svg" alt="AMSA" className="w-12 h-12 object-contain shrink-0" />
   ) : (
     <div className="w-12 h-12 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] shrink-0">
