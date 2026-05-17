@@ -1246,12 +1246,12 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {/* Sub-tabs */}
                 <div className="flex justify-center py-4">
-                  <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="flex border-2 border-gray-400 rounded-lg overflow-hidden">
                     <button
                       type="button"
                       onClick={() => handleThreadsViewChange("answered")}
-                      className={`px-8 py-3 text-base font-semibold border-r border-gray-200 transition ${
-                        threadsView === "answered" ? "text-gray-900" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                      className={`px-5 py-1.5 text-sm font-semibold border-r-2 border-gray-400 transition ${
+                        threadsView === "answered" ? "bg-gray-200 text-gray-900" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       Answered
@@ -1259,8 +1259,8 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => handleThreadsViewChange("unanswered")}
-                      className={`flex items-center gap-2 px-8 py-3 text-base font-semibold transition ${
-                        threadsView === "unanswered" ? "text-gray-900" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                      className={`flex items-center gap-2 px-5 py-1.5 text-sm font-semibold transition ${
+                        threadsView === "unanswered" ? "bg-gray-200 text-gray-900" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       Unanswered
