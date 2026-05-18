@@ -20,7 +20,7 @@ type UserCollege = {
 };
 
 const MAX_BODY = 4000;
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 1;
 const MAX_FILE_SIZE = 6 * 1024 * 1024;
 
 const TOPIC_SET = new Set(POST_TOPICS.map((t) => t.toLowerCase()));
@@ -337,8 +337,8 @@ export default function PostComposer({
 
             {/* Centered icons */}
             <div className="flex-1 flex items-center justify-center gap-1">
-              <label className={`p-2 rounded-lg transition ${canPost ? "hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700" : "opacity-40 cursor-not-allowed text-gray-400"}`} title={`Add image (${files.length}/${MAX_IMAGES})`}>
-                <input type="file" multiple accept="image/*" onChange={onPickFiles} disabled={!canPost} className="hidden" />
+              <label className={`p-2 rounded-lg transition ${canPost && files.length < MAX_IMAGES ? "hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700" : "opacity-40 cursor-not-allowed text-gray-400"}`} title={files.length >= MAX_IMAGES ? "Remove the current image to add a new one" : "Add image"}>
+                <input type="file" accept="image/*" onChange={onPickFiles} disabled={!canPost || files.length >= MAX_IMAGES} className="hidden" />
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                 </svg>

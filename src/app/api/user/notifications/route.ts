@@ -5,7 +5,7 @@ import { getFollowsTableName } from "@/lib/follows-table";
 
 type NotificationItem = {
   id: string;
-  type: "follow" | "event" | "thread_question" | "thread_answered" | "welcome";
+  type: "follow" | "event" | "thread_question" | "thread_answered" | "welcome" | "post_report";
   title: string;
   description: string;
   happenedAt: string;
@@ -211,6 +211,47 @@ export async function GET(request: Request) {
       }
     } catch (e) {
       console.error("Notifications thread answered feed error:", e);
+    }
+
+    // Report notifications for admins and board members
+    if (payload.role === "admin" || payload.role === "board_member") {
+      try {
+        const { data: reports, error: reportsError } = await supabase
+          .from("PostReports")
+          .select("id, postId, reporterId, createdAt")
+          .order("createdAt", { ascending: false })
+          .limit(20);
+
+        if (!reportsError && reports && reports.length > 0) {
+          const reporterIds = Array.from(new Set((reports as any[]).map((r) => r.reporterId)));
+          const { data: reporters } = await supabase
+            .from("Users")
+            .select("id, firstName, lastName, profilePic")
+            .in("id", reporterIds);
+
+          const reporterById = new Map<number, UserRow>(
+            ((reporters ?? []) as any[]).map((u) => [u.id, u as UserRow])
+          );
+
+          for (const report of reports as any[]) {
+            const reporter = reporterById.get(report.reporterId);
+            const name = reporter
+              ? `${reporter.firstName ?? ""} ${reporter.lastName ?? ""}`.trim() || "Someone"
+              : "Someone";
+            notifications.push({
+              id: `post-report-${report.id}`,
+              type: "post_report",
+              title: "Post reported",
+              description: `${name} reported a post.`,
+              happenedAt: report.createdAt,
+              href: `/dashboard/feed?reportedPostId=${report.postId}`,
+              avatarUrl: reporter?.profilePic ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Notifications post reports error:", e);
+      }
     }
 
     notifications.sort((a, b) => {

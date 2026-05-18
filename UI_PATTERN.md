@@ -66,19 +66,38 @@ w-{size} h-{size} rounded-full bg-[#FFCA3A] text-[#001049] font-bold shrink-0 ov
 
 ---
 
-## Pill Buttons / Tags / Filters
+## Filter / Tag Chips
 
-All interactive chips are `rounded-full`.
+Interactive filter chips use `rounded-lg` and `border-2`. Multiple selection is allowed — chips toggle independently without closing the panel.
 
 ```tsx
 // Inactive
-"border border-gray-200 bg-white text-gray-600 hover:border-[#001049] hover:text-[#001049]"
+"border-2 border-gray-300 bg-white text-gray-600 hover:border-gray-400"
 
 // Active (selected)
-"bg-[#001049] text-white border-[#001049]"
+"bg-gray-700 text-white border-gray-700"
 ```
 
-Used for: topic filters, post-as toggles, topic tags.
+Used for: topic filters, tag chips. **No navy blue for selected state.**
+
+---
+
+## Segmented Controls (binary / small option sets)
+
+For two-option or short-list toggles (e.g. Answered / Unanswered), use an inline segmented control: a shared rounded container with a border, and the selected segment lifts into a white pill with a shadow.
+
+```tsx
+// Container
+"inline-flex rounded-xl border-2 border-gray-300 bg-gray-100 p-1 gap-1"
+
+// Segment — inactive
+"px-4 py-1.5 rounded-lg text-sm font-semibold text-gray-400"
+
+// Segment — active
+"px-4 py-1.5 rounded-lg text-sm font-semibold bg-white text-gray-900 shadow-sm"
+```
+
+Used for: binary view toggles, small mutually-exclusive option sets.
 
 ---
 
@@ -128,7 +147,7 @@ Prefer lower radius throughout — avoid `rounded-2xl` on interactive elements a
 
 | Token | Value | Usage |
 |---|---|---|
-| Navy | `#001049` | Active nav, primary buttons, selected pills, headings |
+| Navy | `#001049` | Primary action buttons, headings only — not for selected/active states |
 | Gold | `#FFCA3A` | Avatar background |
 | Canvas | `gray-50` | Entire page surface |
 | Active nav | `gray-200` | Nav pill hover/active |
@@ -140,5 +159,6 @@ Prefer lower radius throughout — avoid `rounded-2xl` on interactive elements a
 
 > **Everything sits on the same `gray-50` surface — no lifted containers.**  
 > **Sections are separated by `border-gray-300` lines, not cards.**  
-> **Selected interactive elements → `bg-[#001049] text-white`.**  
+> **Selected filter/tag chips → `bg-gray-700 text-white`. Primary action buttons → `bg-[#001049] text-white`.**  
+> **Segmented controls → white pill with shadow on active segment, `bg-gray-100` container.**  
 > **Avatars → `bg-[#FFCA3A] rounded-full`.**

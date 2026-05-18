@@ -21,7 +21,7 @@ export default function FeedPage() {
   const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [followingInProgress, setFollowingInProgress] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
   const [filterOpen, setFilterOpen] = useState(false);
   const canPost =
     user?.role === "us_member" || user?.role === "admin" || user?.role === "board_member";
@@ -155,6 +155,21 @@ export default function FeedPage() {
     }
   };
 
+  const [reportedIds, setReportedIds] = useState<Set<number>>(new Set());
+
+  const onReport = async (postId: number) => {
+    if (reportedIds.has(postId)) return;
+    setReportedIds((prev) => new Set(prev).add(postId));
+    try {
+      await authFetch(`/api/posts/${postId}/report`, { method: "POST" });
+      setPostingMessage("Post reported. Thank you for keeping AMSA safe.");
+    } catch {
+      setReportedIds((prev) => { const next = new Set(prev); next.delete(postId); return next; });
+      setPostingMessage("Failed to submit report. Please try again.");
+    }
+    setTimeout(() => setPostingMessage(""), 4000);
+  };
+
   const onCreated = (post: PostItem) => {
     if (post.reviewStatus === "approved") {
       setPosts((prev) => [post, ...prev]);
@@ -166,28 +181,79 @@ export default function FeedPage() {
     setPostOpen(false);
   };
 
-  const filteredPosts = selectedTopic
-    ? posts.filter((p) =>
-        p.topic?.split(",").map((t) => t.trim()).includes(selectedTopic)
-      )
-    : posts;
+  const filteredPosts = selectedTopics.size === 0
+    ? posts
+    : posts.filter((p) =>
+        p.topic?.split(",").map((t) => t.trim()).some((t) => selectedTopics.has(t))
+      );
 
   if (!user) return null;
 
   return (
     <div className="py-8 px-4 md:px-8 max-w-4xl mx-auto">
-      <p className="text-gray-500 text-sm mb-6">
-        Community posts from AMSA members. Appreciate posts to send Tokens of Appreciation.
-      </p>
+      
+
+      {/* Topic filter — single toggle button */}
+      <div className="mb-5">
+        <button
+          type="button"
+          onClick={() => setFilterOpen((v) => !v)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border-2 border-gray-300 bg-white text-gray-600 hover:border-gray-400 transition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          </svg>
+          
+          {selectedTopics.size > 0 && (
+            <span className="text-gray-700">· {selectedTopics.size}</span>
+          )}
+        </button>
+
+        {filterOpen && (
+          <div className="mt-2.5 flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setSelectedTopics(new Set())}
+              className={`shrink-0 px-3.5 py-1.5 rounded-lg text-sm font-semibold border-2 transition ${
+                selectedTopics.size === 0
+                    ? "bg-gray-200 text-black border-gray-500"
+                  : "border-gray-300 text-gray-600 bg-white hover:border-gray-400"
+              }`}
+            >
+              All
+            </button>
+            {POST_TOPICS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  setSelectedTopics((prev) => {
+                    const next = new Set(prev);
+                    next.has(t) ? next.delete(t) : next.add(t);
+                    return next;
+                  });
+                }}
+                className={`shrink-0 px-3.5 py-1.5 rounded-lg text-sm font-semibold border-2 transition ${
+                  selectedTopics.has(t)
+                    ? "bg-gray-200 text-black border-gray-500"
+                    : "border-gray-300 text-gray-600 bg-white hover:border-gray-400"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {canSeeTopActions && (
         <div className="mb-6">
           <button
             type="button"
             onClick={() => setPostOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-gray-200 text-sm text-gray-400 hover:bg-gray-50 transition"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-2 border-gray-300 text-lg text-gray-400 hover:bg-gray-50 transition"
           >
-            <div className="w-10 h-10 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-12 h-12 rounded-full bg-[#FFCA3A] text-[#001049] text-lg font-bold flex items-center justify-center overflow-hidden shrink-0">
               {user.profilePic ? (
                 <img src={user.profilePic} alt={user.firstName} className="w-full h-full object-cover" />
               ) : (
@@ -198,56 +264,6 @@ export default function FeedPage() {
           </button>
         </div>
       )}
-
-      {/* Topic filter — single toggle button */}
-      <div className="mb-5">
-        <button
-          type="button"
-          onClick={() => setFilterOpen((v) => !v)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-gray-300 transition"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25" />
-          </svg>
-          Filter
-          {selectedTopic && (
-            <span className="text-[#001049]">· {selectedTopic}</span>
-          )}
-          <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 text-gray-400 transition-transform ${filterOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {filterOpen && (
-          <div className="mt-2.5 flex gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => { setSelectedTopic(null); setFilterOpen(false); }}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold border transition ${
-                selectedTopic === null
-                  ? "bg-[#001049] text-white border-[#001049]"
-                  : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
-              }`}
-            >
-              All
-            </button>
-            {POST_TOPICS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setSelectedTopic(selectedTopic === t ? null : t); setFilterOpen(false); }}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold border transition ${
-                  selectedTopic === t
-                    ? "bg-[#001049] text-white border-[#001049]"
-                    : "border-gray-200 text-gray-600 hover:border-[#001049] hover:text-[#001049]"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -260,32 +276,30 @@ export default function FeedPage() {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div>
         {loadingPosts &&
           Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="bg-white rounded-2xl shadow-sm p-5 space-y-3 animate-pulse border border-gray-100">
-              <div className="h-4 bg-gray-100 rounded w-2/5" />
-              <div className="h-5 bg-gray-100 rounded w-3/4" />
-              <div className="h-4 bg-gray-100 rounded w-full" />
-              <div className="h-4 bg-gray-100 rounded w-4/5" />
-              <div className="h-52 bg-gray-100 rounded-xl" />
+            <div key={idx} className="py-5 border-b border-gray-200 space-y-3 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-gray-100 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 bg-gray-100 rounded w-1/3" />
+                  <div className="h-3 bg-gray-100 rounded w-1/4" />
+                </div>
+              </div>
+              <div className="pl-14 space-y-2">
+                <div className="h-4 bg-gray-100 rounded w-full" />
+                <div className="h-4 bg-gray-100 rounded w-4/5" />
+                <div className="h-52 bg-gray-100 rounded-xl" />
+              </div>
             </div>
           ))}
 
         {!loadingPosts && filteredPosts.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16">
-            {selectedTopic ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z" />
-              </svg>
-            )}
-            <p className="text-sm font-medium text-gray-400">
-              {selectedTopic ? `No posts tagged "${selectedTopic}"` : "No posts yet"}
+            <img src="/assets/empty/leaves.svg" alt="" className="w-56 h-56" />
+            <p className="text-lg font-medium text-gray-400">
+              {selectedTopics.size > 0 ? `No posts match the selected filters` : "No posts yet"}
             </p>
           </div>
         )}
@@ -307,6 +321,7 @@ export default function FeedPage() {
                   : undefined
               }
               deleting={deleting.has(post.id)}
+              onReport={post.author?.id !== user.id ? onReport : undefined}
             />
           ))}
       </div>

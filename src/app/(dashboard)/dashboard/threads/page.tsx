@@ -674,8 +674,7 @@ export default function ThreadsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4 md:px-8">
-      <div className="max-w-3xl mx-auto">
+    <div className="py-8 px-4 md:px-8 max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="mb-5 flex items-start justify-between gap-4 flex-wrap">
@@ -814,9 +813,9 @@ export default function ThreadsPage() {
         )}
 
         {!pageLoading && visibleThreads.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-            <p className="text-base font-semibold text-gray-500">No posts yet.</p>
-            <p className="text-sm text-gray-400 mt-1">Be the first to post.</p>
+          <div className="flex flex-col items-center gap-3 py-16">
+            <img src="/assets/empty/fall_leaves.svg" alt="" className="w-56 h-56" />
+            <p className="text-lg font-medium text-gray-400">No threads yet...</p>
           </div>
         )}
 
@@ -844,7 +843,6 @@ export default function ThreadsPage() {
             )}
           </div>
         )}
-      </div>
     </div>
   );
 }
