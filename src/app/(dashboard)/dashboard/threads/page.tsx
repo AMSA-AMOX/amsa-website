@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import SchoolBadge from "@/components/threads/SchoolBadge";
+import ThreadComposer from "@/components/threads/ThreadComposer";
 
 // ─── Logo.dev ─────────────────────────────────────────────────────────────────
 
@@ -16,8 +16,6 @@ function buildLogoUrl(domain: string): string {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type SchoolResult = { name: string; domain: string };
 
 type ThreadUser = {
   id: number;
@@ -37,6 +35,8 @@ type HubThread = {
   isAnon: boolean;
   asker: ThreadUser | null;
   commentCount: number;
+  upvoteCount: number;
+  hasUpvoted: boolean;
   approvedAt: string | null;
   createdAt: string;
 };
@@ -45,8 +45,12 @@ type HubComment = {
   id: number;
   content: string;
   isAnon: boolean;
+  parentId: number | null;
   author: ThreadUser | null;
   createdAt: string;
+  upvoteCount: number;
+  hasUpvoted: boolean;
+  replies: HubComment[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,321 +80,70 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function GlobeIcon({ className }: { className?: string }) {
+// ─── Upvote icon ──────────────────────────────────────────────────────────────
+
+function UpvoteIcon({ className }: { className?: string }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253M3 12a8.96 8.96 0 0 0 .284 2.253" />
+    <svg xmlns="http://www.w3.org/2000/svg" className={className ?? "w-6 h-6"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 L4.5 11 H9 V21 H15 V11 H19.5 Z" />
     </svg>
-  );
-}
-
-// ─── School search (Clearbit autocomplete) ────────────────────────────────────
-
-async function fetchSchoolSuggestions(query: string): Promise<SchoolResult[]> {
-  if (!query.trim()) return [];
-  try {
-    const res = await fetch(
-      `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(query)}`
-    );
-    if (!res.ok) return [];
-    const results = (await res.json()) as Array<{ name?: string; domain?: string }>;
-    const edu = results.filter((r) => r.name && r.domain?.endsWith(".edu"));
-    return edu.slice(0, 5).map((r) => ({ name: r.name!, domain: r.domain! }));
-  } catch {
-    return [];
-  }
-}
-
-function SchoolSearch({
-  selectedName,
-  selectedDomain,
-  onSelect,
-}: {
-  selectedName: string;
-  selectedDomain: string | null;
-  onSelect: (name: string, domain: string | null) => void;
-}) {
-  const isGeneral = selectedName === "general" || selectedName === "General" || !selectedName;
-  const [query, setQuery] = useState(() => (isGeneral ? "" : selectedName));
-  const [open, setOpen] = useState(false);
-  const [results, setResults] = useState<SchoolResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const q = query.trim();
-    if (!q) { setResults([]); setSearching(false); return; }
-
-    setSearching(true);
-    timerRef.current = setTimeout(async () => {
-      const r = await fetchSchoolSuggestions(q);
-      setResults(r);
-      setSearching(false);
-    }, 250);
-
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [query]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const handleSelectGeneral = () => {
-    onSelect("general", null);
-    setQuery("");
-    setOpen(false);
-  };
-
-  const handleSelectSchool = (s: SchoolResult) => {
-    onSelect(s.name, s.domain);
-    setQuery(s.name);
-    setOpen(false);
-    setResults([]);
-  };
-
-  const showGeneral = !query.trim() || "general".startsWith(query.trim().toLowerCase());
-  const displayValue = !isGeneral && !query ? selectedName : query;
-
-  return (
-    <div ref={wrapRef} className="relative">
-      <div className="relative flex items-center">
-        <div className="absolute left-3 flex items-center justify-center w-5 h-5 shrink-0 pointer-events-none">
-          {isGeneral && !query ? (
-            <GlobeIcon className="w-4 h-4 text-gray-400" />
-          ) : selectedDomain && !query ? (
-            <img
-              src={buildLogoUrl(selectedDomain)}
-              alt=""
-              className="w-4 h-4 object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-            </svg>
-          )}
-        </div>
-
-        <input
-          type="text"
-          value={displayValue}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder="Search schools…"
-          className="w-full border border-gray-200 rounded-xl pl-9 pr-8 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
-        />
-
-        <div className="absolute right-3 flex items-center">
-          {searching ? (
-            <svg className="animate-spin w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-          ) : query ? (
-            <button
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); setQuery(""); setResults([]); onSelect("general", null); }}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {open && (showGeneral || results.length > 0 || searching) && (
-        <div className="absolute z-30 top-full mt-1.5 left-0 right-0 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden">
-          {showGeneral && (
-            <button
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); handleSelectGeneral(); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left ${isGeneral && !query ? "bg-gray-50" : ""}`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-[#001049]/10 flex items-center justify-center shrink-0">
-                <GlobeIcon className="w-4 h-4 text-[#001049]" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">General</p>
-                <p className="text-xs text-gray-400">Not college-specific</p>
-              </div>
-              {isGeneral && !query && (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#001049] ml-auto shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-              )}
-            </button>
-          )}
-
-          {showGeneral && results.length > 0 && (
-            <div className="mx-4 border-t border-gray-100" />
-          )}
-
-          {results.map((s) => {
-            const logoUrl = buildLogoUrl(s.domain);
-            const isSelected = selectedName === s.name;
-            return (
-              <button
-                key={s.domain}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); handleSelectSchool(s); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left ${isSelected ? "bg-gray-50" : ""}`}
-              >
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                  <img
-                    src={logoUrl}
-                    alt=""
-                    className="w-6 h-6 object-contain"
-                    onError={(e) => {
-                      const img = e.target as HTMLImageElement;
-                      img.style.display = "none";
-                      img.parentElement!.innerHTML = `<span class="text-xs font-bold text-gray-400">${s.name[0]}</span>`;
-                    }}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{s.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{s.domain}</p>
-                </div>
-                {isSelected && (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#001049] ml-auto shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-
-          {query.trim() && !searching && results.length === 0 && !showGeneral && (
-            <div className="px-4 py-3 text-sm text-gray-400">No schools found</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Image uploader ───────────────────────────────────────────────────────────
-
-function ImageUploader({ images, onChange, uploading }: { images: string[]; onChange: (urls: string[]) => void; uploading: boolean }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [localUploading, setLocalUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const remaining = 3 - images.length;
-    if (remaining <= 0) return;
-    setLocalUploading(true);
-    setUploadError(null);
-    const newUrls: string[] = [];
-    for (const file of Array.from(files).slice(0, remaining)) {
-      const form = new FormData();
-      form.append("file", file);
-      const stored = typeof window !== "undefined" ? localStorage.getItem("amsa_auth") : null;
-      const token = stored ? (JSON.parse(stored) as { token?: string }).token : null;
-      try {
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: form,
-        });
-        if (res.ok) {
-          newUrls.push(((await res.json()) as { url: string }).url);
-        } else {
-          const err = await res.json().catch(() => ({}));
-          setUploadError((err as any)?.message ?? "Upload failed. Make sure the storage bucket exists in Supabase.");
-        }
-      } catch {
-        setUploadError("Upload failed. Check your connection and Supabase storage configuration.");
-      }
-    }
-    onChange([...images, ...newUrls]);
-    setLocalUploading(false);
-  };
-
-  const removeImage = (i: number) => onChange(images.filter((_, idx) => idx !== i));
-  const busy = uploading || localUploading;
-
-  return (
-    <div>
-      <div className="flex flex-wrap gap-2 mb-2">
-        {images.map((url, i) => (
-          <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 group shrink-0">
-            <img src={url} alt="" className="w-full h-full object-cover" />
-            <button
-              type="button"
-              onClick={() => removeImage(i)}
-              className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        ))}
-        {images.length < 3 && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-            className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-[#001049]/40 hover:text-[#001049]/60 transition disabled:opacity-50 shrink-0"
-          >
-            {localUploading ? (
-              <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                </svg>
-                <span className="text-xs">{images.length}/3</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-      {uploadError && (
-        <p className="text-xs text-red-500 mb-1">{uploadError}</p>
-      )}
-      <p className="text-xs text-gray-400">Up to 3 images · JPEG, PNG, GIF, WebP · max 5 MB each</p>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-        multiple
-        className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
-      />
-    </div>
   );
 }
 
 // ─── Thread card — expandable with inline comments ────────────────────────────
 
 function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin: boolean; onDeleted: (id: number) => void }) {
-  const { authFetch } = useAuth();
+  const { authFetch, user: currentUser } = useAuth();
+
+  // Thread upvote
+  const [upvoteCount, setUpvoteCount] = useState(thread.upvoteCount ?? 0);
+  const [hasUpvoted, setHasUpvoted] = useState(thread.hasUpvoted ?? false);
+  const [upvoting, setUpvoting] = useState(false);
+
+  // Comments
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [comments, setComments] = useState<HubComment[]>([]);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
-  const [commentIsAnon, setCommentIsAnon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [replyCount, setReplyCount] = useState(thread.commentCount);
+
+  // Reply to comment
+  const [replyingToId, setReplyingToId] = useState<number | null>(null);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  const handleUpvote = async () => {
+    if (upvoting) return;
+    setUpvoting(true);
+    const prev = { upvoteCount, hasUpvoted };
+    setHasUpvoted(!hasUpvoted);
+    setUpvoteCount((n) => hasUpvoted ? n - 1 : n + 1);
+    try {
+      const data = await authFetch(`/api/hub-threads/${thread.id}/upvote`, { method: "POST" });
+      setUpvoteCount(data.upvoteCount);
+      setHasUpvoted(data.hasUpvoted);
+    } catch {
+      setUpvoteCount(prev.upvoteCount);
+      setHasUpvoted(prev.hasUpvoted);
+    } finally {
+      setUpvoting(false);
+    }
+  };
 
   const handleExpand = async () => {
     const next = !expanded;
@@ -413,16 +166,59 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
     try {
       const data = await authFetch(`/api/hub-threads/${thread.id}/comments`, {
         method: "POST",
-        body: JSON.stringify({ content: c, isAnon: commentIsAnon }),
+        body: JSON.stringify({ content: c, isAnon: false }),
       });
       setComments((prev) => [...prev, data.comment as HubComment]);
       setCommentDraft("");
       setReplyCount((n) => n + 1);
       setSubmitMsg(null);
+      if (!expanded) setExpanded(true);
+    } catch (e: any) {
+      setSubmitMsg({ text: e?.message ?? "Failed to post comment.", ok: false });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReply = async (parentId: number) => {
+    const c = replyDraft.trim();
+    if (!c || replySubmitting) return;
+    setReplySubmitting(true);
+    try {
+      const data = await authFetch(`/api/hub-threads/${thread.id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content: c, isAnon: false, parentId }),
+      });
+      setComments((prev) => prev.map((cm) =>
+        cm.id === parentId ? { ...cm, replies: [...(cm.replies ?? []), data.comment as HubComment] } : cm
+      ));
+      setReplyDraft("");
+      setReplyingToId(null);
+      setReplyCount((n) => n + 1);
     } catch (e: any) {
       setSubmitMsg({ text: e?.message ?? "Failed to post reply.", ok: false });
     } finally {
-      setSubmitting(false);
+      setReplySubmitting(false);
+    }
+  };
+
+  const handleCommentUpvote = async (commentId: number) => {
+    const toggle = (c: HubComment): HubComment => {
+      if (c.id === commentId) {
+        return { ...c, hasUpvoted: !c.hasUpvoted, upvoteCount: c.hasUpvoted ? c.upvoteCount - 1 : c.upvoteCount + 1 };
+      }
+      return { ...c, replies: (c.replies ?? []).map(toggle) };
+    };
+    setComments((prev) => prev.map(toggle));
+    try {
+      const data = await authFetch(`/api/hub-threads/${thread.id}/comments/${commentId}/upvote`, { method: "POST" });
+      const update = (c: HubComment): HubComment => {
+        if (c.id === commentId) return { ...c, hasUpvoted: data.hasUpvoted, upvoteCount: data.upvoteCount };
+        return { ...c, replies: (c.replies ?? []).map(update) };
+      };
+      setComments((prev) => prev.map(update));
+    } catch {
+      setComments((prev) => prev.map(toggle)); // revert
     }
   };
 
@@ -440,150 +236,265 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
   const askerName = thread.isAnon ? "Anonymous"
     : thread.asker ? `${thread.asker.firstName} ${thread.asker.lastName}`.trim() : "Member";
 
+  const imageCount = thread.images.length;
+  const imageGridClass = imageCount === 1
+    ? "grid grid-cols-1 gap-2"
+    : imageCount === 2
+    ? "grid grid-cols-2 gap-2"
+    : "grid grid-cols-2 md:grid-cols-3 gap-2";
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Card header — click to expand */}
-      <div
-        onClick={handleExpand}
-        className="w-full text-left px-6 py-5 hover:bg-gray-50/60 transition group cursor-pointer"
-      >
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <SchoolBadge category={thread.category} categoryDomain={thread.categoryDomain} />
-          <span className="text-sm text-gray-400">{formatRelative(thread.approvedAt ?? thread.createdAt)}</span>
+    <article className="py-5 border-b border-gray-200">
+      {/* Header */}
+      <header className="flex items-start gap-3 mb-3">
+        {thread.isAnon
+          ? <div className="w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-sm font-bold shrink-0">?</div>
+          : <Avatar user={thread.asker} size="w-11 h-11" />}
+
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">{askerName}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <SchoolBadge category={thread.category} categoryDomain={thread.categoryDomain} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-gray-400">{formatRelative(thread.approvedAt ?? thread.createdAt)}</span>
+
+            {isAdmin && (
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition rounded"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                  </svg>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-7 z-30 w-36 bg-white border border-gray-200 rounded-xl shadow-lg p-1">
+                    <button
+                      type="button"
+                      onClick={(e) => { setMenuOpen(false); handleDelete(e); }}
+                      disabled={deleting}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition text-left disabled:opacity-50"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                      {deleting ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+      </header>
 
-        <p className="text-base font-semibold text-gray-900 leading-snug group-hover:text-[#001049] transition-colors line-clamp-2 mb-2">
-          {thread.title}
-        </p>
-
+      {/* Body */}
+      <div className="pl-14">
+        <p className="text-lg font-medium text-gray-800 leading-snug mb-1">{thread.title}</p>
         {thread.body && (
-          <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">{thread.body}</p>
+          <p className="text-base font-light text-gray-500 leading-relaxed whitespace-pre-wrap">{thread.body}</p>
         )}
 
-        {thread.images.length > 0 && (
-          <div className="mt-3 flex gap-2">
-            {thread.images.slice(0, 3).map((url, i) => (
-              <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                <img src={url} alt="" className="w-full h-full object-cover" />
+        {imageCount > 0 && (
+          <div className={`mt-4 ${imageGridClass}`}>
+            {thread.images.map((url, i) => (
+              <div key={i}>
+                <img src={url} alt={`Image ${i + 1}`} className="max-h-150 max-w-full w-auto h-auto block rounded-2xl" />
               </div>
             ))}
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {thread.isAnon
-              ? <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
-              : <Avatar user={thread.asker} />}
-            <span className="text-sm text-gray-500 truncate">{askerName}</span>
+        {/* Footer — upvote + comments */}
+        <footer className="mt-5 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleUpvote}
+            disabled={upvoting}
+            className={`flex items-center gap-1.5 transition disabled:opacity-50 ${hasUpvoted ? "text-[#001049]" : "text-gray-400 hover:text-[#001049]"}`}
+          >
+            <UpvoteIcon className="w-6 h-6" />
+            <span className="text-sm font-medium">{upvoteCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExpand}
+            className={`flex items-center gap-1.5 transition ${expanded ? "text-[#001049]" : "text-gray-400 hover:text-gray-600"}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
+            </svg>
+            <span className="text-sm font-medium">{replyCount}</span>
+          </button>
+        </footer>
+
+        {/* Comments — shown when expanded */}
+        {expanded && (
+          <div className="mt-4 space-y-5">
+            {commentsLoading && (
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse shrink-0" />
+                    <div className="flex-1 h-14 bg-gray-100 rounded-xl animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            )}
+            {!commentsLoading && commentsLoaded && comments.length === 0 && (
+              <p className="text-sm text-gray-400">No replies yet. Be the first!</p>
+            )}
+            {!commentsLoading && comments.length > 0 && (
+              <div className="space-y-5">
+                {comments.map((c) => {
+                  const authorName = c.isAnon ? "Anonymous"
+                    : c.author ? `${c.author.firstName} ${c.author.lastName}`.trim() : "Member";
+                  return (
+                    <div key={c.id}>
+                      {/* Top-level comment */}
+                      <div className="flex gap-3">
+                        {c.isAnon
+                          ? <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
+                          : <Avatar user={c.author} />}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-semibold text-gray-800">{authorName}</span>
+                            <span className="text-xs text-gray-400">{formatRelative(c.createdAt)}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">{c.content}</p>
+                          <div className="mt-1.5 flex items-center gap-4">
+                            <button
+                              type="button"
+                              onClick={() => handleCommentUpvote(c.id)}
+                              className={`flex items-center gap-1 text-xs transition ${c.hasUpvoted ? "text-[#001049] font-semibold" : "text-gray-400 hover:text-[#001049]"}`}
+                            >
+                              <UpvoteIcon className="w-4 h-4" />
+                              {c.upvoteCount > 0 && <span>{c.upvoteCount}</span>}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setReplyingToId(replyingToId === c.id ? null : c.id); setReplyDraft(""); }}
+                              className="text-xs text-gray-400 hover:text-gray-600 font-medium transition"
+                            >
+                              Reply
+                            </button>
+                          </div>
+
+                          {/* Inline reply input */}
+                          {replyingToId === c.id && (
+                            <div className="mt-2 relative">
+                              <input
+                                type="text"
+                                value={replyDraft}
+                                onChange={(e) => setReplyDraft(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleReply(c.id); } }}
+                                placeholder={`Reply to ${authorName}...`}
+                                maxLength={2000}
+                                autoFocus
+                                className="w-full border border-gray-200 rounded-full pl-4 pr-12 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
+                              />
+                              {replyDraft.trim().length > 0 && (
+                                <button
+                                  type="button"
+                                  disabled={replySubmitting}
+                                  onClick={() => handleReply(c.id)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#001049] disabled:opacity-50 hover:opacity-70 transition"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Replies */}
+                      {(c.replies ?? []).length > 0 && (
+                        <div className="ml-11 mt-3 space-y-3 border-l-2 border-gray-300 pl-4">
+                          {(c.replies ?? []).map((r) => {
+                            const replyAuthorName = r.isAnon ? "Anonymous"
+                              : r.author ? `${r.author.firstName} ${r.author.lastName}`.trim() : "Member";
+                            return (
+                              <div key={r.id} className="flex gap-3">
+                                {r.isAnon
+                                  ? <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
+                                  : <Avatar user={r.author} size="w-7 h-7" />}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-sm font-semibold text-gray-800">{replyAuthorName}</span>
+                                    <span className="text-xs text-gray-400">{formatRelative(r.createdAt)}</span>
+                                  </div>
+                                  <p className="text-sm text-gray-700 leading-relaxed">{r.content}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCommentUpvote(r.id)}
+                                    className={`mt-1.5 flex items-center gap-1 text-xs transition ${r.hasUpvoted ? "text-[#001049] font-semibold" : "text-gray-400 hover:text-[#001049]"}`}
+                                  >
+                                    <UpvoteIcon className="w-4 h-4" />
+                                    {r.upvoteCount > 0 && <span>{r.upvoteCount}</span>}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {isAdmin && (
+        )}
+      </div>
+
+      {/* Comment form — always visible, avatar aligned with header */}
+      <div className="mt-4 flex items-start gap-3">
+        <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] text-sm font-bold flex items-center justify-center overflow-hidden shrink-0">
+          {currentUser?.profilePic
+            ? <img src={currentUser.profilePic} alt="" className="w-full h-full object-cover" />
+            : `${currentUser?.firstName?.[0] ?? ""}${currentUser?.lastName?.[0] ?? ""}`.toUpperCase() || "?"}
+        </div>
+        <div className="flex-1 min-w-0">
+          {submitMsg && (
+            <p className={`text-sm mb-1.5 ${submitMsg.ok ? "text-green-600" : "text-red-500"}`}>{submitMsg.text}</p>
+          )}
+          <p className="text-lg font-semibold text-gray-800 mb-2">Comment</p>
+          <div className="relative">
+            <input
+              type="text"
+              value={commentDraft}
+              onChange={(e) => setCommentDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleComment(); } }}
+              placeholder="Add a comment..."
+              maxLength={2000}
+              className="w-full border border-gray-200 rounded-full pl-4 pr-12 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
+            />
+            {commentDraft.trim().length > 0 && (
               <button
                 type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition disabled:opacity-50"
-                title="Delete thread"
+                disabled={submitting}
+                onClick={handleComment}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#001049] disabled:opacity-50 hover:opacity-70 transition"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
                 </svg>
               </button>
             )}
-            <span className={`text-sm flex items-center gap-1.5 font-medium transition ${expanded ? "text-[#001049]" : "text-gray-400"}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-              </svg>
-              {replyCount} {replyCount === 1 ? "reply" : "replies"}
-              <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 ml-0.5 transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
           </div>
         </div>
       </div>
-
-      {/* Expanded section: comments + reply form */}
-      {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50/40 px-6 py-5 space-y-4">
-          {/* Loading skeleton */}
-          {commentsLoading && (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
-                  <div className="flex-1 h-16 bg-gray-200 rounded-xl animate-pulse" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* No replies */}
-          {!commentsLoading && commentsLoaded && comments.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-2">No replies yet. Be the first!</p>
-          )}
-
-          {/* Comment list */}
-          {!commentsLoading && comments.length > 0 && (
-            <div className="space-y-3">
-              {comments.map((c) => {
-                const authorName = c.isAnon ? "Anonymous"
-                  : c.author ? `${c.author.firstName} ${c.author.lastName}`.trim() : "Member";
-                return (
-                  <div key={c.id} className="flex gap-3">
-                    {c.isAnon
-                      ? <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
-                      : <Avatar user={c.author} />}
-                    <div className="flex-1 bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-sm">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-sm font-semibold text-gray-800">{authorName}</span>
-                        <span className="text-xs text-gray-400">{formatRelative(c.createdAt)}</span>
-                      </div>
-                      <p className="text-sm text-gray-700 leading-relaxed">{c.content}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Reply form */}
-          <div className="pt-1">
-            {submitMsg && (
-              <p className={`text-sm mb-2 ${submitMsg.ok ? "text-green-600" : "text-red-500"}`}>{submitMsg.text}</p>
-            )}
-            <textarea
-              value={commentDraft}
-              onChange={(e) => setCommentDraft(e.target.value)}
-              placeholder="Write a reply…"
-              maxLength={2000}
-              rows={3}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
-            />
-            <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={commentIsAnon}
-                  onChange={(e) => setCommentIsAnon(e.target.checked)}
-                  className="rounded border-gray-300 accent-[#001049]"
-                />
-                <span className="text-sm text-gray-500">Reply anonymously</span>
-              </label>
-              <button
-                type="button"
-                disabled={submitting || commentDraft.trim().length === 0}
-                onClick={handleComment}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
-              >
-                {submitting ? "Posting…" : "Post Reply"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </article>
   );
 }
 
@@ -598,15 +509,7 @@ export default function ThreadsPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Create-post form state
   const [postOpen, setPostOpen] = useState(false);
-  const [titleDraft, setTitleDraft] = useState("");
-  const [bodyDraft, setBodyDraft] = useState("");
-  const [categoryName, setCategoryName] = useState("general");
-  const [categoryDomain, setCategoryDomain] = useState<string | null>(null);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [isAnon, setIsAnon] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   // Feed filter
@@ -639,26 +542,6 @@ export default function ThreadsPage() {
     finally { setLoadingMore(false); }
   }, [nextCursor, loadingMore, authFetch]);
 
-  const handleSubmit = async () => {
-    const title = titleDraft.trim();
-    if (!title || submitting) return;
-    setSubmitting(true);
-    try {
-      await authFetch("/api/hub-threads", {
-        method: "POST",
-        body: JSON.stringify({ title, body: bodyDraft.trim(), category: categoryName, categoryDomain, images: imageUrls, isAnon }),
-      });
-      setTitleDraft(""); setBodyDraft(""); setCategoryName("general"); setCategoryDomain(null);
-      setImageUrls([]); setIsAnon(false); setPostOpen(false);
-      setSubmitMsg({ text: "Your post has been submitted for review. It will appear once a board member approves it.", ok: true });
-      setTimeout(() => setSubmitMsg(null), 6000);
-    } catch (e: any) {
-      setSubmitMsg({ text: e?.message ?? "Failed to submit post.", ok: false });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const categoryTabs = useMemo(() => {
     const seen = new Map<string, string | null>();
     for (const t of threads) {
@@ -676,17 +559,21 @@ export default function ThreadsPage() {
   return (
     <div className="py-8 px-4 md:px-8 max-w-3xl mx-auto">
 
-        {/* Header */}
-        <div className="mb-5 flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-sm text-gray-500 mt-1">Community posts reviewed by board members before going public.</p>
-          </div>
+        {/* Trigger bar */}
+        <div className="mb-6">
           <button
             type="button"
-            onClick={() => { setPostOpen((v) => !v); setSubmitMsg(null); }}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#001049] text-white hover:opacity-90 transition shrink-0"
+            onClick={() => { setPostOpen(true); setSubmitMsg(null); }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-white rounded-xl border-2 border-gray-300 text-lg text-gray-400 hover:bg-gray-50 transition"
           >
-            {postOpen ? "Cancel" : "New Post"}
+            <div className="w-12 h-12 rounded-full bg-[#FFCA3A] text-[#001049] text-lg font-bold flex items-center justify-center overflow-hidden shrink-0">
+              {user.profilePic ? (
+                <img src={user.profilePic} alt={user.firstName} className="w-full h-full object-cover" />
+              ) : (
+                `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+              )}
+            </div>
+            Ask something from the community...
           </button>
         </div>
 
@@ -696,83 +583,19 @@ export default function ThreadsPage() {
           </div>
         )}
 
-        {/* Create post form */}
+        {/* ThreadComposer modal */}
         {postOpen && (
-          <div className="mb-5 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-            <p className="text-base font-semibold text-gray-900">Create a post</p>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500 mb-1.5 block">
-                College <span className="text-gray-400">(or General)</span>
-              </label>
-              <SchoolSearch
-                selectedName={categoryName}
-                selectedDomain={categoryDomain}
-                onSelect={(name, domain) => { setCategoryName(name); setCategoryDomain(domain); }}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setPostOpen(false)} />
+            <div className="relative w-full max-w-2xl">
+              <ThreadComposer
+                onCreated={() => {
+                  setPostOpen(false);
+                  setSubmitMsg({ text: "Your post has been submitted for review. It will appear once a board member approves it.", ok: true });
+                  setTimeout(() => setSubmitMsg(null), 6000);
+                }}
+                onClose={() => setPostOpen(false)}
               />
-              {categoryName && categoryName !== "general" && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-sm text-gray-400">Posting to:</span>
-                  <SchoolBadge category={categoryName} categoryDomain={categoryDomain} size="md" />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500 mb-1.5 block">
-                Title <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                placeholder="Give your post a title"
-                maxLength={150}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
-              />
-              <p className="text-xs text-gray-400 mt-1 text-right">{titleDraft.length}/150</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500 mb-1.5 block">
-                Body <span className="text-gray-400">(optional)</span>
-              </label>
-              <textarea
-                value={bodyDraft}
-                onChange={(e) => setBodyDraft(e.target.value)}
-                placeholder="Share more details…"
-                maxLength={2000}
-                rows={5}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
-              />
-              <p className="text-xs text-gray-400 mt-1 text-right">{bodyDraft.length}/2000</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-500 mb-1.5 block">
-                Images <span className="text-gray-400">(optional)</span>
-              </label>
-              <ImageUploader images={imageUrls} onChange={setImageUrls} uploading={submitting} />
-            </div>
-
-            <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isAnon}
-                  onChange={(e) => setIsAnon(e.target.checked)}
-                  className="rounded border-gray-300 accent-[#001049]"
-                />
-                <span className="text-sm text-gray-500">Post anonymously</span>
-              </label>
-              <button
-                type="button"
-                disabled={submitting || titleDraft.trim().length === 0}
-                onClick={handleSubmit}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
-              >
-                {submitting ? "Submitting…" : "Submit for Review"}
-              </button>
             </div>
           </div>
         )}

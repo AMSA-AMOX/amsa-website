@@ -6,7 +6,6 @@ import { useAuth } from "@/context/AuthContext";
 
 type ModerationPost = {
   id: number;
-  title: string;
   body: string;
   images: string[];
   createdAt: string;
@@ -169,7 +168,6 @@ export default function AdminPostsQueuePage() {
             <article key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-[#001049]">{post.title}</h2>
                   <p className="text-xs text-gray-500 mt-1">
                     By {post.author ? `${post.author.firstName} ${post.author.lastName}` : "Unknown user"} ·{" "}
                     {new Date(post.createdAt).toLocaleString()}

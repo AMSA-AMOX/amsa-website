@@ -25,6 +25,7 @@ type HubCommentRow = {
   authorId: number;
   content: string;
   isAnon: boolean;
+  parentId: number | null;
   createdAt: string;
 };
 
@@ -35,7 +36,7 @@ type UserRow = {
   profilePic: string | null;
 };
 
-// GET /api/hub-threads/[id] — thread detail with comments
+// GET /api/hub-threads/[id] — thread detail with comments (upvotes + nested replies)
 export async function GET(request: Request, context: RouteContext) {
   let payload;
   try {
@@ -68,14 +69,41 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ message: "Thread not found." }, { status: 404 });
     }
 
+    // Fetch all comments (top-level + replies)
     const { data: comments } = await supabase
       .from("HubComments")
-      .select("id, threadId, authorId, content, isAnon, createdAt")
+      .select("id, threadId, authorId, content, isAnon, parentId, createdAt")
       .eq("threadId", threadId)
       .order("createdAt", { ascending: true });
 
     const commentRows = (comments ?? []) as HubCommentRow[];
+    const commentIds = commentRows.map((c) => c.id);
 
+    // Thread upvotes
+    const { data: threadUpvotes } = await supabase
+      .from("HubThreadUpvotes")
+      .select("userId")
+      .eq("threadId", threadId);
+
+    const threadUpvoteList = (threadUpvotes ?? []) as { userId: number }[];
+    const threadUpvoteCount = threadUpvoteList.length;
+    const threadHasUpvoted = threadUpvoteList.some((u) => u.userId === payload.id);
+
+    // Comment upvotes
+    const commentUpvoteCounts = new Map<number, number>();
+    const commentUserUpvoted = new Set<number>();
+    if (commentIds.length > 0) {
+      const { data: commentUpvotes } = await supabase
+        .from("HubCommentUpvotes")
+        .select("commentId, userId")
+        .in("commentId", commentIds);
+      ((commentUpvotes ?? []) as { commentId: number; userId: number }[]).forEach((u) => {
+        commentUpvoteCounts.set(u.commentId, (commentUpvoteCounts.get(u.commentId) ?? 0) + 1);
+        if (u.userId === payload.id) commentUserUpvoted.add(u.commentId);
+      });
+    }
+
+    // Resolve user IDs
     const userIds = Array.from(new Set([
       ...(t.isAnon ? [] : [t.askerId]),
       ...commentRows.filter((c) => !c.isAnon).map((c) => c.authorId),
@@ -88,6 +116,33 @@ export async function GET(request: Request, context: RouteContext) {
         .select("id, firstName, lastName, profilePic")
         .in("id", userIds);
       ((users ?? []) as UserRow[]).forEach((u) => userMap.set(u.id, u));
+    }
+
+    // Build comment objects
+    const commentMap = new Map<number, any>();
+    for (const c of commentRows) {
+      commentMap.set(c.id, {
+        id: c.id,
+        content: c.content,
+        isAnon: c.isAnon,
+        parentId: c.parentId ?? null,
+        author: c.isAnon ? null : (userMap.get(c.authorId) ?? null),
+        createdAt: c.createdAt,
+        upvoteCount: commentUpvoteCounts.get(c.id) ?? 0,
+        hasUpvoted: commentUserUpvoted.has(c.id),
+        replies: [],
+      });
+    }
+
+    // Nest replies under parents
+    const topLevel: any[] = [];
+    for (const c of commentRows) {
+      const obj = commentMap.get(c.id)!;
+      if (c.parentId != null && commentMap.has(c.parentId)) {
+        commentMap.get(c.parentId).replies.push(obj);
+      } else {
+        topLevel.push(obj);
+      }
     }
 
     return NextResponse.json({
@@ -103,14 +158,10 @@ export async function GET(request: Request, context: RouteContext) {
         asker: t.isAnon ? null : (userMap.get(t.askerId) ?? null),
         approvedAt: t.approvedAt,
         createdAt: t.createdAt,
+        upvoteCount: threadUpvoteCount,
+        hasUpvoted: threadHasUpvoted,
       },
-      comments: commentRows.map((c) => ({
-        id: c.id,
-        content: c.content,
-        isAnon: c.isAnon,
-        author: c.isAnon ? null : (userMap.get(c.authorId) ?? null),
-        createdAt: c.createdAt,
-      })),
+      comments: topLevel,
     });
   } catch (e) {
     console.error("GET /api/hub-threads/[id] exception:", e);
@@ -184,6 +235,11 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   try {
+    await supabase.from("HubCommentUpvotes").delete().in(
+      "commentId",
+      (await supabase.from("HubComments").select("id").eq("threadId", threadId)).data?.map((c: any) => c.id) ?? []
+    );
+    await supabase.from("HubThreadUpvotes").delete().eq("threadId", threadId);
     await supabase.from("HubComments").delete().eq("threadId", threadId);
     const { error } = await supabase.from("HubThreads").delete().eq("id", threadId);
     if (error) {

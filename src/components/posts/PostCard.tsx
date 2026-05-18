@@ -240,11 +240,11 @@ export default function PostCard({
         {post.images.length > 0 && (
           <div className={`mt-4 ${imageGridClass}`}>
             {post.images.map((src, idx) => (
-              <div key={`${post.id}-image-${idx}`} className="rounded-2xl overflow-hidden">
+              <div key={`${post.id}-image-${idx}`}>
                 <img
                   src={src}
                   alt={`Post image ${idx + 1}`}
-                  className="w-full h-auto block"
+                  className="max-h-150 max-w-full w-auto h-auto block rounded-2xl"
                 />
               </div>
             ))}

@@ -25,7 +25,12 @@ type UserRow = {
   profilePic: string | null;
 };
 
-async function enrichThreads(rows: HubThreadRow[], commentCounts: Map<number, number>) {
+async function enrichThreads(
+  rows: HubThreadRow[],
+  commentCounts: Map<number, number>,
+  upvoteCounts: Map<number, number>,
+  userUpvotedIds: Set<number>,
+) {
   if (rows.length === 0) return [];
 
   const askerIds = Array.from(new Set(rows.filter((r) => !r.isAnon).map((r) => r.askerId)));
@@ -50,6 +55,8 @@ async function enrichThreads(rows: HubThreadRow[], commentCounts: Map<number, nu
     isAnon: r.isAnon,
     asker: r.isAnon ? null : (userMap.get(r.askerId) ?? null),
     commentCount: commentCounts.get(r.id) ?? 0,
+    upvoteCount: upvoteCounts.get(r.id) ?? 0,
+    hasUpvoted: userUpvotedIds.has(r.id),
     approvedAt: r.approvedAt,
     createdAt: r.createdAt,
   }));
@@ -92,7 +99,7 @@ export async function GET(request: Request) {
       }
 
       const rows = (data ?? []) as HubThreadRow[];
-      const threads = await enrichThreads(rows, new Map());
+      const threads = await enrichThreads(rows, new Map(), new Map(), new Set());
       return NextResponse.json({ threads });
     }
 
@@ -114,18 +121,24 @@ export async function GET(request: Request) {
     const rows = (data ?? []) as HubThreadRow[];
 
     const commentCounts = new Map<number, number>();
+    const upvoteCounts = new Map<number, number>();
+    const userUpvotedIds = new Set<number>();
     const threadIds = rows.map((r) => r.id);
     if (threadIds.length > 0) {
-      const { data: commentRows } = await supabase
-        .from("HubComments")
-        .select("threadId")
-        .in("threadId", threadIds);
+      const [{ data: commentRows }, { data: upvoteRows }] = await Promise.all([
+        supabase.from("HubComments").select("threadId").in("threadId", threadIds),
+        supabase.from("HubThreadUpvotes").select("threadId, userId").in("threadId", threadIds),
+      ]);
       ((commentRows ?? []) as { threadId: number }[]).forEach((row) => {
         commentCounts.set(row.threadId, (commentCounts.get(row.threadId) ?? 0) + 1);
       });
+      ((upvoteRows ?? []) as { threadId: number; userId: number }[]).forEach((row) => {
+        upvoteCounts.set(row.threadId, (upvoteCounts.get(row.threadId) ?? 0) + 1);
+        if (row.userId === payload.id) userUpvotedIds.add(row.threadId);
+      });
     }
 
-    const threads = await enrichThreads(rows, commentCounts);
+    const threads = await enrichThreads(rows, commentCounts, upvoteCounts, userUpvotedIds);
     const nextCursor = rows.length === limit ? (rows[rows.length - 1].approvedAt ?? null) : null;
 
     return NextResponse.json({ threads, nextCursor });
@@ -152,7 +165,7 @@ export async function POST(request: Request) {
     const categoryDomain = typeof body?.categoryDomain === "string" ? body.categoryDomain.trim() : null;
     const isAnon = typeof body?.isAnon === "boolean" ? body.isAnon : false;
     const images: string[] = Array.isArray(body?.images)
-      ? body.images.filter((u: unknown) => typeof u === "string").slice(0, 3)
+      ? body.images.filter((u: unknown) => typeof u === "string").slice(0, 1)
       : [];
 
     if (!title || title.length > 150) {

@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 type RawPostRow = {
   id: number;
   userId: number | string | null;
-  title: string;
   body: string;
   images: string[] | null;
   createdAt: string;
@@ -56,7 +55,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from("Posts")
-      .select("id, userId, title, body, images, createdAt, helpfulCount, reviewStatus, reviewedAt, reviewedBy, reviewNote")
+      .select("id, userId, body, images, createdAt, helpfulCount, reviewStatus, reviewedAt, reviewedBy, reviewNote")
       .order("createdAt", { ascending: false })
       .limit(100);
 
@@ -101,7 +100,6 @@ export async function GET(request: Request) {
     return NextResponse.json({
       posts: safePosts.map((post) => ({
         id: post.id,
-        title: post.title,
         body: post.body,
         images: normalizeImages(post.images),
         createdAt: post.createdAt,
