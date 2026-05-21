@@ -66,7 +66,7 @@ export default function NotificationsPage() {
   if (!user) return null;
 
   return (
-    <div className="py-10 px-4 md:px-8">
+    <div className="py-10 px-4 md:px-80">
 
       {loadingItems && (
         <div className="animate-pulse divide-y-2 divide-gray-300">

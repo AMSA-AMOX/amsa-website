@@ -24,31 +24,35 @@ type CreateEventBody = {
 
 function normalizeEventPayload(body: CreateEventBody) {
   const title = body.title?.trim();
-  const description = typeof body.description === "string" ? body.description.replace(/\s+$/, "") : body.description;
+  const description = typeof body.description === "string" ? body.description.replace(/\s+$/, "") : (body.description ?? "");
   const location = body.location?.trim() || null;
-  const startAt = body.startAt ? new Date(body.startAt) : null;
-  const endAt = body.endAt ? new Date(body.endAt) : null;
+  const startAtRaw = body.startAt ? new Date(body.startAt) : null;
+  const endAtRaw = body.endAt ? new Date(body.endAt) : null;
   const feeAmount = Number(body.feeAmount ?? 0);
   const parsedTotalSeats =
     body.totalSeats === undefined || body.totalSeats === null || body.totalSeats === ("" as any)
       ? UNLIMITED_SEATS
       : Number(body.totalSeats);
-  const totalSeats = Number.isFinite(parsedTotalSeats)
-    ? Math.floor(parsedTotalSeats)
-    : UNLIMITED_SEATS;
+  const totalSeats = Number.isFinite(parsedTotalSeats) ? Math.floor(parsedTotalSeats) : UNLIMITED_SEATS;
   const currency = (body.currency || "MNT").toUpperCase();
   const eventMode = body.eventMode || "in_person";
   const virtualMeetingUrl = body.virtualMeetingUrl?.trim() || null;
   const virtualLinkSoon = Boolean(body.virtualLinkSoon);
   const timezone = typeof body.timezone === "string" && body.timezone.trim().length > 0
     ? body.timezone.trim()
-    : "Asia/Ulaanbaatar";
+    : null;
   const images = (body.images || []).map((v) => v.trim()).filter(Boolean);
 
-  if (!title || !description || !startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
-    return { ok: false as const, message: "Title, description, startAt and endAt are required" };
+  if (!title) {
+    return { ok: false as const, message: "Title is required" };
   }
-  if (endAt <= startAt) {
+  if (startAtRaw && Number.isNaN(startAtRaw.getTime())) {
+    return { ok: false as const, message: "Invalid startAt date" };
+  }
+  if (endAtRaw && Number.isNaN(endAtRaw.getTime())) {
+    return { ok: false as const, message: "Invalid endAt date" };
+  }
+  if (startAtRaw && endAtRaw && endAtRaw <= startAtRaw) {
     return { ok: false as const, message: "endAt must be after startAt" };
   }
   if (!Number.isFinite(feeAmount) || feeAmount < 0) {
@@ -66,12 +70,6 @@ function normalizeEventPayload(body: CreateEventBody) {
   if (!["virtual", "in_person", "hybrid"].includes(eventMode)) {
     return { ok: false as const, message: "eventMode must be virtual, in_person, or hybrid" };
   }
-  if (eventMode === "virtual" && !virtualMeetingUrl && !virtualLinkSoon) {
-    return {
-      ok: false as const,
-      message: "For virtual events, provide meeting link or mark link as coming soon",
-    };
-  }
 
   return {
     ok: true as const,
@@ -79,8 +77,8 @@ function normalizeEventPayload(body: CreateEventBody) {
       title,
       description,
       location,
-      startAt: startAt.toISOString(),
-      endAt: endAt.toISOString(),
+      startAt: startAtRaw ? startAtRaw.toISOString() : null,
+      endAt: endAtRaw ? endAtRaw.toISOString() : null,
       timezone,
       feeAmount,
       currency,

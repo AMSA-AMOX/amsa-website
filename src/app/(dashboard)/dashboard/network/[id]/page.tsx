@@ -509,217 +509,197 @@ export default function NetworkProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 px-3 md:px-5">
-      <div className="max-w-375 mx-auto">
-        <div className="mb-3">
-          <Link
-            href="/dashboard/network"
-            className="inline-flex items-center gap-1.5 text-sm text-[#001049] hover:underline"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 19.5-7.5-7.5 7.5-7.5" />
-            </svg>
-            Back to Network
-          </Link>
-        </div>
+    <div className="flex flex-1 min-h-0 bg-gray-50">
+      <div className="flex flex-1 min-h-0">
 
-        {loadingProfile && (
-          <div className="flex gap-4 items-start">
-            <div className="w-80 hidden lg:block bg-white rounded-2xl shadow-sm h-80 animate-pulse" />
-            <div className="flex-1 bg-white rounded-2xl shadow-sm h-96 animate-pulse" />
-            <div className="w-72 hidden xl:block bg-white rounded-2xl shadow-sm h-96 animate-pulse" />
+        {/* ── Left sidebar ─────────────────────────────────────────────── */}
+        <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r-2 border-gray-300 overflow-y-auto px-6 pt-6">
+
+          {/* Back link */}
+          <div className="mb-4">
+            <Link
+              href="/dashboard/network"
+              className="inline-flex items-center gap-1.5 text-sm text-[#001049] hover:underline"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 19.5-7.5-7.5 7.5-7.5" />
+              </svg>
+              Back to Network
+            </Link>
           </div>
-        )}
 
-        {!loadingProfile && error && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-            <p className="text-base font-semibold text-[#001049]">{error}</p>
+          {/* Avatar + name + followers */}
+          <div className="flex flex-col items-center pb-5 border-b-2 border-gray-300">
+            {loadingProfile ? (
+              <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-3xl font-bold shrink-0 overflow-hidden ring-4 ring-white shadow-md">
+                {profile?.profilePic ? (
+                  <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  `${profile?.firstName?.[0] ?? ""}${profile?.lastName?.[0] ?? ""}`.toUpperCase()
+                )}
+              </div>
+            )}
+            {loadingProfile ? (
+              <div className="mt-3 h-6 w-36 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              <h1 className="mt-3 text-xl font-bold text-gray-900 text-center leading-tight">{displayName}</h1>
+            )}
+            {!loadingProfile && visibleRoles.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-1 mt-1.5">
+                {visibleRoles.map((r) => (
+                  <span key={r} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[r].className}`}>
+                    {ROLE_BADGE[r].label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {loadingProfile ? (
+              <div className="mt-2 h-4 w-28 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              <div className="flex items-center gap-3 mt-2 text-sm">
+                <span className="text-gray-500">
+                  <span className="font-semibold text-gray-900">{profile?.followersCount ?? 0}</span> followers
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="text-gray-500">
+                  <span className="font-semibold text-gray-900">{profile?.followingCount ?? 0}</span> following
+                </span>
+              </div>
+            )}
           </div>
-        )}
 
-        {!loadingProfile && !error && profile && (
-          <div className="flex gap-4 items-start">
-            <aside className="w-80 shrink-0 space-y-4 sticky top-4 self-start hidden lg:block">
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="flex flex-col items-center pt-8 pb-5 px-5 border-b border-gray-100">
-                  <div className="w-24 h-24 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-3xl font-bold shrink-0 overflow-hidden ring-4 ring-white shadow-md">
-                    {profile.profilePic ? (
-                      <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" />
-                    ) : (
-                      `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase()
-                    )}
-                  </div>
-                  <h1 className="mt-3 text-xl font-bold text-gray-900 text-center leading-tight">{displayName}</h1>
-                  {visibleRoles.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-1 mt-1.5">
-                      {visibleRoles.map((r) => (
-                        <span key={r} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${ROLE_BADGE[r].className}`}>
-                          {ROLE_BADGE[r].label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-sm">
-                    <span className="text-gray-500">
-                      <span className="font-semibold text-gray-900">{profile.followersCount}</span> followers
-                    </span>
-                    <span className="text-gray-300">·</span>
-                    <span className="text-gray-500">
-                      <span className="font-semibold text-gray-900">{profile.followingCount}</span> following
-                    </span>
-                  </div>
-                  {profile.id !== user.id && (
-                    <button
-                      type="button"
-                      onClick={toggleFollow}
-                      disabled={followInFlight}
-                      className={`mt-3 px-4 py-2 rounded-xl text-sm font-semibold border transition disabled:opacity-60 ${
-                        profile.isFollowing
-                          ? "border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-500 hover:bg-red-50"
-                          : "border-[#001049] text-[#001049] hover:bg-[#001049]/5"
-                      }`}
-                    >
-                      {profile.isFollowing ? "Following" : "Follow"}
-                    </button>
-                  )}
-
-                </div>
-
-                <div className="px-5 py-4 space-y-3">
-                  {profile.schoolName && (
-                    <div className="flex items-center gap-2.5">
-                      <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={11} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
-                        <p className="text-xs text-gray-500">
-                          {[profile.degreeLevel, profile.major].filter(Boolean).join(" · ")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {profile.schoolYear || profile.graduationYear ? (
-                    <p className="text-xs text-gray-400">
-                      {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  ) : null}
-                </div>
-
-                {(profile.linkedin || profile.x || profile.instagram || profile.facebook) && (
-                  <div className="px-5 py-4 border-t border-gray-100 space-y-2">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Links</p>
-                    <div className="space-y-1.5">
-                      {profile.x && (
-                        <a href={profile.x} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition truncate">
-                          <svg className="w-4 h-4 text-black shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M18.244 2H21l-6.02 6.86L22 22h-5.55l-4.347-5.727L7.078 22H4.32l6.44-7.338L2 2h5.69l3.93 5.182L18.244 2Zm-.967 18.38h1.527L6.86 3.54H5.22L17.277 20.38Z" />
-                          </svg>
-                          <span className="truncate">X</span>
-                        </a>
-                      )}
-                      {profile.linkedin && (
-                        <a href={profile.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-700 transition truncate">
-                          <svg className="w-4 h-4 text-blue-700 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                          <span className="truncate">LinkedIn</span>
-                        </a>
-                      )}
-                      {profile.instagram && (
-                        <a href={profile.instagram} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-pink-500 transition truncate">
-                          <svg className="w-4 h-4 text-pink-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                          <span className="truncate">Instagram</span>
-                        </a>
-                      )}
-                      {profile.facebook && (
-                        <a href={profile.facebook} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition truncate">
-                          <svg className="w-4 h-4 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                          <span className="truncate">Facebook</span>
-                        </a>
-                      )}
+          {/* School info */}
+          <div className="py-4 space-y-3 border-b-2 border-gray-300">
+            {loadingProfile ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded" />
+                <div className="h-4 bg-gray-200 rounded w-3/4" />
+              </div>
+            ) : (
+              <>
+                {profile?.schoolName && (
+                  <div className="flex items-center gap-2.5">
+                    <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={11} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
+                      <p className="text-xs text-gray-500">
+                        {[profile.degreeLevel, profile.major].filter(Boolean).join(" · ")}
+                      </p>
                     </div>
                   </div>
                 )}
+                {(profile?.schoolYear || profile?.graduationYear) && (
+                  <p className="text-xs text-gray-400">
+                    {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Follow button */}
+          {!loadingProfile && profile && profile.id !== user.id && (
+            <div className="py-4 flex gap-2 border-b-2 border-gray-300">
+              <button
+                type="button"
+                onClick={toggleFollow}
+                disabled={followInFlight}
+                className="flex-1 flex items-center justify-center px-3 py-2 rounded-lg border-2 border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 transition disabled:opacity-60"
+              >
+                {profile.isFollowing ? "Following" : "Follow"}
+              </button>
+            </div>
+          )}
+
+          {/* Links */}
+          {!loadingProfile && profile && (profile.linkedin || profile.x || profile.instagram || profile.facebook) && (
+            <div className="pt-4 pb-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Links</p>
+              <div className="space-y-1.5">
+                {profile.x && (
+                  <a href={profile.x} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition truncate">
+                    <svg className="w-4 h-4 text-black shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M18.244 2H21l-6.02 6.86L22 22h-5.55l-4.347-5.727L7.078 22H4.32l6.44-7.338L2 2h5.69l3.93 5.182L18.244 2Zm-.967 18.38h1.527L6.86 3.54H5.22L17.277 20.38Z" />
+                    </svg>
+                    <span className="truncate">X</span>
+                  </a>
+                )}
+                {profile.linkedin && (
+                  <a href={profile.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-700 transition truncate">
+                    <svg className="w-4 h-4 text-blue-700 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                    <span className="truncate">LinkedIn</span>
+                  </a>
+                )}
+                {profile.instagram && (
+                  <a href={profile.instagram} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-pink-500 transition truncate">
+                    <svg className="w-4 h-4 text-pink-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                    <span className="truncate">Instagram</span>
+                  </a>
+                )}
+                {profile.facebook && (
+                  <a href={profile.facebook} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition truncate">
+                    <svg className="w-4 h-4 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    <span className="truncate">Facebook</span>
+                  </a>
+                )}
               </div>
+            </div>
+          )}
 
-              {canAskQuestion && (
-                <div className="bg-white rounded-2xl shadow-sm p-5">
-                  <p className="text-sm font-semibold text-gray-900 mb-1">Ask a question</p>
-                  <p className="text-xs text-gray-400 mb-3">Send a direct question to {profile.firstName}.</p>
-                  {questionMessage && (
-                    <p className={`text-xs mb-2 ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
-                      {questionMessage.text}
-                    </p>
-                  )}
-                  {!askOpen ? (
-                    <button
-                      type="button"
-                      onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
-                      className="w-full px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:border-[#001049]/30 hover:text-[#001049] transition"
-                    >
-                      Ask a Direct Question
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <textarea
-                        value={questionDraft}
-                        onChange={(e) => setQuestionDraft(e.target.value)}
-                        placeholder="Ask your question… (max 600 chars)"
-                        maxLength={600}
-                        rows={4}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
-                      />
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={!questionIsPublic}
-                          onChange={(e) => setQuestionIsPublic(!e.target.checked)}
-                          className="rounded border-gray-300 accent-[#001049]"
-                        />
-                        <span className="text-xs text-gray-500">Keep private (only you and {profile.firstName} can see this)</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          disabled={submittingQuestion || questionDraft.trim().length === 0}
-                          onClick={submitQuestion}
-                          className="flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
-                        >
-                          {submittingQuestion ? "Sending…" : "Submit"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
-                          className="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </aside>
+          {/* Ask a question */}
+          {!loadingProfile && canAskQuestion && profile && (
+            <div className="pt-4 pb-4 border-t-2 border-gray-300">
+              <button
+                type="button"
+                onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
+                className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 text-gray-700 hover:border-gray-400 transition"
+              >
+                Ask a Direct Question
+              </button>
+            </div>
+          )}
+        </aside>
 
-            <main className="flex-1 min-w-0 space-y-3">
-              {/* Tab nav */}
-              <div className="flex justify-center gap-8 border-b border-gray-200">
-                {(["profile", "posts", "threads"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => handleTabChange(tab)}
-                    className={`py-3.5 text-base font-semibold border-b-2 transition-colors capitalize -mb-px ${
-                      activeTab === tab
-                        ? "border-[#001049] text-[#001049]"
-                        : "border-transparent text-gray-400 hover:text-gray-700"
-                    }`}
-                  >
-                    {tab === "posts" ? "Posts" : tab === "threads" ? "Threads" : "Profile"}
-                  </button>
-                ))}
-              </div>
+        {/* ── Center content ─────────────────────────────────────────────── */}
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto border-r-2 border-gray-300">
 
-              <div className="lg:hidden bg-white rounded-2xl shadow-sm p-5">
+          {/* Tab nav */}
+          <div className="flex gap-8 border-b-2 border-gray-300 px-8">
+            {(["profile", "posts", "threads"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => handleTabChange(tab)}
+                className={`py-3.5 text-base font-semibold border-b-2 transition-colors capitalize -mb-px ${
+                  activeTab === tab
+                    ? "border-[#001049] text-[#001049]"
+                    : "border-transparent text-gray-400 hover:text-gray-700"
+                }`}
+              >
+                {tab === "posts" ? "Posts" : tab === "threads" ? "Threads" : "Profile"}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile: compact profile header */}
+          <div className="lg:hidden px-6 py-5 border-b border-gray-200">
+            <div className="mb-3">
+              <Link
+                href="/dashboard/network"
+                className="inline-flex items-center gap-1.5 text-sm text-[#001049] hover:underline"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 19.5-7.5-7.5 7.5-7.5" />
+                </svg>
+                Back to Network
+              </Link>
+            </div>
+            {!loadingProfile && profile && (
+              <>
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xl font-bold shrink-0 overflow-hidden">
                     {profile.profilePic ? <img src={profile.profilePic} alt={displayName} className="w-full h-full object-cover" /> : `${profile.firstName?.[0] ?? ""}${profile.lastName?.[0] ?? ""}`.toUpperCase()}
@@ -746,16 +726,13 @@ export default function NetworkProfilePage() {
                         type="button"
                         onClick={toggleFollow}
                         disabled={followInFlight}
-                        className={`mt-2 px-3 py-1.5 rounded-lg border text-sm font-medium ${
-                          profile.isFollowing ? "border-gray-200 text-gray-600" : "border-[#001049] text-[#001049]"
-                        }`}
+                        className="mt-2 px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-400 transition"
                       >
                         {profile.isFollowing ? "Following" : "Follow"}
                       </button>
                     )}
                   </div>
                 </div>
-
                 {(profile.linkedin || profile.x || profile.instagram || profile.facebook) && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-1.5">
                     {profile.x && (
@@ -786,238 +763,253 @@ export default function NetworkProfilePage() {
                     )}
                   </div>
                 )}
-              </div>
-
-              {canAskQuestion && (
-                <div className="lg:hidden bg-white rounded-2xl shadow-sm p-5">
-                  <p className="text-sm font-semibold text-gray-900 mb-1">Ask a question</p>
-                  <p className="text-xs text-gray-400 mb-3">Send a direct question to {profile.firstName}.</p>
-                  {questionMessage && (
-                    <p className={`text-xs mb-2 ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
-                      {questionMessage.text}
-                    </p>
-                  )}
-                  {!askOpen ? (
+                {canAskQuestion && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
                     <button
                       type="button"
                       onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
-                      className="w-full px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:border-[#001049]/30 hover:text-[#001049] transition"
+                      className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 text-gray-700 hover:border-gray-400 transition"
                     >
                       Ask a Direct Question
                     </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <textarea
-                        value={questionDraft}
-                        onChange={(e) => setQuestionDraft(e.target.value)}
-                        placeholder="Ask your question… (max 600 chars)"
-                        maxLength={600}
-                        rows={4}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
-                      />
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={!questionIsPublic}
-                          onChange={(e) => setQuestionIsPublic(!e.target.checked)}
-                          className="rounded border-gray-300 accent-[#001049]"
-                        />
-                        <span className="text-xs text-gray-500">Keep private (only you and {profile.firstName} can see this)</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          disabled={submittingQuestion || questionDraft.trim().length === 0}
-                          onClick={submitQuestion}
-                          className="flex-1 px-3 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white disabled:opacity-50 hover:opacity-90 transition"
-                        >
-                          {submittingQuestion ? "Sending…" : "Submit"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
-                          className="px-3 py-2 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "profile" && (
-                <>
-                  <div className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-bold text-gray-900">About</h2>
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mt-3">
-                      {profile.bio || "No bio added yet."}
-                    </p>
                   </div>
+                )}
+              </>
+            )}
+          </div>
 
-                  <div className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-bold text-gray-900">Education</h2>
-                    <div className="mt-4">
-                      {profile.schoolName ? (
-                        <div className="flex gap-4">
-                          <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={12} />
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900">
-                              {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
-                            </p>
-                            <p className="text-sm text-gray-600 mt-0.5">{profile.schoolName}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                              {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">No education details added yet.</p>
-                      )}
-                    </div>
-                  </div>
+          {/* Error state */}
+          {!loadingProfile && error && (
+            <div className="px-8 py-12 text-center">
+              <p className="text-base font-semibold text-[#001049]">{error}</p>
+            </div>
+          )}
 
-                  <div className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-lg font-bold text-gray-900">Work Experience</h2>
-                    <div className="mt-4">
-                      {experiences.length === 0 ? (
-                        <p className="text-sm text-gray-500">No experience added yet.</p>
-                      ) : (
-                        <div className="divide-y divide-gray-100">
-                          {experiences.map((exp) => (
-                            <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                              <EntityLogo name={exp.company} preferEdu={false} size={12} rounded="rounded-xl" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-gray-900 leading-snug">{exp.jobTitle}</p>
-                                <p className="text-sm text-gray-600 mt-0.5">
-                                  {exp.company}
-                                  {exp.employmentType && <span className="text-gray-400"> · {exp.employmentType}</span>}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {exp.startMonth} {exp.startYear}
-                                  {exp.currentlyWorking
-                                    ? " - Present"
-                                    : exp.endMonth && exp.endYear
-                                      ? ` - ${exp.endMonth} ${exp.endYear}`
-                                      : ""}
-                                  {exp.location && ` · ${exp.location}`}
-                                </p>
-                                {exp.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{exp.description}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {activeTab === "posts" && (
-                <div className="space-y-3">
-                  {loadingPosts &&
-                    Array.from({ length: 3 }).map((_, idx) => (
-                      <div key={idx} className="bg-white rounded-2xl shadow-sm p-5 space-y-3 animate-pulse border border-gray-100">
-                        <div className="h-5 bg-gray-100 rounded w-3/4" />
-                        <div className="h-4 bg-gray-100 rounded w-full" />
-                        <div className="h-4 bg-gray-100 rounded w-4/5" />
-                      </div>
-                    ))}
-                  {!loadingPosts && posts.length === 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                      <p className="text-sm font-semibold text-[#001049]">No posts yet</p>
-                    </div>
-                  )}
-                  {!loadingPosts &&
-                    posts.map((post) => (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        onAppreciate={onAppreciate}
-                        appreciating={appreciating.has(post.id)}
-                        showAuthor={false}
-                      />
-                    ))}
-                </div>
-              )}
-
-              {activeTab === "threads" && (
-                <div className="space-y-3">
-                  {loadingThreads &&
-                    Array.from({ length: 2 }).map((_, idx) => (
-                      <div key={idx} className="bg-white rounded-2xl shadow-sm h-32 animate-pulse border border-gray-100" />
-                    ))}
-                  {!loadingThreads && profileThreads.length === 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                      <p className="text-sm font-semibold text-gray-500">No answered threads yet.</p>
-                    </div>
-                  )}
-                  {!loadingThreads &&
-                    profileThreads.map((t) => (
-                      <ThreadCard key={t.id} thread={t} />
-                    ))}
-                </div>
-              )}
-
-            </main>
-
-            <aside className="w-80 shrink-0 space-y-4 sticky top-4 self-start hidden xl:block">
-              <div className="bg-white rounded-2xl shadow-sm p-5">
-                <h3 className="text-base font-bold text-gray-900 mb-1">Next Profiles</h3>
-                <p className="text-sm text-gray-400 mb-4">Suggested based on your strongest network overlap.</p>
-                {nextProfiles.length === 0 ? (
-                  <p className="text-xs text-gray-400">No suggested profiles yet.</p>
+          {/* Profile tab */}
+          {activeTab === "profile" && (
+            <div className="px-8">
+              <div className="py-6 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">About</h2>
+                {loadingProfile ? (
+                  <div className="space-y-2 animate-pulse">{[1,2].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
+                ) : profile?.bio ? (
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
                 ) : (
-                  <div className="space-y-3.5">
-                    {nextProfiles.map((nextProfile) => {
-                      const initials = `${nextProfile.firstName?.[0] ?? ""}${nextProfile.lastName?.[0] ?? ""}`.toUpperCase();
-                      return (
-                        <Link
-                          key={nextProfile.id}
-                          href={`/dashboard/network/${nextProfile.id}`}
-                          className="block rounded-2xl border border-gray-100 p-3.5 hover:border-[#001049]/20 hover:bg-gray-50 transition"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-full bg-[#001049]/10 flex items-center justify-center text-[#001049] text-sm font-bold shrink-0 overflow-hidden">
-                              {nextProfile.profilePic
-                                ? <img src={nextProfile.profilePic} alt={`${nextProfile.firstName} ${nextProfile.lastName}`} className="w-full h-full object-cover" />
-                                : initials}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-base font-semibold text-gray-900 leading-tight">
-                                {nextProfile.firstName} {nextProfile.lastName}
-                              </p>
-                              <div className="mt-1.5 flex items-center gap-2 min-w-0">
-                                <EntityLogo name={nextProfile.schoolName} preferEdu={true} size={7} rounded="rounded-md" />
-                                <p className="text-sm text-gray-500 truncate">
-                                  {nextProfile.schoolName || "No school listed"}
-                                  {nextProfile.graduationYear ? ` · ${nextProfile.graduationYear}` : ""}
-                                </p>
-                              </div>
-                              <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                {nextProfile.mutualCount > 0 && (
-                                  <span className="text-xs px-2.5 py-1 rounded-full bg-[#001049]/8 text-[#001049] font-medium">
-                                    {nextProfile.mutualCount} mutual connection{nextProfile.mutualCount === 1 ? "" : "s"}
-                                  </span>
-                                )}
-                                {nextProfile.sameSchool && (
-                                  <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium">same school</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
+                  <p className="text-sm text-gray-500">No bio added yet.</p>
+                )}
+              </div>
+
+              <div className="py-6 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Education</h2>
+                {loadingProfile ? (
+                  <div className="space-y-2 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
+                ) : profile?.schoolName ? (
+                  <div className="flex gap-4">
+                    <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={12} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900">
+                        {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-0.5">{profile.schoolName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {[profile.schoolYear, profile.graduationYear ? `Class of ${profile.graduationYear}` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No education details added yet.</p>
+                )}
+              </div>
+
+              <div className="py-6 border-b border-gray-200">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">Work Experience</h2>
+                {loadingProfile ? (
+                  <div className="space-y-2 animate-pulse">{[1,2].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
+                ) : experiences.length === 0 ? (
+                  <p className="text-sm text-gray-500">No experience added yet.</p>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {experiences.map((exp) => (
+                      <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
+                        <EntityLogo name={exp.company} preferEdu={false} size={12} rounded="rounded-xl" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 leading-snug">{exp.jobTitle}</p>
+                          <p className="text-sm text-gray-600 mt-0.5">
+                            {exp.company}
+                            {exp.employmentType && <span className="text-gray-400"> · {exp.employmentType}</span>}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {exp.startMonth} {exp.startYear}
+                            {exp.currentlyWorking
+                              ? " - Present"
+                              : exp.endMonth && exp.endYear
+                                ? ` - ${exp.endMonth} ${exp.endYear}`
+                                : ""}
+                            {exp.location && ` · ${exp.location}`}
+                          </p>
+                          {exp.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{exp.description}</p>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            </aside>
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* Posts tab */}
+          {activeTab === "posts" && (
+            <div>
+              {loadingPosts && (
+                <div className="divide-y-2 divide-gray-300 animate-pulse">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                      <div className="flex-1 space-y-2 pt-1">
+                        <div className="h-4 bg-gray-200 rounded w-1/3" />
+                        <div className="h-3 bg-gray-200 rounded w-full" />
+                        <div className="h-3 bg-gray-200 rounded w-4/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!loadingPosts && posts.length === 0 && (
+                <div className="py-16 flex flex-col items-center gap-3 text-center">
+                  <img src="/assets/empty/leaves.svg" alt="" className="w-56 h-56" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-500">No posts yet</p>
+                    <p className="text-xs text-gray-400 mt-1">This member hasn't posted anything.</p>
+                  </div>
+                </div>
+              )}
+              {!loadingPosts &&
+                posts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onAppreciate={onAppreciate}
+                    appreciating={appreciating.has(post.id)}
+                    showAuthor={false}
+                  />
+                ))}
+            </div>
+          )}
+
+          {/* Threads tab */}
+          {activeTab === "threads" && (
+            <div>
+              {loadingThreads && (
+                <div className="divide-y-2 divide-gray-300 animate-pulse">
+                  {Array.from({ length: 2 }).map((_, idx) => (
+                    <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                      <div className="flex-1 space-y-2 pt-1">
+                        <div className="h-4 bg-gray-200 rounded w-1/3" />
+                        <div className="h-3 bg-gray-200 rounded w-full" />
+                        <div className="h-3 bg-gray-200 rounded w-3/4" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!loadingThreads && profileThreads.length === 0 && (
+                <div className="py-16 flex flex-col items-center gap-3 text-center">
+                  <img src="/assets/empty/fall_leaves.svg" alt="" className="w-56 h-56" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-500">No answered threads yet.</p>
+                    <p className="text-xs text-gray-400 mt-1">Answered questions will appear here.</p>
+                  </div>
+                </div>
+              )}
+              {!loadingThreads &&
+                profileThreads.map((t) => (
+                  <ThreadCard key={t.id} thread={t} />
+                ))}
+            </div>
+          )}
+
+        </main>
       </div>
+
+      {/* Ask a Direct Question modal */}
+      {askOpen && profile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] font-bold text-base flex items-center justify-center shrink-0 overflow-hidden">
+                  {user?.profilePic
+                    ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" />
+                    : `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase()
+                  }
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-gray-900">Ask {profile.firstName} a question</p>
+                  <p className="text-sm text-gray-400">Your question will appear in their Threads tab</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Textarea */}
+            <textarea
+              autoFocus
+              value={questionDraft}
+              onChange={(e) => setQuestionDraft(e.target.value)}
+              placeholder={`What would you like to ask ${profile.firstName}?`}
+              maxLength={600}
+              rows={6}
+              className="w-full px-6 py-5 text-lg text-gray-700 placeholder:text-gray-300 bg-transparent focus:outline-none resize-none"
+            />
+
+            {/* Toolbar */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!questionIsPublic}
+                  onChange={(e) => setQuestionIsPublic(!e.target.checked)}
+                  className="rounded border-gray-300 accent-[#001049]"
+                />
+                <span className="text-sm text-gray-500">Keep private</span>
+              </label>
+              <div className="flex items-center gap-3">
+                {questionMessage && (
+                  <span className={`text-sm ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
+                    {questionMessage.text}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={submittingQuestion || questionDraft.trim().length === 0}
+                  onClick={submitQuestion}
+                  className="px-6 py-2.5 rounded-lg text-base font-semibold bg-[#001049] text-white disabled:opacity-40 hover:opacity-90 transition"
+                >
+                  {submittingQuestion ? "Sending…" : "Ask"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

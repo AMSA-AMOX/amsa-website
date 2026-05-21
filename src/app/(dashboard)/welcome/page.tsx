@@ -159,7 +159,7 @@ const Field = ({ label, name, value, onChange, type = "text", placeholder }: {
   onChange: (n: keyof EditForm, v: string) => void; type?: string; placeholder?: string;
 }) => (
   <div className="flex flex-col gap-1">
-    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+    <label className="text-sm font-semibold text-gray-700">{label}</label>
     <input type={type} value={value} onChange={(e) => onChange(name, e.target.value)}
       placeholder={placeholder ?? label} className={inputCls} />
   </div>
@@ -170,7 +170,7 @@ const SelectField = ({ label, name, value, onChange, options, placeholder = "Sel
   onChange: (n: keyof EditForm, v: string) => void; options: string[]; placeholder?: string;
 }) => (
   <div className="flex flex-col gap-1">
-    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+    <label className="text-sm font-semibold text-gray-700">{label}</label>
     <select value={value} onChange={(e) => onChange(name, e.target.value)} className={selectCls}>
       <option value="">{placeholder}</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -364,6 +364,27 @@ function CompanyLogo({ company, size = 12 }: { company: string; size?: number })
       onError={() => setErr(true)}
       style={boxSize}
       className="rounded-xl object-contain shrink-0 bg-white border border-gray-100"
+    />
+  );
+}
+
+function SchoolSuggestionLogo({ domain, name }: { domain: string | null; name: string }) {
+  const [err, setErr] = useState(false);
+  if (!domain || err) {
+    return (
+      <div className="w-7 h-7 rounded bg-[#001049]/10 flex items-center justify-center text-[#001049] shrink-0">
+        <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={buildLogoUrl(domain)}
+      alt={name}
+      onError={() => setErr(true)}
+      className="w-7 h-7 rounded object-contain bg-white border border-gray-100 shrink-0"
     />
   );
 }
@@ -1079,7 +1100,7 @@ export default function DashboardPage() {
                   <div ref={shareRef} className="relative flex-1">
                     <button
                       onClick={() => setShareOpen((o) => !o)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 transition"
                     >
                       Share
                       <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 transition-transform ${shareOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1087,12 +1108,12 @@ export default function DashboardPage() {
                       </svg>
                     </button>
                     {shareOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20">
+                      <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-lg shadow-lg border-2 border-gray-200 py-1 z-20">
                         <button
                           onClick={() => { navigator.clipboard.writeText(window.location.href); setShareOpen(false); }}
                           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition text-left"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
                           </svg>
                           Copy profile link
@@ -1102,7 +1123,7 @@ export default function DashboardPage() {
                             href={`mailto:?subject=Check out my profile&body=${profile.linkedin}`}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                             </svg>
                             Share via email
@@ -1115,7 +1136,7 @@ export default function DashboardPage() {
                 <button
                   onClick={openEdit}
                   disabled={loadingProfile}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-40"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 transition disabled:opacity-40"
                 >
                   Edit
                 </button>
@@ -1218,9 +1239,7 @@ export default function DashboardPage() {
                   </div>}
                 {!loadingPosts && posts.length === 0 && (
                   <div className="py-16 flex flex-col items-center gap-3 text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
+                    <img src="/assets/empty/leaves.svg" alt="" className="w-56 h-56" />
                     <div>
                       <p className="text-sm font-semibold text-gray-500">No posts yet</p>
                       <p className="text-xs text-gray-400 mt-1">Posts you create will appear here.</p>
@@ -1292,9 +1311,7 @@ export default function DashboardPage() {
                     }
                     {!loadingThreads && threads.length === 0 && (
                       <div className="py-16 flex flex-col items-center gap-3 text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-                        </svg>
+                        <img src="/assets/empty/fall_leaves.svg" alt="" className="w-56 h-56 " />
                         <div>
                           <p className="text-sm font-semibold text-gray-500">No answered threads yet</p>
                           <p className="text-xs text-gray-400 mt-1">Questions you answer will appear here.</p>
@@ -1367,9 +1384,7 @@ export default function DashboardPage() {
                     }
                     {!pendingLoading && pendingThreads.length === 0 && (
                       <div className="py-16 flex flex-col items-center gap-3 text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
+                        <img src="/assets/empty/leaves.svg" alt="" className="w-24 h-24 opacity-80" />
                         <div>
                           <p className="text-sm font-semibold text-gray-500">All caught up</p>
                           <p className="text-xs text-gray-400 mt-1">No unanswered questions.</p>
@@ -1554,7 +1569,7 @@ export default function DashboardPage() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               {/* Photo */}
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Profile Photo</p>
+                <p className="text-base font-bold text-gray-900 mb-3">Profile Photo</p>
                 <div className="flex items-center gap-4">
                   <button type="button" onClick={() => fileInputRef.current?.click()}
                     className="relative w-16 h-16 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xl font-bold shrink-0 overflow-hidden border-2 border-gray-200 group hover:opacity-90 transition">
@@ -1596,14 +1611,14 @@ export default function DashboardPage() {
 
               {/* Basic info */}
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Basic Info</p>
+                <p className="text-base font-bold text-gray-900 mb-3">Basic Info</p>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="First Name" name="firstName" value={form.firstName} onChange={handleField} />
                     <Field label="Last Name" name="lastName" value={form.lastName} onChange={handleField} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Custom Header</label>
+                    <label className="text-sm font-semibold text-gray-700">Custom Header</label>
                     <input
                       type="text"
                       value={form.headline}
@@ -1614,7 +1629,7 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">About / Bio</label>
+                    <label className="text-sm font-semibold text-gray-700">About / Bio</label>
                     <textarea value={form.bio} onChange={(e) => handleField("bio", e.target.value)}
                       placeholder="Tell the community about yourself…" rows={3}
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001049]/20 focus:border-[#001049] bg-white transition resize-none" />
@@ -1624,10 +1639,10 @@ export default function DashboardPage() {
 
               {/* Education */}
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Education</p>
+                <p className="text-base font-bold text-gray-900 mb-3">Education</p>
                 <div className="space-y-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">School Name</label>
+                    <label className="text-sm font-semibold text-gray-700">School Name</label>
                     <div className="relative">
                       <input
                         type="text"
@@ -1653,9 +1668,10 @@ export default function DashboardPage() {
                                 handleField("schoolName", u.name);
                                 setSchoolSuggestionsOpen(false);
                               }}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                              className="w-full flex items-center gap-2.5 text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                             >
-                              {u.name}
+                              <SchoolSuggestionLogo domain={u.domain} name={u.name} />
+                              <span className="truncate">{u.name}</span>
                             </button>
                           ))}
                         </div>
@@ -1667,7 +1683,7 @@ export default function DashboardPage() {
                     <SelectField label="Degree Level" name="degreeLevel" value={form.degreeLevel} onChange={handleField} options={DEGREE_LEVELS} />
                     <div className="col-span-2 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Major(s) (up to 3)</label>
+                        <label className="text-sm font-semibold text-gray-700">Major(s)</label>
                         <div className="flex items-center gap-2">
                           {majorFieldCount > 1 && (
                             <button
@@ -1704,8 +1720,8 @@ export default function DashboardPage() {
                     <Field label="Graduation Year" name="graduationYear" value={form.graduationYear} onChange={handleField} placeholder="2026" />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      School Email <span className="text-gray-400 font-normal normal-case">(e.g. you@umd.edu)</span>
+                    <label className="text-sm font-semibold text-gray-700">
+                      School Email <span className="text-gray-400 font-normal">(e.g. you@umd.edu)</span>
                     </label>
                     <input
                       type="email"
@@ -1722,7 +1738,7 @@ export default function DashboardPage() {
 
               {/* Social links */}
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Social Links</p>
+                <p className="text-base font-bold text-gray-900 mb-3">Social Links</p>
                 <div className="space-y-3">
                   {[
                     { name: "x" as keyof EditForm, placeholder: "https://x.com/…", icon: <svg className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2H21l-6.02 6.86L22 22h-5.55l-4.347-5.727L7.078 22H4.32l6.44-7.338L2 2h5.69l3.93 5.182L18.244 2Zm-.967 18.38h1.527L6.86 3.54H5.22L17.277 20.38Z" /></svg> },
@@ -1749,7 +1765,7 @@ export default function DashboardPage() {
                 Cancel
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#001049] text-white hover:bg-[#073D97] transition disabled:opacity-50 flex items-center gap-2">
+                className="px-5 py-2 rounded-lg text-sm font-semibold bg-[#001049] text-white hover:bg-[#073D97] transition disabled:opacity-50 flex items-center gap-2">
                 {saving ? (<><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Saving…</>) : "Save changes"}
               </button>
             </div>
