@@ -20,6 +20,7 @@ const ROLES = [
   { value: "board_member", label: "Board Member" },
   { value: "ambassador", label: "Ambassador" },
   { value: "us_member", label: "US Member" },
+  { value: "alum", label: "Alum" },
   { value: "member", label: "Member" },
 ];
 
@@ -28,6 +29,7 @@ const ROLE_STYLES: Record<string, string> = {
   board_member: "bg-purple-50 text-purple-600",
   ambassador: "bg-amber-50 text-amber-600",
   us_member: "bg-blue-50 text-blue-600",
+  alum: "bg-emerald-50 text-emerald-600",
   member: "bg-gray-100 text-gray-500",
 };
 
@@ -36,6 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
   board_member: "Board Member",
   ambassador: "Ambassador",
   us_member: "US Member",
+  alum: "Alum",
   member: "Member",
 };
 
