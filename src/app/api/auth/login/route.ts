@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const { data: user, error } = await supabase
       .from("Users")
-      .select("id, email, password, firstName, lastName, role, acceptanceStatus, profilePic, level, bio")
+      .select("id, email, password, firstName, lastName, role, acceptanceStatus, profilePic, level, bio, graduationYear")
       .eq("email", normalizedEmail)
       .single();
 
@@ -60,6 +60,34 @@ export async function POST(request: Request) {
         .from("Users")
         .update({ acceptanceStatus })
         .eq("id", user.id);
+    }
+
+    // Auto-upgrade to alum if their graduation year has passed
+    if (role === "member" || role === "us_member" || role === "ambassador") {
+      const currentYear = new Date().getFullYear();
+      let isAlum = false;
+
+      if (user.graduationYear && user.graduationYear <= currentYear) {
+        isAlum = true;
+      }
+
+      if (!isAlum) {
+        const { data: educations } = await supabase
+          .from("Education")
+          .select("graduationYear, currentlyEnrolled")
+          .eq("userId", user.id)
+          .eq("currentlyEnrolled", false)
+          .not("graduationYear", "is", null);
+
+        if (educations?.some((e) => e.graduationYear && e.graduationYear <= currentYear)) {
+          isAlum = true;
+        }
+      }
+
+      if (isAlum) {
+        role = "alum";
+        await supabase.from("Users").update({ role: "alum" }).eq("id", user.id);
+      }
     }
 
     // Compute roles from primary role (admin always gets us_member too)

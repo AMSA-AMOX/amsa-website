@@ -4,7 +4,7 @@ import { ROLES, verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const VALID_ROLES = [ROLES.ADMIN, ROLES.BOARD_MEMBER, ROLES.AMBASSADOR, ROLES.US_MEMBER, ROLES.MEMBER];
+const VALID_ROLES = [ROLES.ADMIN, ROLES.BOARD_MEMBER, ROLES.AMBASSADOR, ROLES.US_MEMBER, ROLES.ALUM, ROLES.MEMBER];
 
 // PATCH /api/admin/users/[id] — change a user's role
 export async function PATCH(request: Request, context: RouteContext) {
@@ -36,11 +36,14 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
+    // Derive the roles array from the new primary role
+    const rolesArray = role === ROLES.ADMIN ? [ROLES.ADMIN, ROLES.US_MEMBER] : [role];
+
     const { data, error } = await supabase
       .from("Users")
-      .update({ role })
+      .update({ role, roles: rolesArray })
       .eq("id", targetId)
-      .select("id, firstName, lastName, email, role")
+      .select("id, firstName, lastName, email, role, roles")
       .single();
 
     if (error || !data) {

@@ -6,12 +6,13 @@ const TITLE_MAP: Record<string, string> = {
   "/welcome": "Profile",
   "/dashboard/feed": "Feed",
   "/dashboard/notifications": "Notifications",
-  "/dashboard/research": "Research",
+  "/dashboard/research": "Colleges",
   "/dashboard/research/compare": "Compare",
   "/dashboard/guide": "Guide",
   "/dashboard/threads": "Threads",
   "/dashboard/events": "Events",
   "/dashboard/network": "Network",
+  "/dashboard/places": "Places",
   "/dashboard/inbox": "Inbox",
   "/dashboard/blogs": "Blogs",
   "/dashboard/admin/members": "Members",
@@ -23,9 +24,10 @@ const TITLE_MAP: Record<string, string> = {
 
 function resolveTitle(pathname: string): string {
   if (TITLE_MAP[pathname]) return TITLE_MAP[pathname];
-  // Dynamic segments — e.g. /dashboard/research/state/CA
-  if (pathname.startsWith("/dashboard/research/state/")) return "State Details";
-  if (pathname.startsWith("/dashboard/research/college/")) return "College Details";
+  // Dynamic segments
+  if (pathname.startsWith("/dashboard/research/state/")) return "Colleges";
+  if (pathname.startsWith("/dashboard/research/college/")) return "Colleges";
+  if (pathname.startsWith("/dashboard/places/")) return "Places";
   return "";
 }
 

@@ -48,6 +48,7 @@ export const ROLES = {
   BOARD_MEMBER: "board_member",
   AMBASSADOR: "ambassador",
   US_MEMBER: "us_member",
+  ALUM: "alum",
   MEMBER: "member",
 } as const;
 
@@ -61,6 +62,8 @@ export function getRoleLabel(role: string): string {
       return "Ambassador";
     case ROLES.US_MEMBER:
       return "US Member";
+    case ROLES.ALUM:
+      return "Alum";
     default:
       return "Member";
   }
