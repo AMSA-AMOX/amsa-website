@@ -123,8 +123,6 @@ function SchoolLogo({ schoolName }: { schoolName: string | null | undefined }) {
   );
 }
 
-<<<<<<< Updated upstream
-=======
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   board_member: { label: "Board Member", className: "bg-purple-50 text-purple-600" },
   ambassador:   { label: "Ambassador",   className: "bg-amber-50 text-amber-600" },
@@ -132,7 +130,6 @@ const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   alum:         { label: "Alum",         className: "bg-emerald-50 text-emerald-600" },
 };
 
->>>>>>> Stashed changes
 export default function NetworkPage() {
   const { user, loading, authFetch } = useAuth();
   const router = useRouter();
@@ -307,12 +304,8 @@ export default function NetworkPage() {
             return (
               <Link
                 key={member.id}
-<<<<<<< Updated upstream
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition"
-=======
                 href={`/dashboard/network/${member.id}`}
                 className="bg-white rounded-lg shadow-sm border-2 border-gray-200 p-5 hover:shadow-lg transition block"
->>>>>>> Stashed changes
               >
                 <div className="flex flex-col items-center text-center">
                   <div className="w-30 h-30 rounded-full bg-[#FFCA3A] text-[#001049] font-bold text-2xl flex items-center justify-center shrink-0 overflow-hidden">
