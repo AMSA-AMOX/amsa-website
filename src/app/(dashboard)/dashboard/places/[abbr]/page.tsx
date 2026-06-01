@@ -71,9 +71,6 @@ const TRANSPORT_COLOR: Record<TransitRating, string> = {
 const MAX_REVIEW_IMAGES = 4;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const slug = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -573,12 +570,12 @@ export default function PlaceStatePage() {
     {
       label: "Apartments.com",
       desc: `Rentals across ${info.name}`,
-      href: `https://www.apartments.com/${slug(info.name)}/`,
+      href: `https://www.apartments.com/${abbr.toLowerCase()}/`,
     },
     {
       label: "Zillow Rentals",
       desc: "Houses & apartments for rent",
-      href: `https://www.zillow.com/${slug(info.name)}/rentals/`,
+      href: `https://www.zillow.com/${abbr.toLowerCase()}/rentals/`,
     },
     {
       label: `Student housing in ${primaryCity}`,
