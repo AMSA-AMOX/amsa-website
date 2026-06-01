@@ -513,11 +513,10 @@ function ReviewsColumn({ abbr }: { abbr: string }) {
               <img
                 src="/assets/empty/review_leaves.svg"
                 alt=""
-                className="w-44 h-auto mb-4 select-none pointer-events-none"
+                className="w-44 h-auto mb-8 select-none pointer-events-none"
                 draggable={false}
               />
-              <p className="text-sm font-semibold text-gray-600">No reviews yet</p>
-              <p className="text-xs text-gray-400 mt-1">Be the first to share your experience!</p>
+              <p className="text-lg font-medium text-gray-400">No reviews yet</p>
             </div>
           ) : (
             <div className="space-y-3">
