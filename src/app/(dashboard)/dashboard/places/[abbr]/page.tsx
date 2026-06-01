@@ -283,7 +283,7 @@ function ReviewComposer({ abbr, onCreated }: { abbr: string; onCreated: (r: Revi
           type="button"
           onClick={submit}
           disabled={submitting}
-          className="px-4 py-2 rounded-xl bg-[#001049] text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
+          className="px-4 py-2 rounded-lg bg-[#001049] text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
         >
           {submitting ? "Posting…" : "Post"}
         </button>
