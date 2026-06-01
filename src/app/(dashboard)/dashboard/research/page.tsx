@@ -9,7 +9,6 @@ import type { College, Filters } from "./types";
 import { DEFAULT_FILTERS } from "./types";
 import { useCollegesData } from "./use-colleges-data";
 import { STATE_DATA, FIPS_TO_ABBR } from "./state-data";
-import type { StatePhoto } from "@/app/api/state-photos/[abbr]/route";
 
 // ─── Standard CIP program categories (always shown in field-of-study filter) ─
 // These mirror the categories derived from CIP codes by the import pipeline.
@@ -263,185 +262,6 @@ function USIntlDotMap({
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ─── State Photo Strip ────────────────────────────────────────────────────────
-
-function StatePhotoStrip({ abbr }: { abbr: string }) {
-  const [photos, setPhotos] = useState<StatePhoto[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    setPhotos([]);
-    fetch(`/api/state-photos/${abbr}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setPhotos(d.photos ?? []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [abbr]);
-
-  if (loading) {
-    return (
-      <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-24 w-40 shrink-0 rounded-xl bg-gray-100 animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (photos.length === 0) return null;
-
-  return (
-    <div className="mt-4 border-t border-gray-100 pt-4">
-      <p className="text-xs font-bold text-[#001049] uppercase tracking-wide mb-2">
-        Photos of {STATE_DATA[abbr]?.name}
-      </p>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {photos.slice(0, 6).map((photo) => (
-          <a
-            key={photo.id}
-            href={photo.photographerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 relative h-24 w-40 rounded-xl overflow-hidden group"
-          >
-            <img
-              src={photo.thumb}
-              alt={photo.alt}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
-          </a>
-        ))}
-      </div>
-      <p className="text-[10px] text-gray-400 mt-1.5">Photos via Pexels</p>
-    </div>
-  );
-}
-
-// ─── State Info Panel ─────────────────────────────────────────────────────────
-
-function StateInfoPanel({
-  abbr,
-  allColleges,
-}: {
-  abbr: string;
-  allColleges: College[];
-}) {
-  const info = STATE_DATA[abbr];
-  if (!info) return null;
-
-  const stateColleges = allColleges.filter(
-    (c) => c.state?.trim().toUpperCase() === abbr
-  );
-
-  const COL_TIER_LABEL = {
-    very_high: "Very High",
-    high: "High",
-    moderate: "Moderate",
-    affordable: "Affordable",
-  } as const;
-  const COL_TIER_COLOR = {
-    very_high: "bg-red-50 text-red-700 border-red-200",
-    high: "bg-orange-50 text-orange-700 border-orange-200",
-    moderate: "bg-amber-50 text-amber-700 border-amber-200",
-    affordable: "bg-green-50 text-green-700 border-green-200",
-  } as const;
-  const TRANSPORT_COLOR = {
-    excellent: "text-green-700",
-    good: "text-blue-700",
-    limited: "text-amber-700",
-    poor: "text-red-600",
-  } as const;
-  const TRANSPORT_LABEL = {
-    excellent: "Excellent",
-    good: "Good",
-    limited: "Limited",
-    poor: "Poor / Car needed",
-  } as const;
-
-  const ranked = stateColleges.filter((c) => c.nationalRank != null);
-  const topRank = ranked.length > 0 ? Math.min(...ranked.map((c) => c.nationalRank!)) : null;
-  const avgCOA =
-    stateColleges.length > 0
-      ? Math.round(stateColleges.reduce((s, c) => s + c.totalCostOfAttendance, 0) / stateColleges.length)
-      : null;
-
-  return (
-    <div className="bg-white rounded-2xl border border-[#001049]/10 shadow-sm overflow-hidden mb-6">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-lg font-bold text-[#001049]">{info.name}</h2>
-            <span
-              className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${COL_TIER_COLOR[info.colTier]}`}
-            >
-              Cost of Living: {COL_TIER_LABEL[info.colTier]}
-            </span>
-          </div>
-          <Link
-            href={`/dashboard/research/state/${abbr}`}
-            className="text-sm font-semibold text-[#001049] border border-[#001049]/20 bg-[#001049]/5 hover:bg-[#001049]/10 px-3 py-1.5 rounded-lg transition-colors shrink-0"
-          >
-            View State Details →
-          </Link>
-        </div>
-        <p className="text-sm text-gray-500 mt-1.5">
-          {stateColleges.length} school{stateColleges.length !== 1 ? "s" : ""} tracked in our database
-          {topRank != null ? ` · Best national rank: #${topRank}` : ""}
-        </p>
-      </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
-        <div className="px-4 py-4">
-          <p className="text-xs text-gray-400 font-medium mb-1">Monthly Rent</p>
-          <p className="text-base font-bold text-[#001049]">{info.monthlyRent}</p>
-          <p className="text-xs text-gray-400 mt-0.5">1-bedroom apartment</p>
-        </div>
-        <div className="px-4 py-4">
-          <p className="text-xs text-gray-400 font-medium mb-1">Public Transit</p>
-          <p className={`text-base font-bold ${TRANSPORT_COLOR[info.publicTransport]}`}>
-            {TRANSPORT_LABEL[info.publicTransport]}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">in major cities</p>
-        </div>
-        <div className="px-4 py-4">
-          <p className="text-xs text-gray-400 font-medium mb-1">Avg Total COA</p>
-          <p className="text-base font-bold text-[#001049]">
-            {avgCOA != null ? fmt(avgCOA) + "/yr" : "N/A"}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">across tracked schools</p>
-        </div>
-        <div className="px-4 py-4">
-          <p className="text-xs text-gray-400 font-medium mb-1">Major Cities</p>
-          <p className="text-base font-bold text-[#001049]">{info.cities.slice(0, 2).join(", ")}</p>
-          {info.cities.length > 2 && (
-            <p className="text-xs text-gray-400 mt-0.5">+{info.cities.length - 2} more</p>
-          )}
-        </div>
-      </div>
-
-      {/* Climate + tip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 border-t border-gray-100">
-        <div className="px-5 py-4">
-          <p className="text-xs font-bold text-[#001049] uppercase tracking-wide mb-1.5">Climate</p>
-          <p className="text-sm text-gray-600 leading-relaxed">{info.climate}</p>
-        </div>
-      </div>
-
-      {/* Photo strip */}
-      <div className="px-5 pb-5">
-        <StatePhotoStrip abbr={abbr} />
       </div>
     </div>
   );
@@ -1139,11 +959,6 @@ export default function ResearchPage() {
             selectedState={selectedState}
             onSelectState={setSelectedState}
           />
-        )}
-
-        {/* State info panel — appears when a state is selected */}
-        {!loading && !error && selectedState && (
-          <StateInfoPanel abbr={selectedState} allColleges={colleges} />
         )}
 
         {/* Loading */}

@@ -2,10 +2,19 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 
+function optionalUserId(request: Request): number | null {
+  try {
+    return verifyToken(request).id;
+  } catch {
+    return null;
+  }
+}
+
 // GET /api/places/reviews?stateAbbr=CA
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const stateAbbr = searchParams.get("stateAbbr")?.toUpperCase();
+  const userId = optionalUserId(request);
 
   if (!stateAbbr) {
     return NextResponse.json({ message: "stateAbbr is required." }, { status: 400 });
@@ -14,7 +23,7 @@ export async function GET(request: Request) {
   try {
     const { data, error } = await supabase
       .from("place_reviews")
-      .select("id, state_abbr, content, images, created_at, user_id, Users(id, firstName, lastName, profilePic)")
+      .select("id, state_abbr, content, images, created_at, user_id, helpful_user_ids, Users(id, firstName, lastName, profilePic)")
       .eq("state_abbr", stateAbbr)
       .order("created_at", { ascending: false });
 
@@ -23,7 +32,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Failed to load reviews." }, { status: 500 });
     }
 
-    return NextResponse.json({ reviews: data ?? [] });
+    const enriched = (data ?? []).map((r) => {
+      const helpfulUserIds = (r.helpful_user_ids as number[] | null) ?? [];
+      const { helpful_user_ids: _, ...rest } = r;
+      return {
+        ...rest,
+        helpfulCount: helpfulUserIds.length,
+        hasHelpful: userId !== null && helpfulUserIds.includes(userId),
+      };
+    });
+
+    return NextResponse.json({ reviews: enriched });
   } catch (e) {
     console.error("GET /api/places/reviews exception:", e);
     return NextResponse.json({ message: "Failed to load reviews." }, { status: 500 });

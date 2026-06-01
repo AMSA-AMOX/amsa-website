@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { STATE_DATA } from "@/app/(dashboard)/dashboard/research/state-data";
 
 const TITLE_MAP: Record<string, string> = {
   "/welcome": "Profile",
@@ -27,7 +28,10 @@ function resolveTitle(pathname: string): string {
   // Dynamic segments
   if (pathname.startsWith("/dashboard/research/state/")) return "Colleges";
   if (pathname.startsWith("/dashboard/research/college/")) return "Colleges";
-  if (pathname.startsWith("/dashboard/places/")) return "Places";
+  if (pathname.startsWith("/dashboard/places/")) {
+    const abbr = pathname.split("/")[3]?.toUpperCase() ?? "";
+    return STATE_DATA[abbr]?.name ?? "Places";
+  }
   return "";
 }
 
