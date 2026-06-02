@@ -243,10 +243,27 @@ function merge(
     avgAidPackage != null ? Math.max(0, totalCOA - avgAidPackage) : null;
 
   const salary = base.earnings_10yr_median ?? base.md_earn_wne_p10 ?? null;
+
+  // Share of non-resident-alien (international) undergrads, 0–1.
+  // Scorecard's `share_nonresident_alien` (→ ugds_nra) is almost always
+  // suppressed, so fall back to the race/ethnicity NRA share
+  // (→ demo_nonresident_alien), which mirrors IPEDS UGDS_NRA and is populated
+  // for the large majority of schools.
+  const nraShare = base.ugds_nra ?? base.demo_nonresident_alien ?? null;
+
   const intlStudentsEstimate =
     ipeds?.intl_enrolled_ipeds ??
-    (base.ugds != null && base.ugds_nra != null
-      ? Math.round(base.ugds * base.ugds_nra) : null);
+    (base.ugds != null && nraShare != null
+      ? Math.round(base.ugds * nraShare) : null);
+
+  // International percentage, derived from the best available source:
+  // 1) NRA share (Scorecard/IPEDS), else 2) IPEDS intl headcount ÷ undergrads.
+  const internationalPercent =
+    nraShare != null
+      ? Math.round(nraShare * 1000) / 10
+      : ipeds?.intl_enrolled_ipeds != null && base.ugds
+        ? Math.round((ipeds.intl_enrolled_ipeds / base.ugds) * 1000) / 10
+        : null;
 
   const rawSource = aid?.data_source;
   const dataSource: College["dataSource"] =
@@ -326,7 +343,7 @@ function merge(
     ugds:                  base.ugds           ?? null,
     gradStudents:          base.grad_students  ?? null,
     intlStudentsEstimate,
-    internationalPercent:  base.ugds_nra != null ? Math.round(base.ugds_nra * 1000) / 10 : null,
+    internationalPercent,
     retentionRate:         base.retention_rate ?? null,
     shareFirstGen:         base.share_first_gen ?? null,
     share25Older:          base.share_25_older  ?? null,

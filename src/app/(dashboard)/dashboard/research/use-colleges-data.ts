@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { College } from "./types";
 
-const CACHE_KEY = "research_colleges_cache_v5";
+const CACHE_KEY = "research_colleges_cache_v6";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
 let memoryCache: { colleges: College[]; fetchedAt: number } | null = null;

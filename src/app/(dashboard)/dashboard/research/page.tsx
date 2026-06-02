@@ -75,11 +75,13 @@ function USIntlDotMap({
         ? rawStates
         : { type: "FeatureCollection", features: [rawStates] };
 
+    // geoAlbersUsa() natively positions Alaska as an inset, so we keep FIPS "02".
+    // Hawaii ("15") and Puerto Rico ("72") remain excluded.
     const contiguous: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
       features: allStates.features.filter((f) => {
         const id = String(f.id ?? "");
-        return id !== "02" && id !== "15" && id !== "72";
+        return id !== "15" && id !== "72";
       }),
     };
 
@@ -121,7 +123,7 @@ function USIntlDotMap({
   const tooltipColleges = hoveredState ? (collegesByState.get(hoveredState) ?? []) : [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5 mb-6">
+    <div className="bg-white rounded-2xl border-2 border-gray-300 p-4 md:p-5 mb-6">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-base font-bold text-[#001049]">Explore by State</h2>
@@ -278,7 +280,9 @@ function ScoreBadge({ score }: { score: number }) {
       : "bg-red-50 border-red-300 text-red-600";
   return (
     <div
-      className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl border-2 shrink-0 ${color}`}
+      title="Financial Accessibility Score (0–100): AMSA's combined measure of cost and aid generosity toward international students. Higher is more affordable. Schools are sorted by this by default."
+      aria-label="Financial Accessibility Score"
+      className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl border-2 shrink-0 cursor-help ${color}`}
     >
       <span className="text-xl font-bold leading-none">{score}</span>
       <span className="text-xs font-semibold uppercase tracking-widest mt-0.5 opacity-60">
@@ -419,7 +423,7 @@ function CollegeCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border-2 border-gray-300 overflow-hidden">
       {/* Card header */}
       <div className="p-5">
         <div className="flex items-start gap-4">
@@ -432,14 +436,6 @@ function CollegeCard({
               >
                 {TYPE_LABEL[college.type]}
               </span>
-              {college.meetsFullDemonstratedNeed && (
-                <BadgePill label="Meets Full Need" color="green" />
-              )}
-              {college.noLoanPolicy && <BadgePill label="No Loans" color="green" />}
-              {college.stemOptEligible && <BadgePill label="STEM OPT" color="navy" />}
-              {college.meritScholarships.length > 0 && (
-                <BadgePill label="Merit Aid" color="gold" />
-              )}
               {college.nationalRank != null && (
                 <BadgePill label={`US Rank #${college.nationalRank}`} color="navy" />
               )}
@@ -460,11 +456,7 @@ function CollegeCard({
 
         <StatGrid college={college} />
 
-        {/* Financial Accessibility Score explanation */}
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-gray-400">
-            Financial Accessibility Score · sorted by this by default
-          </p>
+        <div className="mt-3 flex items-center justify-end">
           <div className="flex items-center gap-3">
             <button
               onClick={onToggleCompare}
@@ -689,6 +681,171 @@ function FilterPanel({
   );
 }
 
+function FilterDropdown({
+  filters,
+  onChange,
+  fieldOptions,
+}: {
+  filters: Filters;
+  onChange: (f: Filters) => void;
+  fieldOptions: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const set = <K extends keyof Filters>(k: K, v: Filters[K]) => onChange({ ...filters, [k]: v });
+  const sortedFieldOptions = useMemo(
+    () => fieldOptions.filter((f) => f !== "Any").sort((a, b) => a.localeCompare(b)),
+    [fieldOptions]
+  );
+
+  const activeCount =
+    (filters.selectedField !== "Any" ? 1 : 0) +
+    (filters.sortBy !== "ranking" ? 1 : 0) +
+    (filters.offersAidOnly ? 1 : 0) +
+    (filters.meetsFullNeedOnly ? 1 : 0) +
+    (filters.meritScholarshipsOnly ? 1 : 0) +
+    (filters.stemOptOnly ? 1 : 0) +
+    (filters.minAidPercent > 0 ? 1 : 0) +
+    (filters.maxTotalCOA < DEFAULT_FILTERS.maxTotalCOA ? 1 : 0) +
+    (filters.maxNetCost < DEFAULT_FILTERS.maxNetCost ? 1 : 0) +
+    (filters.minInternationalPercent > 0 ? 1 : 0);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border-2 border-gray-300 bg-white text-gray-600 hover:border-gray-400 transition"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+        </svg>
+        {activeCount > 0 && <span className="text-gray-700">· {activeCount}</span>}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-30 bg-white rounded-2xl border-2 border-gray-300 shadow-xl p-5 w-[22rem] max-w-[calc(100vw-2rem)] max-h-[75vh] overflow-y-auto space-y-5">
+          {/* Field of study */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Field of study</p>
+            <select
+              value={filters.selectedField}
+              onChange={(e) => set("selectedField", e.target.value)}
+              className="w-full rounded-xl border-2 border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
+            >
+              <option value="Any">Any field</option>
+              {sortedFieldOptions.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort by */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Sort by</p>
+            <select
+              value={filters.sortBy}
+              onChange={(e) => set("sortBy", e.target.value as Filters["sortBy"])}
+              className="w-full rounded-xl border-2 border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
+            >
+              <option value="ranking">US National Ranking</option>
+              <option value="affordability">Financial Accessibility Score</option>
+            </select>
+          </div>
+
+          {/* Financial Aid */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Financial Aid</p>
+            <div className="space-y-2">
+              <Toggle
+                checked={filters.offersAidOnly}
+                onChange={(v) => set("offersAidOnly", v)}
+                label="Only schools offering aid to internationals"
+              />
+              <Toggle
+                checked={filters.meetsFullNeedOnly}
+                onChange={(v) => set("meetsFullNeedOnly", v)}
+                label="Meets 100% of demonstrated need"
+              />
+              <Toggle
+                checked={filters.meritScholarshipsOnly}
+                onChange={(v) => set("meritScholarshipsOnly", v)}
+                label="Has merit scholarships for internationals"
+              />
+            </div>
+            <div className="mt-3">
+              <Slider
+                label="Min % of internationals receiving aid"
+                value={filters.minAidPercent}
+                min={0}
+                max={100}
+                step={5}
+                format={(v) => v + "%"}
+                onChange={(v) => set("minAidPercent", v)}
+              />
+            </div>
+          </div>
+
+          {/* Cost */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Cost</p>
+            <div className="space-y-4">
+              <Slider
+                label="Max Total Cost of Attendance"
+                value={filters.maxTotalCOA}
+                min={40000}
+                max={100000}
+                step={5000}
+                format={fmt}
+                onChange={(v) => set("maxTotalCOA", v)}
+              />
+              <Slider
+                label="Max Net Cost (after avg aid)"
+                value={filters.maxNetCost}
+                min={10000}
+                max={100000}
+                step={5000}
+                format={fmt}
+                onChange={(v) => set("maxNetCost", v)}
+              />
+            </div>
+          </div>
+
+          {/* International Profile */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">International Profile</p>
+            <Slider
+              label="Min % international students"
+              value={filters.minInternationalPercent}
+              min={0}
+              max={30}
+              step={1}
+              format={(v) => v + "%"}
+              onChange={(v) => set("minInternationalPercent", v)}
+            />
+          </div>
+
+          {/* Career */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Career</p>
+            <Toggle
+              checked={filters.stemOptOnly}
+              onChange={(v) => set("stemOptOnly", v)}
+              label="STEM OPT eligible programs only (36-month extension)"
+            />
+          </div>
+
+          <button
+            onClick={() => onChange(DEFAULT_FILTERS)}
+            className="w-full py-2 rounded-xl border-2 border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Reset all filters
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TopFilterBar({
   filters,
   onChange,
@@ -699,103 +856,25 @@ function TopFilterBar({
   fieldOptions: string[];
 }) {
   const set = <K extends keyof Filters>(k: K, v: Filters[K]) => onChange({ ...filters, [k]: v });
-  const sortedFieldOptions = useMemo(
-    () => fieldOptions.filter((f) => f !== "Any").sort((a, b) => a.localeCompare(b)),
-    [fieldOptions]
-  );
 
   return (
-    <div className="mb-5 space-y-2">
-      {/* Search bar — standalone */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+      {/* Search */}
+      <div className="relative flex-1 max-w-md">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m0 0A7.5 7.5 0 1 0 6.05 6.05a7.5 7.5 0 0 0 10.6 10.6Z" />
         </svg>
         <input
           type="text"
+          placeholder="School, city, or state…"
           value={filters.searchQuery}
           onChange={(e) => set("searchQuery", e.target.value)}
-          placeholder="Search schools by name, city, or state…"
-          className="flex-1 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+          className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg text-lg bg-gray-50 focus:border-gray-500 focus:bg-white focus:outline-none transition"
         />
-        {filters.searchQuery && (
-          <button
-            type="button"
-            onClick={() => set("searchQuery", "")}
-            className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
       </div>
 
-      {/* Filters row — separate */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
-          <div className="text-sm">
-            <span className="block text-gray-500 text-xs font-medium mb-1.5">Field of study</span>
-            <select
-              value={filters.selectedField}
-              onChange={(e) => set("selectedField", e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 bg-white"
-            >
-              <option value="Any">Any field</option>
-              {sortedFieldOptions.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="text-sm">
-            <span className="block text-gray-500 text-xs font-medium mb-1.5">Sort by</span>
-            <select
-              value={filters.sortBy}
-              onChange={(e) => set("sortBy", e.target.value as Filters["sortBy"])}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 bg-white"
-            >
-              <option value="ranking">US National Ranking</option>
-              <option value="affordability">Financial Accessibility Score</option>
-            </select>
-          </div>
-
-          <div className="text-sm">
-            <span className="block text-gray-500 text-xs font-medium mb-1.5">Min % intl. students</span>
-            <input
-              type="number"
-              min={0}
-              max={40}
-              step={1}
-              value={filters.minInternationalPercent}
-              onChange={(e) => set("minInternationalPercent", Number(e.target.value))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-            />
-          </div>
-
-          <div className="text-sm">
-            <span className="block text-gray-500 text-xs font-medium mb-1.5">Max net cost (USD/yr)</span>
-            <input
-              type="number"
-              min={10000}
-              max={200000}
-              step={1000}
-              value={filters.maxNetCost}
-              onChange={(e) => set("maxNetCost", Number(e.target.value))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700"
-            />
-          </div>
-
-          <div className="text-sm flex items-end">
-            <button
-              onClick={() => onChange(DEFAULT_FILTERS)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-500 hover:text-[#001049] hover:border-[#001049]/30 transition-colors"
-            >
-              Reset filters
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Filter */}
+      <FilterDropdown filters={filters} onChange={onChange} fieldOptions={fieldOptions} />
     </div>
   );
 }
@@ -806,7 +885,7 @@ function SkeletonList() {
   return (
     <div className="space-y-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 animate-pulse">
+        <div key={i} className="bg-white rounded-2xl border-2 border-gray-300 p-5 animate-pulse">
           <div className="flex gap-4">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl shrink-0" />
             <div className="flex-1 space-y-2">
@@ -935,20 +1014,6 @@ export default function ResearchPage() {
 
   return (
     <div className="py-8 px-4 md:px-7">
-      <div className="flex items-start justify-between gap-4 mb-1">
-        <div>
-          <p className="text-sm text-gray-500 mt-1 max-w-3xl">
-            Compare schools by ranking, affordability, and fit. Built for all applicants, including international and domestic students.
-          </p>
-        </div>
-        <Link
-          href={`/dashboard/research/compare${compareIds.length ? `?ids=${compareIds.join(",")}` : ""}`}
-          className="text-sm font-semibold text-[#001049] border border-[#001049]/20 bg-[#001049]/5 px-3 py-2 rounded-xl shrink-0"
-        >
-          Compare list ({compareIds.length})
-        </Link>
-      </div>
-
       <div className="mt-5">
         <TopFilterBar filters={filters} onChange={setFilters} fieldOptions={fieldOptions} />
 
@@ -1050,7 +1115,7 @@ export default function ResearchPage() {
             )}
 
             {filtered.length === 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+              <div className="bg-white rounded-2xl border-2 border-gray-300 p-10 text-center">
                 <p className="text-sm font-semibold text-gray-600 mb-1">No schools match</p>
                 <p className="text-xs text-gray-400 mb-4">
                   {selectedState
