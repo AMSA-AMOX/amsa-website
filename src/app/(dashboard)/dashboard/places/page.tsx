@@ -93,7 +93,7 @@ function StateCard({
 
   return (
     <div
-      className="group bg-white rounded-xl shadow-md p-3 cursor-pointer select-none hover:shadow-lg transition-shadow"
+      className="group bg-white rounded-xl border-2 border-gray-100 p-3 cursor-pointer select-none hover:shadow-lg transition-shadow"
       onClick={onExplore}
     >
       <div className="relative">
@@ -110,7 +110,7 @@ function StateCard({
             <span className="text-xs font-bold text-gray-900 leading-none">{studentCount}</span>
           </div>
           <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-full px-2.5 py-1">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-red-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500 shrink-0" viewBox="0 0 28 28" fill="currentColor">
               <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-2.079 3.218-4.402 3.218-7.273a6.5 6.5 0 0 0-13 0c0 2.871 1.274 5.194 3.218 7.273a19.58 19.58 0 0 0 2.683 2.282 16.975 16.975 0 0 0 1.144.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
             </svg>
             <span className="text-xs font-semibold text-gray-900 leading-none whitespace-nowrap">
