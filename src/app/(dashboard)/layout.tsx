@@ -3,7 +3,7 @@ import DashboardTopBar from "@/components/DashboardTopBar";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="h-screen overflow-hidden bg-gray-50 flex">
+    <div className="dashboard h-screen overflow-hidden bg-gray-50 flex">
       <DashboardSidebar />
       <div className="flex flex-col flex-1 md:ml-60 overflow-hidden">
         {/* pt-16 offsets the fixed mobile top bar; removed on md+ */}

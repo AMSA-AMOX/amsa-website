@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { IoRose, IoRoseOutline } from "react-icons/io5";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { useCollegesData } from "../../use-colleges-data";
 import type { ScorecardProfile } from "@/app/api/colleges/[id]/scorecard/route";
 
@@ -11,9 +14,6 @@ import type { ScorecardProfile } from "@/app/api/colleges/[id]/scorecard/route";
 
 type IconProps = { size?: number; className?: string };
 
-function IcBuilding({ size = 18, className = "" }: IconProps) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>;
-}
 function IcBarChart({ size = 18, className = "" }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>;
 }
@@ -47,18 +47,13 @@ function IcGift({ size = 18, className = "" }: IconProps) {
 function IcRefresh({ size = 18, className = "" }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
 }
-function IcTrophy({ size = 18, className = "" }: IconProps) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H3V4h3M18 9h3V4h-3M6 4h12v7a6 6 0 0 1-12 0V4z"/><path d="M8 21h8M12 17v4"/></svg>;
-}
 function IcFlask({ size = 18, className = "" }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 3h6M9 3v7l-5 9a1 1 0 0 0 .9 1.5h14.2A1 1 0 0 0 20 19l-5-9V3"/><path d="M8 17h8"/></svg>;
 }
 function IcMapPin({ size = 18, className = "" }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 }
-function IcAlert({ size = 18, className = "" }: IconProps) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-}
+
 function IcXCircle({ size = 18, className = "" }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 }
@@ -76,6 +71,7 @@ function IcFileText({ size = 18, className = "" }: IconProps) {
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 const pct = (n: number) => Math.round(n) + "%";
+const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -112,10 +108,10 @@ function useScorecardProfile(unitid: number | null) {
 // Section header + body, separated by a rule — matches Places → State page.
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <section className="py-6 border-t-2 border-gray-200 first:border-t-0 first:pt-0">
-      <div className="flex items-center gap-2 mb-4">
+    <section className="py-5 border-t-2 border-gray-300 first:border-t-0 first:pt-0">
+      <div className="flex items-center gap-2 mb-3">
         <span className="text-[#001049] opacity-60 shrink-0">{icon}</span>
-        <p className="text-sm font-bold tracking-wide uppercase text-gray-500">{title}</p>
+        <p className="text-sm font-semibold tracking-wide uppercase text-gray-400">{title}</p>
       </div>
       {children}
     </section>
@@ -139,15 +135,6 @@ function BigStat({ value, label }: { value: string; label: string }) {
     <div>
       <p className="text-2xl font-black text-[#001049] leading-none">{value}</p>
       <p className="text-xs text-gray-500 mt-1 leading-tight">{label}</p>
-    </div>
-  );
-}
-
-// Monochrome progress bar.
-function Bar({ pct: width }: { pct: number }) {
-  return (
-    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-      <div className="h-full bg-[#001049] rounded-full" style={{ width: `${Math.min(Math.max(width, 0), 100)}%` }} />
     </div>
   );
 }
@@ -420,6 +407,294 @@ function PostsSection({ unitid }: { unitid: number }) {
   );
 }
 
+// ─── College Reviews ──────────────────────────────────────────────────────────
+
+const MAX_REVIEW_IMAGES = 4;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+type CollegeReview = {
+  id: string;
+  college_id: number;
+  content: string;
+  images: string[];
+  created_at: string;
+  user_id: number;
+  helpfulCount: number;
+  hasHelpful: boolean;
+  Users: { id: number; firstName: string; lastName: string; profilePic: string | null } | null;
+};
+
+function CollegeReviewComposer({ collegeId, collegeName, onCreated }: { collegeId: number; collegeName: string; onCreated: (r: CollegeReview) => void }) {
+  const { user, authFetch } = useAuth();
+  const [content, setContent] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
+
+  const onPickFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    if (!selected.length) return;
+    if (selected.find((f) => f.size > MAX_FILE_SIZE)) { setError("Max 5 MB per image."); return; }
+    if (selected.find((f) => !f.type.startsWith("image/"))) { setError("Images only."); return; }
+    setError("");
+    setFiles((prev) => [...prev, ...selected].slice(0, MAX_REVIEW_IMAGES));
+    e.target.value = "";
+  };
+
+  const removeFile = (i: number) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
+
+  const uploadImages = async (): Promise<string[]> => {
+    if (!user || files.length === 0) return [];
+    const urls: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const ext = f.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `reviews/colleges/${user.id}/${Date.now()}-${i}.${ext}`;
+      const { error: err } = await supabase.storage.from("post-images").upload(path, f, { upsert: false, contentType: f.type });
+      if (err) throw new Error(err.message);
+      urls.push(supabase.storage.from("post-images").getPublicUrl(path).data.publicUrl);
+    }
+    return urls;
+  };
+
+  const submit = async () => {
+    if (content.trim().length < 10) { setError("Write at least 10 characters."); return; }
+    setSubmitting(true);
+    setError("");
+    try {
+      const images = await uploadImages();
+      const res = await authFetch("/api/colleges/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collegeId, content: content.trim(), images }),
+      });
+      if (res?.review) { onCreated(res.review); setContent(""); setFiles([]); }
+      else setError(res?.message ?? "Failed to submit.");
+    } catch {
+      setError("Failed to submit. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!user) return (
+    <p className="text-sm text-gray-400 text-center py-4">
+      <Link href="/login" className="font-semibold text-[#001049] hover:underline">Sign in</Link> to leave a review.
+    </p>
+  );
+
+  return (
+    <div>
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={`Share your experience at ${collegeName}…`}
+        rows={3}
+        maxLength={2000}
+        className="w-full resize-none rounded-xl border-2 border-gray-300 focus:outline-none focus:border-[#001049] px-3 py-2 text-sm text-gray-800 placeholder-gray-400 transition-colors bg-white"
+      />
+      <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickFiles} />
+      {previews.length > 0 && (
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {previews.map((url, i) => (
+            <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+              <img src={url} alt="" className="w-full h-full object-cover" />
+              <button type="button" onClick={() => removeFile(i)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-2 gap-3">
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={files.length >= MAX_REVIEW_IMAGES}
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#001049] disabled:opacity-40 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+          </svg>
+        </button>
+        <button type="button" onClick={submit} disabled={submitting}
+          className="px-4 py-2 rounded-lg bg-[#001049] text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity">
+          {submitting ? "Posting…" : "Post"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+    </div>
+  );
+}
+
+function CollegeReviewItem({ review, currentUserId, currentUserRole, onDelete, onHelpful, markingHelpful }: {
+  review: CollegeReview;
+  currentUserId: number | undefined;
+  currentUserRole: string | undefined;
+  onDelete: (id: string) => void;
+  onHelpful: (id: string) => void;
+  markingHelpful: boolean;
+}) {
+  const { authFetch } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  const author = review.Users;
+  const initials = author ? `${author.firstName?.[0] ?? ""}${author.lastName?.[0] ?? ""}`.toUpperCase() : "?";
+  const authorName = author ? `${author.firstName} ${author.lastName}`.trim() : "Member";
+  const canDelete = currentUserId === review.user_id || currentUserRole === "admin";
+
+  const deleteReview = async () => {
+    if (!confirm("Delete this review?")) return;
+    setDeleting(true);
+    try {
+      await authFetch(`/api/colleges/reviews/${review.id}`, { method: "DELETE" });
+      onDelete(review.id);
+    } catch {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-6 h-6 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-[10px] font-bold shrink-0 overflow-hidden">
+          {author?.profilePic ? <img src={author.profilePic} alt="" className="w-full h-full object-cover" /> : initials}
+        </div>
+        <span className="text-xs font-semibold text-gray-700">{authorName}</span>
+        <span className="text-gray-300">·</span>
+        <span className="text-xs text-gray-400">{formatRelative(review.created_at)}</span>
+        {canDelete && (
+          <button onClick={deleteReview} disabled={deleting} className="ml-auto text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+          </button>
+        )}
+      </div>
+      <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{review.content}</p>
+      {review.images.length > 0 && (
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {review.images.map((url, i) => (
+            <button key={i} onClick={() => setLightbox(url)} className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity">
+              <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-3">
+        <button type="button" onClick={() => onHelpful(review.id)} disabled={!currentUserId || markingHelpful}
+          title={review.hasHelpful ? "Remove helpful" : "Helpful"}
+          className={`flex items-center gap-1.5 transition disabled:opacity-50 ${review.hasHelpful ? "text-emerald-800" : "text-gray-400 hover:text-emerald-800"}`}>
+          {review.hasHelpful ? <IoRose className="w-6 h-6" aria-hidden /> : <IoRoseOutline className="w-6 h-6" aria-hidden />}
+          <span className="text-sm font-medium">Helpful</span>
+          {review.helpfulCount > 0 && <span className="text-sm font-medium tabular-nums">{review.helpfulCount}</span>}
+        </button>
+      </div>
+      {lightbox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="" className="max-w-full max-h-full rounded-xl object-contain shadow-xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CollegeReviewsColumn({ collegeId, collegeName }: { collegeId: number; collegeName: string }) {
+  const { user, authFetch } = useAuth();
+  const [reviews, setReviews] = useState<CollegeReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [markingHelpful, setMarkingHelpful] = useState<Set<string>>(new Set());
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const fetcher = user
+      ? authFetch(`/api/colleges/reviews?collegeId=${collegeId}`)
+      : fetch(`/api/colleges/reviews?collegeId=${collegeId}`).then((r) => r.json());
+    Promise.resolve(fetcher)
+      .then((d) => { setReviews(d.reviews ?? []); setLoading(false); })
+      .catch(() => { setError("Failed to load reviews."); setLoading(false); });
+  }, [collegeId, user, authFetch]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onCreated = (r: CollegeReview) => setReviews((prev) => [{ ...r, helpfulCount: 0, hasHelpful: false }, ...prev]);
+  const onDelete = (id: string) => setReviews((prev) => prev.filter((r) => r.id !== id));
+
+  const onHelpful = async (id: string) => {
+    if (!user || markingHelpful.has(id)) return;
+    const current = reviews.find((r) => r.id === id);
+    if (!current) return;
+    const liking = !current.hasHelpful;
+    setMarkingHelpful((prev) => new Set(prev).add(id));
+    setReviews((prev) => prev.map((r) => r.id === id ? { ...r, hasHelpful: liking, helpfulCount: Math.max(0, r.helpfulCount + (liking ? 1 : -1)) } : r));
+    try {
+      const data = await authFetch(`/api/colleges/reviews/${id}/helpful`, { method: "POST" });
+      setReviews((prev) => prev.map((r) => r.id === id ? { ...r, hasHelpful: Boolean(data.hasHelpful), helpfulCount: Number(data.helpfulCount ?? r.helpfulCount) } : r));
+    } catch {
+      setReviews((prev) => prev.map((r) => r.id === id ? { ...r, hasHelpful: current.hasHelpful, helpfulCount: current.helpfulCount } : r));
+    } finally {
+      setMarkingHelpful((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    }
+  };
+
+  return (
+    <div className="flex flex-col lg:h-full min-h-0">
+      <div className="bg-gray-50 border-b-2 border-gray-300 px-6 py-4 flex items-center justify-between shrink-0">
+        <h1 className="text-lg font-bold text-gray-900">Reviews</h1>
+      </div>
+      <div className="lg:flex-1 lg:overflow-y-auto px-6 py-5 space-y-5">
+        {user?.role !== "member" && (
+          <CollegeReviewComposer collegeId={collegeId} collegeName={collegeName} onCreated={onCreated} />
+        )}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
+          </p>
+          {error && !loading && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              {error} — make sure the <code className="font-mono">college_reviews</code> table exists in Supabase.
+            </p>
+          )}
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 animate-pulse">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-100 shrink-0" />
+                    <div className="h-3 bg-gray-100 rounded w-24" />
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded w-full mb-1.5" />
+                  <div className="h-3 bg-gray-100 rounded w-3/4" />
+                </div>
+              ))}
+            </div>
+          ) : reviews.length === 0 && !error ? (
+            <div className="flex flex-col items-center text-center py-8">
+              <img src="/assets/empty/review_leaves.svg" alt="" className="w-44 h-auto mb-8 select-none pointer-events-none" draggable={false} />
+              <p className="text-lg font-medium text-gray-400">No reviews yet</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reviews.map((r) => (
+                <CollegeReviewItem key={r.id} review={r} currentUserId={user?.id} currentUserRole={user?.role}
+                  onDelete={onDelete} onHelpful={onHelpful} markingHelpful={markingHelpful.has(r.id)} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CollegeDetailPage() {
@@ -475,8 +750,10 @@ export default function CollegeDetailPage() {
   ];
 
   return (
-    <div className="bg-white min-h-full">
-      <div className="px-6 py-6 max-w-3xl mx-auto">
+    <div className="lg:h-full flex flex-col lg:flex-row bg-gray-50">
+      {/* ── Info column (left) ── */}
+      <div className="flex-1 min-w-0 lg:overflow-y-auto bg-gray-50">
+      <div className="px-6 py-6 max-w-5xl">
         {/* Back */}
         <Link href="/dashboard/research" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#001049] mb-5 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -504,7 +781,7 @@ export default function CollegeDetailPage() {
         </div>
 
         {/* Headline stats */}
-        <section className="pb-2">
+        <section className="pb-5">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-5 gap-x-4">
             {headlineStats.map((s) => <Stat key={s.label} value={s.value} label={s.label} sub={s.sub} />)}
           </div>
@@ -523,9 +800,6 @@ export default function CollegeDetailPage() {
             {(college.completionRate4yr ?? profile?.gradRate) != null && (
               <BigStat value={pct(Math.round((college.completionRate4yr ?? profile?.gradRate ?? 0) * 100))} label="Grad rate (4-yr)"/>
             )}
-            {(college.retentionRate ?? profile?.retentionRate) != null && (
-              <BigStat value={pct(Math.round((college.retentionRate ?? profile?.retentionRate ?? 0) * 100))} label="1-yr retention"/>
-            )}
             <BigStat value={college.internationalPercent != null ? college.internationalPercent + "%" : "N/A"} label="Int'l share of campus"/>
           </div>
         </Section>
@@ -538,12 +812,6 @@ export default function CollegeDetailPage() {
             {(college.ugds ?? profile?.enrollment) != null && <BigStat value={(college.ugds ?? profile?.enrollment ?? 0).toLocaleString()} label="Undergrads"/>}
             {(college.gradStudents ?? profile?.gradStudents) != null && <BigStat value={(college.gradStudents ?? profile?.gradStudents ?? 0).toLocaleString()} label="Grad students"/>}
           </div>
-
-          {(college.testRequirements ?? profile?.testRequirements) != null && (() => {
-            const req = college.testRequirements ?? profile?.testRequirements;
-            const label = req === 1 ? "Tests Required" : req === 2 ? "Tests Recommended" : req === 3 ? "Test-Optional / Test-Free" : "Tests Considered (not required)";
-            return <p className="text-sm text-gray-600 mb-4">Testing policy: <span className="font-semibold text-[#001049]">{label}</span></p>;
-          })()}
 
           {(() => {
             const satAvg   = college.satAvg   ?? profile?.satAvg;
@@ -609,13 +877,6 @@ export default function CollegeDetailPage() {
             {college.countriesRepresented != null && <BigStat value={String(college.countriesRepresented)} label="Countries represented"/>}
             {college.internationalAcceptanceRate != null && <BigStat value={pct(college.internationalAcceptanceRate)} label="Intl accept rate"/>}
           </div>
-
-          <p className="text-sm text-gray-700 leading-relaxed mb-4">
-            {college.type === "public"
-              ? "Public school — international students typically pay full out-of-state tuition. Most state-funded schools are prohibited from giving need-based aid to non-residents; merit scholarships may exist but are limited."
-              : "Private school — institutional aid is generally available to international students. Private colleges set their own aid policies and assess financial need using the CSS Profile or institutional forms."}
-          </p>
-
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
             {([
               { label: "Meets full demonstrated need", active: college.meetsFullDemonstratedNeed },
@@ -688,199 +949,44 @@ export default function CollegeDetailPage() {
           </ul>
         </Section>
 
-        {/* Net Price by Income */}
-        {(college.netPrice0_30k ?? college.netPrice30k_48k ?? college.avgNetPriceOverall) != null && (
-          <Section icon={<IcDollar size={18}/>} title="Net Price by Family Income">
-            <p className="text-xs text-gray-500 mb-4">Average annual net price (tuition + fees + housing − all grants & scholarships) for full-time first-time students by family income.</p>
-            <div className="space-y-3">
-              {([
-                { label: "Under $30k / yr",   value: college.netPrice0_30k },
-                { label: "$30k – $48k / yr",  value: college.netPrice30k_48k },
-                { label: "$48k – $75k / yr",  value: college.netPrice48k_75k },
-                { label: "$75k – $110k / yr", value: college.netPrice75k_110k },
-                { label: "Over $110k / yr",   value: college.netPrice110kPlus },
-              ] as { label: string; value: number | null }[]).map(({ label, value }) => {
-                if (value == null) return null;
-                const maxBracket = Math.max(
-                  college.netPrice0_30k ?? 0, college.netPrice30k_48k ?? 0,
-                  college.netPrice48k_75k ?? 0, college.netPrice75k_110k ?? 0,
-                  college.netPrice110kPlus ?? 0
-                );
-                return (
-                  <div key={label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-gray-600 font-medium">{label}</span>
-                      <span className="font-bold text-[#001049]">${value.toLocaleString()}</span>
-                    </div>
-                    <Bar pct={maxBracket > 0 ? (value / maxBracket) * 100 : 0} />
+        {/* More information elsewhere */}
+        <Section icon={<IcGlobe size={18}/>} title="More Information">
+          <ul className="divide-y divide-gray-100">
+            {([
+              { label: "Niche", desc: "Student reviews, demographics, rankings & grades", domain: "niche.com", href: `https://www.niche.com/colleges/${college.nicheSlug ?? slugify(college.name)}/` },
+              { label: "U.S. News & World Report", desc: "Official rankings & full profile", domain: "usnews.com", href: `https://www.usnews.com/best-colleges/${college.usNewsSlug ?? slugify(college.name)}-${college.id}` },
+              { label: "The Princeton Review", desc: "Campus culture & best-of lists", domain: "princetonreview.com", href: `https://www.princetonreview.com/college-search?name=${encodeURIComponent(college.name)}` },
+              { label: "College Factual", desc: "Major outcomes & earnings data", domain: "collegefactual.com", href: `https://www.collegefactual.com/colleges/${slugify(college.name)}/` },
+              ...(college.website ? [{ label: "Official website", desc: "Admissions, programs & contact", domain: new URL(college.website.startsWith("http") ? college.website : `https://${college.website}`).hostname, href: college.website.startsWith("http") ? college.website : `https://${college.website}` }] : []),
+            ] as { label: string; desc: string; domain: string; href: string }[]).map((l) => (
+              <li key={l.label}>
+                <a href={l.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 py-3 group">
+                  <img
+                    src={`https://www.google.com/s2/favicons?domain=${l.domain}&sz=32`}
+                    alt=""
+                    className="w-6 h-6 rounded shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-[#001049] transition-colors">{l.label}</p>
+                    <p className="text-xs text-gray-400">{l.desc}</p>
                   </div>
-                );
-              })}
-            </div>
-            {college.avgNetPriceOverall != null && (
-              <div className="mt-4 flex justify-between text-sm border-t border-gray-100 pt-3">
-                <span className="text-gray-600 font-medium">Institution-wide avg net price</span>
-                <span className="font-bold text-[#001049]">${college.avgNetPriceOverall.toLocaleString()}</span>
-              </div>
-            )}
-            {college.priceCalculatorUrl && (
-              <a href={college.priceCalculatorUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#001049] hover:underline">
-                <IcExternalLink size={12}/>Calculate your personal net price →
-              </a>
-            )}
-          </Section>
-        )}
-
-        {/* Outcomes & Debt */}
-        <Section icon={<IcTrophy size={18}/>} title="Outcomes & Debt">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-5 gap-x-4 mb-5">
-            {(college.completionRate4yr ?? profile?.gradRate) != null && (
-              <BigStat value={pct(Math.round((college.completionRate4yr ?? profile?.gradRate ?? 0) * 100))} label="Grad rate (4-yr)"/>
-            )}
-            {(college.retentionRate ?? profile?.retentionRate) != null && (
-              <BigStat value={pct(Math.round((college.retentionRate ?? profile?.retentionRate ?? 0) * 100))} label="1-yr retention"/>
-            )}
-            {college.averageStartingSalary != null && (
-              <BigStat value={"$" + Math.round(college.averageStartingSalary / 1000) + "k"} label="Earnings (10yr median)"/>
-            )}
-            {(college.defaultRate3yr ?? profile?.defaultRate3yr) != null && (
-              <BigStat value={pct(Math.round((college.defaultRate3yr ?? profile?.defaultRate3yr ?? 0) * 100))} label="3-yr default rate"/>
-            )}
-          </div>
-
-          {(college.medianDebtCompleters ?? profile?.medianDebtCompleters) != null && (
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Debt at Graduation</p>
-              <ul className="divide-y divide-gray-100">
-                {(college.medianDebtCompleters ?? profile?.medianDebtCompleters) != null && (
-                  <li className="flex items-center justify-between py-2.5 text-sm"><span className="text-gray-600">Median debt (completers)</span><span className="font-bold text-[#001049]">{fmt(college.medianDebtCompleters ?? profile?.medianDebtCompleters ?? 0)}</span></li>
-                )}
-                {(college.medianDebtMonthly ?? profile?.medianDebtMonthly) != null && (
-                  <li className="flex items-center justify-between py-2.5 text-sm"><span className="text-gray-600">Est. monthly payment</span><span className="font-bold text-[#001049]">${Math.round(college.medianDebtMonthly ?? profile?.medianDebtMonthly ?? 0)}/mo</span></li>
-                )}
-                {(college.pellGrantRate ?? profile?.pellGrantRate) != null && (
-                  <li className="flex items-center justify-between py-2.5 text-sm"><span className="text-gray-600">Share with Pell Grant</span><span className="font-bold text-[#001049]">{pct(Math.round((college.pellGrantRate ?? profile?.pellGrantRate ?? 0) * 100))}</span></li>
-                )}
-                {(college.federalLoanRate ?? profile?.federalLoanRate) != null && (
-                  <li className="flex items-center justify-between py-2.5 text-sm"><span className="text-gray-600">Share taking federal loans</span><span className="font-bold text-[#001049]">{pct(Math.round((college.federalLoanRate ?? profile?.federalLoanRate ?? 0) * 100))}</span></li>
-                )}
-              </ul>
-            </div>
-          )}
-
-          {(college.debt90th ?? profile?.debt90th) != null && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Cumulative Debt Distribution</p>
-              <div className="space-y-2.5">
-                {([
-                  { label: "10th pct", value: college.debt10th ?? profile?.debt10th },
-                  { label: "25th pct", value: college.debt25th ?? profile?.debt25th },
-                  { label: "75th pct", value: college.debt75th ?? profile?.debt75th },
-                  { label: "90th pct", value: college.debt90th ?? profile?.debt90th },
-                ] as { label: string; value: number | null }[]).filter(d => d.value != null).map(({ label, value }) => {
-                  const maxDebt = college.debt90th ?? profile?.debt90th ?? 1;
-                  return (
-                    <div key={label} className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500 w-14 shrink-0 text-right">{label}</span>
-                      <div className="flex-1"><Bar pct={(value! / maxDebt) * 100} /></div>
-                      <span className="text-xs font-semibold text-gray-700 w-16 shrink-0">{fmt(value!)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                  <span className="text-gray-300 group-hover:text-[#001049] shrink-0 transition-colors"><IcExternalLink size={15}/></span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </Section>
 
-        {/* Institution Profile */}
-        <Section icon={<IcBuilding size={18}/>} title="Institution Profile">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
-            {(college.accreditor ?? profile?.accreditor) && (
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-100 text-sm"><span className="text-gray-500">Accreditor</span><span className="font-medium text-gray-800 text-right">{college.accreditor ?? profile?.accreditor}</span></div>
-            )}
-            {(college.carnegieBasic ?? profile?.carnegieBasic) != null && (() => {
-              const cb = college.carnegieBasic ?? profile?.carnegieBasic;
-              const label = cb === 15 ? "R1 – Doctoral (Very High Research)" : cb === 16 ? "R2 – Doctoral (High Research)" : cb === 17 ? "Doctoral/Professional" : cb === 18 ? "Master's (Large)" : cb === 19 ? "Master's (Medium)" : cb === 20 ? "Master's (Small)" : cb === 21 ? "Baccalaureate (Arts & Sciences)" : cb === 22 ? "Baccalaureate (Diverse)" : cb === 23 ? "Baccalaureate/Associate's" : `Carnegie Class ${cb}`;
-              return <div className="flex items-center justify-between py-2.5 border-b border-gray-100 text-sm"><span className="text-gray-500">Carnegie Class</span><span className="font-medium text-gray-800 text-right">{label}</span></div>;
-            })()}
-            {(college.endowment ?? profile?.endowment) != null && (
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-100 text-sm"><span className="text-gray-500">Endowment</span><span className="font-medium text-gray-800">{(college.endowment ?? profile?.endowment)! >= 1e9 ? `$${((college.endowment ?? profile?.endowment)! / 1e9).toFixed(1)}B` : `$${Math.round((college.endowment ?? profile?.endowment)! / 1e6)}M`}</span></div>
-            )}
-            {(college.facultySalary ?? profile?.facultySalary) != null && (
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-100 text-sm"><span className="text-gray-500">Avg Faculty Salary</span><span className="font-medium text-gray-800">${Math.round((college.facultySalary ?? profile?.facultySalary ?? 0)).toLocaleString()}/mo</span></div>
-            )}
-            {(college.ftFacultyRate ?? profile?.ftFacultyRate) != null && (
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-100 text-sm"><span className="text-gray-500">Full-time Faculty</span><span className="font-medium text-gray-800">{pct(Math.round((college.ftFacultyRate ?? profile?.ftFacultyRate ?? 0) * 100))}</span></div>
-            )}
-            {(college.minorityServing.hispanic || college.minorityServing.annh || college.minorityServing.tribal || college.minorityServing.aanipi) && (
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-100 text-sm"><span className="text-gray-500">Minority-Serving</span><span className="font-medium text-gray-800 text-right">{[college.minorityServing.hispanic && "HSI", college.minorityServing.annh && "ANNH", college.minorityServing.tribal && "Tribal", college.minorityServing.aanipi && "AANIPI"].filter(Boolean).join(" · ")}</span></div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-5 gap-x-4 mt-5">
-            {(college.shareFirstGen ?? profile?.shareFirstGen) != null && (
-              <BigStat value={pct(Math.round((college.shareFirstGen ?? profile?.shareFirstGen ?? 0) * 100))} label="First-gen students"/>
-            )}
-            {(college.shareLowIncome ?? profile?.shareLowIncome) != null && (
-              <BigStat value={pct(Math.round((college.shareLowIncome ?? profile?.shareLowIncome ?? 0) * 100))} label="Low income (<$30k)"/>
-            )}
-            {(college.sharePartTime ?? profile?.partTimeShare) != null && (
-              <BigStat value={pct(Math.round((college.sharePartTime ?? profile?.partTimeShare ?? 0) * 100))} label="Part-time students"/>
-            )}
-            {(college.share25Older ?? profile?.share25Older) != null && (
-              <BigStat value={pct(Math.round((college.share25Older ?? profile?.share25Older ?? 0) * 100))} label="Age 25+"/>
-            )}
-          </div>
-        </Section>
-
-        {/* Demographics */}
-        <Section icon={<IcUsers size={18}/>} title="Campus Demographics">
-          {(college.demoMen ?? profile?.menShare) != null && (
-            <div className="mb-4 space-y-1.5">
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Gender split</span>
-                <span className="font-bold text-[#001049]">{Math.round((college.demoMen ?? profile?.menShare ?? 0) * 100)}% M · {Math.round((college.demoWomen ?? profile?.womenShare ?? 0) * 100)}% W</span>
-              </div>
-              <div className="h-2.5 rounded-full overflow-hidden flex bg-gray-100">
-                <div className="h-full bg-[#001049]" style={{ width: `${Math.round((college.demoMen ?? profile?.menShare ?? 0) * 100)}%` }}/>
-                <div className="h-full bg-gray-300 flex-1"/>
-              </div>
-              <div className="flex justify-between text-[10px] text-gray-400"><span>Men</span><span>Women</span></div>
-            </div>
-          )}
-
-          {(college.demoWhite ?? profile?.demoWhite) != null && (() => {
-            const races = [
-              { label: "White",            value: college.demoWhite          ?? profile?.demoWhite },
-              { label: "Asian",            value: college.demoAsian          ?? profile?.demoAsian },
-              { label: "Hispanic/Latino",  value: college.demoHispanic       ?? profile?.demoHispanic },
-              { label: "Black/Afr. Am.",   value: college.demoBlack          ?? profile?.demoBlack },
-              { label: "Two or more",      value: college.demoTwoOrMore      ?? profile?.demoTwoOrMore },
-              { label: "Intl. students",   value: college.demoNonResidentAlien ?? profile?.demoNonResidentAlien },
-            ].filter(r => r.value != null && r.value > 0);
-            return (
-              <div className="mt-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Race & Ethnicity</p>
-                <div className="space-y-2.5">
-                  {races.map(({ label, value }) => (
-                    <div key={label}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-gray-600 font-medium">{label}</span>
-                        <span className="font-bold text-gray-800">{Math.round((value ?? 0) * 100)}%</span>
-                      </div>
-                      <Bar pct={(value ?? 0) * 100} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-        </Section>
-
-        <p className="text-xs text-gray-400 pt-6 pb-2 leading-relaxed border-t-2 border-gray-200">
-          Data: US Dept of Education College Scorecard · Common Data Set · IPEDS.
-          Aid figures are averages — verify with each school&apos;s official net-price calculator.
+        <p className="text-xs text-gray-400 pt-5 pb-2 leading-relaxed border-t-2 border-gray-300">
+          Data sourced from 2024 College Scorecard, Common Data Set, and IPEDS. Figures such as tuition, aid, and acceptance rates may change year to year — verify with each school&apos;s official website.
         </p>
       </div>
+      </div>
+
+      {/* ── Reviews column (right) ── */}
+      <aside className="w-full lg:w-[520px] shrink-0 border-t-2 lg:border-t-0 lg:border-l-2 border-gray-300">
+        <CollegeReviewsColumn collegeId={unitid} collegeName={college.name} />
+      </aside>
     </div>
   );
 }

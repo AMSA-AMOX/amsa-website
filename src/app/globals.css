@@ -77,6 +77,12 @@
   display: none;
 }
 
+/* Dashboard-scoped button radius — unlayered so it wins over Tailwind utilities */
+.dashboard button,
+.dashboard a {
+  border-radius: 0.25rem;
+}
+
 @keyframes float-bob {
   0%, 100% { transform: rotate(-6deg) translateY(0px); }
   50%       { transform: rotate(-6deg) translateY(-14px); }

@@ -16,31 +16,66 @@ import { STATE_DATA, FIPS_TO_ABBR } from "./state-data";
 // usable because schools that DO have categories will match these options.
 
 const STANDARD_FIELDS = [
+  "Accounting",
   "Agriculture",
+  "Anthropology",
   "Architecture",
   "Area and Ethnic Studies",
   "Arts and Design",
+  "Biochemistry",
   "Biology",
   "Business",
+  "Chemistry",
+  "Civil Engineering",
   "Communication and Journalism",
+  "Computer Engineering",
   "Computer Science",
+  "Criminal Justice",
+  "Cybersecurity",
+  "Data Science",
+  "Economics",
   "Education",
+  "Electrical Engineering",
   "Engineering",
   "English",
+  "Environmental Science",
+  "Film and Media Studies",
+  "Finance",
+  "Geography",
   "Health and Nursing",
   "History",
+  "Hospitality and Tourism",
+  "Information Technology",
   "Interdisciplinary Studies",
+  "International Relations",
+  "Kinesiology",
   "Languages",
   "Legal Studies",
   "Liberal Arts",
+  "Linguistics",
+  "Marketing",
   "Math and Statistics",
+  "Mechanical Engineering",
   "Music",
   "Natural Resources",
+  "Neuroscience",
+  "Performing Arts",
+  "Pharmacy",
   "Philosophy and Religion",
   "Physical Sciences",
+  "Physics",
+  "Political Science",
   "Psychology",
   "Public Administration",
+  "Public Health",
   "Social Sciences",
+  "Social Work",
+  "Sociology",
+  "Software Engineering",
+  "Statistics",
+  "Theater and Dance",
+  "Urban Planning",
+  "Veterinary Science",
 ] as const;
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -75,26 +110,23 @@ function USIntlDotMap({
         ? rawStates
         : { type: "FeatureCollection", features: [rawStates] };
 
-    // geoAlbersUsa() natively positions Alaska as an inset, so we keep FIPS "02".
-    // Hawaii ("15") and Puerto Rico ("72") remain excluded.
-    const contiguous: GeoJSON.FeatureCollection = {
+    // geoAlbersUsa() natively positions Alaska and Hawaii as insets (FIPS "02"
+    // and "15"). Only Puerto Rico ("72") is excluded.
+    const mapFeatures: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
-      features: allStates.features.filter((f) => {
-        const id = String(f.id ?? "");
-        return id !== "15" && id !== "72";
-      }),
+      features: allStates.features.filter((f) => String(f.id ?? "") !== "72"),
     };
 
-    const projection = geoAlbersUsa().fitSize([MAP_WIDTH, MAP_HEIGHT], contiguous);
+    const projection = geoAlbersUsa().fitSize([MAP_WIDTH, MAP_HEIGHT], mapFeatures);
     const pathBuilder = geoPath(projection);
 
-    const shapes = contiguous.features.map((f) => ({
+    const shapes = mapFeatures.features.map((f) => ({
       fipsId: String(f.id ?? ""),
       abbr: FIPS_TO_ABBR[String(f.id ?? "")] ?? "",
       path: pathBuilder(f) ?? "",
     }));
 
-    const centroids = contiguous.features
+    const centroids = mapFeatures.features
       .map((f) => {
         const fipsId = String(f.id ?? "");
         const abbr = FIPS_TO_ABBR[fipsId];
@@ -159,8 +191,9 @@ function USIntlDotMap({
         }}
       >
         <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} className="w-full h-auto block">
-          {/* State shapes */}
+          {/* State shapes (DC is rendered as an external callout below) */}
           {stateShapes.map((state) => {
+            if (state.abbr === "DC") return null;
             const isSelected = state.abbr === selectedState;
             const isHovered = state.abbr === hoveredState;
             const hasColleges = collegesByState.has(state.abbr);
@@ -192,6 +225,7 @@ function USIntlDotMap({
 
           {/* State abbreviation labels */}
           {stateCentroids.map(({ abbr, cx, cy }) => {
+            if (abbr === "DC") return null;
             const hasColleges = collegesByState.has(abbr);
             const isSelected = abbr === selectedState;
             return (
@@ -215,6 +249,78 @@ function USIntlDotMap({
               </text>
             );
           })}
+
+          {/* DC — too small to click in place, so pull it out as a labeled callout */}
+          {(() => {
+            const dc = stateCentroids.find((c) => c.abbr === "DC");
+            if (!dc) return null;
+            const hasColleges = collegesByState.has("DC");
+            const isSelected = selectedState === "DC";
+            const isHovered = hoveredState === "DC";
+            const boxW = 34;
+            const boxH = 20;
+            const boxCx = MAP_WIDTH - 22;
+            const boxCy = dc.cy;
+            const boxX = boxCx - boxW / 2;
+            const boxY = boxCy - boxH / 2;
+            return (
+              <g
+                style={{ cursor: hasColleges ? "pointer" : "default" }}
+                onMouseEnter={() => hasColleges && setHoveredState("DC")}
+                onMouseLeave={() => setHoveredState(null)}
+                onClick={() => { if (hasColleges) onSelectState(isSelected ? null : "DC"); }}
+              >
+                {/* Leader line from the real location to the callout */}
+                <line
+                  x1={dc.cx}
+                  y1={dc.cy}
+                  x2={boxX}
+                  y2={boxCy}
+                  stroke="rgba(0, 16, 73, 0.35)"
+                  strokeWidth={0.7}
+                />
+                {/* Anchor dot at DC's true location */}
+                <circle cx={dc.cx} cy={dc.cy} r={2.2} fill={hasColleges ? "rgba(0, 16, 73, 0.55)" : "rgba(0, 16, 73, 0.25)"} />
+                {/* Callout box */}
+                <rect
+                  x={boxX}
+                  y={boxY}
+                  width={boxW}
+                  height={boxH}
+                  rx={5}
+                  fill={
+                    isSelected
+                      ? "rgba(0, 16, 73, 0.28)"
+                      : isHovered
+                      ? "rgba(0, 16, 73, 0.16)"
+                      : hasColleges
+                      ? "rgba(0, 16, 73, 0.09)"
+                      : "rgba(31, 42, 125, 0.04)"
+                  }
+                  stroke={isSelected ? "rgba(0, 16, 73, 0.5)" : "rgba(31, 42, 125, 0.3)"}
+                  strokeWidth={isSelected ? 1.2 : 0.7}
+                  style={{ transition: "fill 100ms" }}
+                />
+                <text
+                  x={boxCx}
+                  y={boxCy + 3.5}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontWeight={hasColleges ? 600 : 400}
+                  fill={
+                    isSelected
+                      ? "rgba(0, 16, 73, 0.75)"
+                      : hasColleges
+                      ? "rgba(0, 16, 73, 0.55)"
+                      : "rgba(0, 16, 73, 0.25)"
+                  }
+                  style={{ pointerEvents: "none", userSelect: "none", fontFamily: "sans-serif" }}
+                >
+                  DC
+                </text>
+              </g>
+            );
+          })()}
         </svg>
 
         {/* Hover tooltip — follows the cursor */}
@@ -533,19 +639,27 @@ function Slider({
   format: (v: number) => string;
   onChange: (v: number) => void;
 }) {
+  const [localValue, setLocalValue] = useState(value);
+
+  // Keep local value in sync when parent resets filters
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-sm text-gray-500 font-medium">{label}</span>
-        <span className="text-sm font-semibold text-[#001049]">{format(value)}</span>
+        <span className="text-sm font-semibold text-[#001049]">{format(localValue)}</span>
       </div>
       <input
         type="range"
         min={min}
         max={max}
         step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        value={localValue}
+        onChange={(e) => setLocalValue(Number(e.target.value))}
+        onPointerUp={(e) => onChange(Number((e.target as HTMLInputElement).value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{ accentColor: "#001049" }}
       />
