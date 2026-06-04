@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { geoAlbersUsa, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import usAtlas from "us-atlas/states-10m.json";
@@ -386,9 +386,9 @@ function ScoreBadge({ score }: { score: number }) {
       : "bg-red-50 border-red-300 text-red-600";
   return (
     <div
-      title="Financial Accessibility Score (0–100): AMSA's combined measure of cost and aid generosity toward international students. Higher is more affordable. Schools are sorted by this by default."
-      aria-label="Financial Accessibility Score"
-      className={`flex flex-col items-center justify-center w-16 h-16 rounded-2xl border-2 shrink-0 cursor-help ${color}`}
+      title="Financial Aid Score"
+      aria-label="Financial Aid Score"
+      className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg border-2 shrink-0 ${color}`}
     >
       <span className="text-xl font-bold leading-none">{score}</span>
       <span className="text-xs font-semibold uppercase tracking-widest mt-0.5 opacity-60">
@@ -402,7 +402,7 @@ function SchoolLogo({ college }: { college: College }) {
   const [broken, setBroken] = useState(false);
   if (!college.logoUrl || broken) {
     return (
-      <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
+      <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
         {college.name.slice(0, 2).toUpperCase()}
       </div>
     );
@@ -411,7 +411,7 @@ function SchoolLogo({ college }: { college: College }) {
     <img
       src={college.logoUrl}
       alt={`${college.name} logo`}
-      className="w-10 h-10 rounded-lg object-contain bg-white border border-gray-200 p-1 shrink-0"
+      className="w-16 h-16 rounded-lg object-contain shrink-0"
       onError={() => setBroken(true)}
       loading="lazy"
       referrerPolicy="no-referrer"
@@ -543,7 +543,10 @@ function CollegeCard({
                 {TYPE_LABEL[college.type]}
               </span>
               {college.nationalRank != null && (
-                <BadgePill label={`US Rank #${college.nationalRank}`} color="navy" />
+                <BadgePill
+                  label={`US Rank #${college.nationalRank}`}
+                  color="navy"
+                />
               )}
             </div>
             <h2 className="text-[15px] font-bold text-[#001049] mt-1 leading-snug flex items-center gap-1.5">
@@ -805,7 +808,19 @@ function FilterDropdown({
   fieldOptions: string[];
 }) {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const set = <K extends keyof Filters>(k: K, v: Filters[K]) => onChange({ ...filters, [k]: v });
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open]);
   const sortedFieldOptions = useMemo(
     () => fieldOptions.filter((f) => f !== "Any").sort((a, b) => a.localeCompare(b)),
     [fieldOptions]
@@ -813,7 +828,8 @@ function FilterDropdown({
 
   const activeCount =
     (filters.selectedField !== "Any" ? 1 : 0) +
-    (filters.sortBy !== "ranking" ? 1 : 0) +
+    (filters.sortBy !== "ranking" && filters.sortBy !== "lac_ranking" ? 1 : 0) +
+    (filters.schoolCategory !== "all" ? 1 : 0) +
     (filters.offersAidOnly ? 1 : 0) +
     (filters.meetsFullNeedOnly ? 1 : 0) +
     (filters.meritScholarshipsOnly ? 1 : 0) +
@@ -824,7 +840,7 @@ function FilterDropdown({
     (filters.minInternationalPercent > 0 ? 1 : 0);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -861,8 +877,23 @@ function FilterDropdown({
               onChange={(e) => set("sortBy", e.target.value as Filters["sortBy"])}
               className="w-full rounded-xl border-2 border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
             >
-              <option value="ranking">US National Ranking</option>
+              <option value="ranking">National University Ranking</option>
+              <option value="lac_ranking">National Liberal Arts College Ranking</option>
               <option value="affordability">Financial Accessibility Score</option>
+            </select>
+          </div>
+
+          {/* School category */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">School category</p>
+            <select
+              value={filters.schoolCategory}
+              onChange={(e) => set("schoolCategory", e.target.value as Filters["schoolCategory"])}
+              className="w-full rounded-xl border-2 border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
+            >
+              <option value="all">All schools</option>
+              <option value="national_universities">National Universities</option>
+              <option value="liberal_arts_colleges">National Liberal Arts Colleges</option>
             </select>
           </div>
 
@@ -1077,6 +1108,10 @@ export default function ResearchPage() {
             return false;
           }
         }
+        if (filters.sortBy === "ranking"     && c.type === "liberal_arts") return false;
+        if (filters.sortBy === "lac_ranking" && c.type !== "liberal_arts") return false;
+        if (filters.schoolCategory === "national_universities" && c.type === "liberal_arts") return false;
+        if (filters.schoolCategory === "liberal_arts_colleges" && c.type !== "liberal_arts") return false;
         if (filters.searchQuery.trim()) {
           const q = filters.searchQuery.toLowerCase().trim();
           const haystack = `${c.name} ${c.location} ${c.state}`.toLowerCase();
@@ -1085,7 +1120,7 @@ export default function ResearchPage() {
         return true;
       })
       .sort((a, b) => {
-        if (filters.sortBy === "ranking") {
+        if (filters.sortBy === "ranking" || filters.sortBy === "lac_ranking") {
           const ar = a.nationalRank ?? Number.MAX_SAFE_INTEGER;
           const br = b.nationalRank ?? Number.MAX_SAFE_INTEGER;
           return ar - br;

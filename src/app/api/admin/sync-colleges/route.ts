@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken, assertRole } from "@/lib/auth";
+import { USNEWS_RANKS, USNEWS_LAC_IDS } from "@/data/usnews-rankings";
 
 const API_KEY  = process.env.COLLEGE_SCORECARD_API_KEY;
 const BASE_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
@@ -274,11 +275,42 @@ export async function POST(req: NextRequest) {
       await new Promise((r) => setTimeout(r, 300));
     }
 
+    // 1b. Second pass: fetch any LAC schools missed by the admission-rate filter
+    const fetchedIds = new Set(all.map((r) => Number(r["id"])));
+    const missingLACIds = Array.from(USNEWS_LAC_IDS).filter((id) => !fetchedIds.has(id));
+
+    if (missingLACIds.length > 0) {
+      const LAC_BATCH = 100;
+      for (let i = 0; i < missingLACIds.length; i += LAC_BATCH) {
+        const batch = missingLACIds.slice(i, i + LAC_BATCH);
+        try {
+          const lacParams = new URLSearchParams({
+            api_key:  API_KEY!,
+            fields:   FIELDS,
+            "school.operating": "1",
+            per_page: String(batch.length),
+            page:     "0",
+          });
+          lacParams.set("id", batch.join(","));
+          const res = await fetch(`${BASE_URL}?${lacParams}`, {
+            headers: { "User-Agent": "AMSA-Admin/1.0" },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            all.push(...(data.results ?? []));
+          }
+        } catch { /* ignore individual batch failures */ }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+
     // 2. Build DB rows
     const now = new Date().toISOString();
     const rows = all
       .filter((r) => r["id"] && r["school.name"])
       .filter((r) => {
+        // Always include LAC schools regardless of international student share
+        if (USNEWS_LAC_IDS.has(Number(r["id"]))) return true;
         // Post-filter: ≥1% international students (null = suppressed → keep)
         const nra = num(r, "latest.student.demographics.share_nonresident_alien");
         return nra === null || nra >= 0.01;
@@ -383,14 +415,10 @@ export async function POST(req: NextRequest) {
           major_categories:       majorCats(r),
           // Computed
           academic_strength:      academicStrength(r),
-          national_rank:          null as number | null,
+          national_rank:          USNEWS_RANKS[Number(r["id"])] ?? null,
           updated_at:             now,
         };
       });
-
-    // 3. Assign national ranks by academic_strength (highest = rank 1)
-    const sorted = [...rows].sort((a, b) => b.academic_strength - a.academic_strength);
-    sorted.forEach((row, idx) => { row.national_rank = idx + 1; });
 
     // 4. Upsert in batches of 100
     const BATCH = 100;

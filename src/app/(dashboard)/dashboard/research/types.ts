@@ -142,7 +142,8 @@ export interface Filters {
   minInternationalPercent: number; // 0–30
   stemOptOnly: boolean;
   selectedField: string;
-  sortBy: "affordability" | "ranking";
+  sortBy: "affordability" | "ranking" | "lac_ranking";
+  schoolCategory: "all" | "national_universities" | "liberal_arts_colleges";
   searchQuery: string;
 }
 
@@ -157,5 +158,6 @@ export const DEFAULT_FILTERS: Filters = {
   stemOptOnly: false,
   selectedField: "Any",
   sortBy: "ranking",
+  schoolCategory: "all",
   searchQuery: "",
 };

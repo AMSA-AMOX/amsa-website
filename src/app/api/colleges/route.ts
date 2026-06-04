@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { College, MeritScholarship } from "@/app/(dashboard)/dashboard/research/types";
+import { USNEWS_LAC_IDS } from "@/data/usnews-rankings";
 
 // ─── DB row types ─────────────────────────────────────────────────────────────
 
@@ -279,7 +280,7 @@ function merge(
     name: base.name,
     state:    base.state ?? "",
     zip:      base.zip ?? null,
-    type:     isPublic ? "public" : "private",
+    type:     USNEWS_LAC_IDS.has(base.unitid) ? "liberal_arts" : isPublic ? "public" : "private",
     location: base.city ? `${base.city}, ${base.state ?? ""}` : (base.state ?? ""),
     locale:   base.locale ?? null,
     website:  base.school_url ?? null,
@@ -417,22 +418,11 @@ export async function GET() {
 
   const unitIds = (baseRows as CollegesBaseRow[]).map((r) => r.unitid);
 
-  // Build rank map: persisted national_rank → sequential display rank
+  // Use persisted US News national_rank directly (null = unranked, no badge shown)
   const nationalRankMap = new Map<number, number>();
-  const ranked   = (baseRows as CollegesBaseRow[]).filter((r) => r.national_rank != null);
-  const unranked = (baseRows as CollegesBaseRow[]).filter((r) => r.national_rank == null);
-
-  if (ranked.length > 0) {
-    ranked
-      .sort((a, b) => (a.national_rank ?? 9999) - (b.national_rank ?? 9999));
-    unranked
-      .sort((a, b) => computeAcademicStrength(b) - computeAcademicStrength(a));
-    [...ranked, ...unranked].forEach((s, i) => nationalRankMap.set(s.unitid, i + 1));
-  } else {
-    [...(baseRows as CollegesBaseRow[])]
-      .sort((a, b) => computeAcademicStrength(b) - computeAcademicStrength(a))
-      .forEach((s, i) => nationalRankMap.set(s.unitid, i + 1));
-  }
+  (baseRows as CollegesBaseRow[]).forEach((s) => {
+    if (s.national_rank != null) nationalRankMap.set(s.unitid, s.national_rank);
+  });
 
   // Load all data sources in parallel
   const [aidResult, ipedsResult, sfaResult] = await Promise.all([

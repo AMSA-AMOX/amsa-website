@@ -69,6 +69,8 @@ export default function AdminMembersPage() {
   const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [updatingRanks, setUpdatingRanks] = useState(false);
+  const [ranksResult, setRanksResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -137,6 +139,19 @@ export default function AdminMembersPage() {
     }
   };
 
+  const handleUpdateRanks = async () => {
+    setUpdatingRanks(true);
+    setRanksResult(null);
+    try {
+      const data = await authFetch("/api/admin/update-ranks", { method: "POST" });
+      setRanksResult({ ok: true, message: `Rankings updated — ${data.ranked} schools ranked.` });
+    } catch (e: any) {
+      setRanksResult({ ok: false, message: e?.message ?? "Update failed." });
+    } finally {
+      setUpdatingRanks(false);
+    }
+  };
+
   const handleImportIpeds = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -194,6 +209,29 @@ export default function AdminMembersPage() {
               )}
               <input type="file" accept=".csv" className="hidden" onChange={handleImportIpeds}/>
             </label>
+            {/* Update Rankings */}
+            <button
+              onClick={handleUpdateRanks}
+              disabled={updatingRanks}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#001049] text-[#001049] text-sm font-semibold hover:bg-[#001049]/5 disabled:opacity-50 transition"
+            >
+              {updatingRanks ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Updating…
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                  </svg>
+                  Update Rankings
+                </>
+              )}
+            </button>
             {/* Sync Colleges */}
             <button
               onClick={handleSyncColleges}
@@ -221,6 +259,11 @@ export default function AdminMembersPage() {
             {importResult && (
               <p className={`text-xs font-medium ${importResult.ok ? "text-green-600" : "text-red-600"}`}>
                 {importResult.message}
+              </p>
+            )}
+            {ranksResult && (
+              <p className={`text-xs font-medium ${ranksResult.ok ? "text-green-600" : "text-red-600"}`}>
+                {ranksResult.message}
               </p>
             )}
             {syncResult && (

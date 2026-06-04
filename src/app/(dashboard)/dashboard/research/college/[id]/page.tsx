@@ -168,106 +168,19 @@ function ScoreRange({ label, lo, hi, min = 200, max = 800 }: {
   );
 }
 
-// ─── College photo: Pexels campus search + Wikipedia fallback ──────────────────
-
-type CPhoto = { id: number; thumb: string; large: string; photographer: string; photographerUrl: string; alt: string };
-
-function useCollegePhotos(name: string) {
-  const [photos, setPhotos] = useState<CPhoto[]>([]);
-  const [wikiThumb, setWikiThumb] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!name) return;
-    setLoading(true);
-    fetch(`/api/college-photos?name=${encodeURIComponent(name)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.photos?.length) {
-          setPhotos(d.photos);
-          setLoading(false);
-        } else {
-          return fetch(
-            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`,
-            { headers: { "Api-User-Agent": "amsa-website/1.0" } }
-          )
-            .then((r) => (r.ok ? r.json() : null))
-            .then((d) => {
-              if (d?.thumbnail?.source) setWikiThumb(d.thumbnail.source.replace(/\/\d+px-/, "/800px-"));
-              setLoading(false);
-            });
-        }
-      })
-      .catch(() => setLoading(false));
-  }, [name]);
-
-  return { photos, wikiThumb, loading };
-}
-
-function CollegeWikiPhoto({ name }: { name: string }) {
-  const { photos, wikiThumb, loading } = useCollegePhotos(name);
-  const [idx, setIdx] = useState(0);
-  const [lightbox, setLightbox] = useState<CPhoto | string | null>(null);
-
-  if (loading) return <div className="aspect-video bg-gray-100 animate-pulse rounded-lg" />;
-
-  if (photos.length > 0) {
-    const photo = photos[idx];
-    return (
-      <div className="flex flex-col gap-2">
-        <button type="button" onClick={() => setLightbox(photo)} className="w-full rounded-lg overflow-hidden focus:outline-none cursor-zoom-in">
-          <img src={photo.large} alt={photo.alt} className="w-full h-auto block" loading="lazy" />
-        </button>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1 overflow-x-auto pb-0.5 flex-1">
-            {photos.slice(0, 8).map((p, i) => (
-              <button key={p.id} type="button" onClick={() => setIdx(i)}
-                className={`shrink-0 w-10 h-7 rounded-md overflow-hidden border transition-all ${i === idx ? "border-[#001049] opacity-100" : "border-transparent opacity-50 hover:opacity-80"}`}>
-                <img src={p.thumb} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-          <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="shrink-0 text-[10px] text-gray-300 hover:text-gray-500 transition-colors">via Pexels</a>
-        </div>
-        {lightbox && typeof lightbox === "object" && "large" in lightbox && (
-          <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-            <div className="relative max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
-              <img src={(lightbox as CPhoto).large} alt={(lightbox as CPhoto).alt} className="w-full h-auto rounded-2xl shadow-2xl" />
-              <p className="text-white/50 text-xs mt-2 text-right">
-                Photo by <a href={(lightbox as CPhoto).photographerUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-white" onClick={(e) => e.stopPropagation()}>{(lightbox as CPhoto).photographer}</a> on Pexels
-              </p>
-              <button type="button" onClick={() => setLightbox(null)} className="absolute -top-3 -right-3 bg-white text-[#001049] rounded-full w-8 h-8 flex items-center justify-center shadow-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (wikiThumb) {
-    return (
-      <div className="flex flex-col gap-2">
-        <button type="button" onClick={() => setLightbox(wikiThumb)} className="w-full rounded-lg overflow-hidden focus:outline-none cursor-zoom-in">
-          <img src={wikiThumb} alt={name} className="w-full h-auto block" loading="lazy" />
-        </button>
-        <a href={`https://en.wikipedia.org/wiki/${encodeURIComponent(name)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-400 hover:text-gray-600 text-center transition-colors">via Wikipedia</a>
-        {lightbox && typeof lightbox === "string" && (
-          <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-            <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-              <img src={lightbox} alt={name} className="w-full h-auto rounded-2xl shadow-2xl" />
-              <button type="button" onClick={() => setLightbox(null)} className="absolute -top-3 -right-3 bg-white text-[#001049] rounded-full w-8 h-8 flex items-center justify-center shadow-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return null;
+function CollegeWikiPhoto({ name, location }: { name: string; location: string }) {
+  const q = encodeURIComponent(`${name}, ${location}`);
+  return (
+    <div className="w-full rounded-lg overflow-hidden border border-gray-200">
+      <iframe
+        src={`https://maps.google.com/maps?q=${q}&output=embed`}
+        className="w-full h-80 border-0"
+        loading="lazy"
+        title={`Map of ${name}`}
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+    </div>
+  );
 }
 
 // ─── Students & posts (inline, single column) ─────────────────────────────────
@@ -735,8 +648,8 @@ export default function CollegeDetailPage() {
 
   // Header meta line (plain text, no pills).
   const meta = [
-    college.type === "public" ? "Public" : "Private",
-    college.nationalRank != null ? `#${college.nationalRank} US Ranking` : null,
+    college.type === "public" ? "Public" : college.type === "liberal_arts" ? "Liberal Arts" : "Private",
+    college.nationalRank != null ? `US Rank #${college.nationalRank}` : null,
     college.stemOptEligible ? "STEM OPT eligible" : null,
     college.meetsFullDemonstratedNeed ? "Meets full need" : null,
     college.noLoanPolicy ? "No loans" : null,
@@ -777,7 +690,7 @@ export default function CollegeDetailPage() {
 
         {/* Campus photo */}
         <div className="mb-6">
-          <CollegeWikiPhoto name={college.name} />
+          <CollegeWikiPhoto name={college.name} location={college.location} />
         </div>
 
         {/* Headline stats */}

@@ -1192,6 +1192,7 @@ export default function DashboardPage() {
                     if (tab === "posts" && !postsLoaded) loadOwnPosts();
                     if (tab === "threads" && !threadsLoaded) loadOwnThreads();
                   }}
+                  style={{ borderRadius: 0 }}
                   className={`py-3.5 text-base font-semibold border-b-2 transition-colors -mb-px ${
                     activeTab === tab
                       ? "border-[#001049] text-[#001049]"

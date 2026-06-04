@@ -674,6 +674,7 @@ export default function NetworkProfilePage() {
                 key={tab}
                 type="button"
                 onClick={() => handleTabChange(tab)}
+                style={{ borderRadius: 0 }}
                 className={`py-3.5 text-base font-semibold border-b-2 transition-colors capitalize -mb-px ${
                   activeTab === tab
                     ? "border-[#001049] text-[#001049]"

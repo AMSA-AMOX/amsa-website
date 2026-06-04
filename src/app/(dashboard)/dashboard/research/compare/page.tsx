@@ -82,7 +82,7 @@ function SchoolCell({ college }: { college: College }) {
         <img
           src={college.logoUrl}
           alt={college.name}
-          className="w-7 h-7 border border-gray-200 bg-white object-contain p-0.5 shrink-0"
+          className="w-9 h-9 bg-white object-contain rounded-sm shrink-0"
           onError={() => setBroken(true)}
         />
       ) : (
