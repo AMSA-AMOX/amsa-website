@@ -11,4 +11,4 @@ server/.env
 .next/
 docs/
 supabase/migrations/
-data/
+/data/
