@@ -1110,7 +1110,7 @@ export default function DashboardPage() {
                     {shareOpen && (
                       <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-lg shadow-lg border-2 border-gray-200 py-1 z-20">
                         <button
-                          onClick={() => { navigator.clipboard.writeText(window.location.href); setShareOpen(false); }}
+                          onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/dashboard/network/${user.id}`); setShareOpen(false); }}
                           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition text-left"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

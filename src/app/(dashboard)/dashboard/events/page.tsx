@@ -229,7 +229,7 @@ export default function EventsPage() {
     return (
       <div
         key={event.id}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row"
+        className="bg-white rounded-xl shadow-md border-2 border-gray-200 flex flex-col md:flex-row"
       >
         {currentImage && (
           <div className="p-4 md:w-2/5 flex items-center justify-center shrink-0">
@@ -395,13 +395,13 @@ export default function EventsPage() {
       )}
 
       {isLoadingEvents ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl shadow-sm p-5 space-y-3 animate-pulse">
-              <div className="h-40 bg-gray-100 rounded-xl" />
-              <div className="h-4 bg-gray-100 rounded w-2/3" />
-              <div className="h-3 bg-gray-100 rounded w-full" />
-              <div className="h-3 bg-gray-100 rounded w-3/4" />
+        <div className="grid grid-cols-1 gap-5">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="bg-white border-2 border-gray-200 rounded-xl shadow-sm p-5 space-y-3 animate-pulse">
+              <div className="h-40 bg-gray-200 rounded-xl" />
+              <div className="h-4 bg-gray-200 rounded w-2/3" />
+              <div className="h-3 bg-gray-200 rounded w-full" />
+              <div className="h-3 bg-gray-200 rounded w-3/4" />
             </div>
           ))}
         </div>

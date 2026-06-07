@@ -291,7 +291,7 @@ export default function NetworkPage() {
         )}
 
         {!loadingMembers && members.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center md:col-span-2 xl:col-span-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-10 text-center md:col-span-2 xl:col-span-4">
             <p className="text-base font-semibold text-[#001049]">No members found</p>
             <p className="text-sm text-gray-500 mt-1">Try a different name or school keyword.</p>
           </div>

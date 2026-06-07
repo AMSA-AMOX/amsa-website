@@ -721,7 +721,7 @@ export default function CollegeDetailPage() {
         <Section icon={<IcGradCap size={18}/>} title="Average Student Profile">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-5 gap-x-4 mb-5">
             <BigStat value={college.overallAcceptanceRate != null ? pct(college.overallAcceptanceRate) : "—"} label="Overall accept rate"/>
-            <BigStat value={college.internationalAcceptanceRate != null ? pct(college.internationalAcceptanceRate) : "Same"} label="Int'l accept rate"/>
+            <BigStat value={college.internationalAcceptanceRate != null ? pct(college.internationalAcceptanceRate) : (college.overallAcceptanceRate != null ? pct(college.overallAcceptanceRate) : "—")} label="Int'l accept rate"/>
             {(college.ugds ?? profile?.enrollment) != null && <BigStat value={(college.ugds ?? profile?.enrollment ?? 0).toLocaleString()} label="Undergrads"/>}
             {(college.gradStudents ?? profile?.gradStudents) != null && <BigStat value={(college.gradStudents ?? profile?.gradStudents ?? 0).toLocaleString()} label="Grad students"/>}
           </div>
@@ -736,7 +736,7 @@ export default function CollegeDetailPage() {
             const act25    = college.act25     ?? profile?.act25;
             const act75    = college.act75     ?? profile?.act75;
             const hasData  = satAvg ?? sat25M ?? act25;
-            if (!hasData) return <p className="text-xs text-gray-400 mt-2">SAT/ACT data not reported for this school.</p>;
+            if (!hasData) return null;
             return (
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Test Score Ranges (25th–75th Percentile)</p>

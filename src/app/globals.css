@@ -78,8 +78,7 @@
 }
 
 /* Dashboard-scoped button radius — unlayered so it wins over Tailwind utilities */
-.dashboard button,
-.dashboard a {
+.dashboard button {
   border-radius: 0.25rem;
 }
 
