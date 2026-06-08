@@ -452,7 +452,6 @@ export async function GET() {
   for (const row of ipedsResult.data ?? []) ipedsMap.set(row.unitid, row as IpedsFallbackRow);
 
   const sfaMap = new Map<number, IpedsSfaRow>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const row of (sfaResult.data ?? []) as any[]) sfaMap.set(row.unitid, row as IpedsSfaRow);
 
   const colleges: College[] = (baseRows as CollegesBaseRow[])
