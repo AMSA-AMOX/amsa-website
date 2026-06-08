@@ -40,6 +40,44 @@ export function makeToken(user: { id: number; role: string }): string {
   });
 }
 
+/**
+ * Per-user secret for password-reset tokens. Mixing in the current password
+ * hash makes the token single-use: once the password changes the hash changes,
+ * so any previously issued reset token can no longer be verified.
+ */
+function resetSecret(passwordHash: string): string {
+  return `${JWT_SECRET}:${passwordHash}`;
+}
+
+export function makeResetToken(user: { id: number; passwordHash: string }): string {
+  return jwt.sign({ id: user.id, purpose: "pwreset" }, resetSecret(user.passwordHash), {
+    expiresIn: "1h",
+  });
+}
+
+/** Returns the user id encoded in a reset token without verifying it. */
+export function decodeResetTokenId(token: string): number | null {
+  try {
+    const decoded = jwt.decode(token) as { id?: number; purpose?: string } | null;
+    if (!decoded || decoded.purpose !== "pwreset" || typeof decoded.id !== "number") {
+      return null;
+    }
+    return decoded.id;
+  } catch {
+    return null;
+  }
+}
+
+/** Verifies a reset token against the user's current password hash. */
+export function verifyResetToken(token: string, passwordHash: string): boolean {
+  try {
+    const payload = jwt.verify(token, resetSecret(passwordHash)) as { purpose?: string };
+    return payload.purpose === "pwreset";
+  } catch {
+    return false;
+  }
+}
+
 export const isAmsaAdminEmail = (email: string): boolean =>
   email?.toLowerCase().endsWith("@amsa.mn");
 

@@ -92,6 +92,14 @@ const LoginPage = () => {
                 <EyeIcon open={showPassword} />
               </button>
             </div>
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-[#001049] font-medium hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button
