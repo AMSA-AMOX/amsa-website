@@ -31,6 +31,8 @@ type PostCardProps = {
   onAppreciate: (postId: number) => void;
   appreciating: boolean;
   showAuthor?: boolean;
+  /** When false, the avatar and name render as static (non-clickable) */
+  authorClickable?: boolean;
   onFollow?: (authorId: number) => void;
   isFollowing?: boolean;
   followingInProgress?: boolean;
@@ -44,6 +46,7 @@ export default function PostCard({
   onAppreciate,
   appreciating,
   showAuthor = true,
+  authorClickable = true,
   onFollow,
   isFollowing,
   followingInProgress,
@@ -126,7 +129,7 @@ export default function PostCard({
     <article className="py-5 border-b border-gray-200">
       {showAuthor && (
         <header className="flex items-start gap-3 mb-3">
-          {post.author ? (
+          {post.author && authorClickable ? (
             <Link href={`/dashboard/network/${post.author.id}`} className="shrink-0">
               <AvatarBadge />
             </Link>
@@ -136,12 +139,16 @@ export default function PostCard({
 
           <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
             <div className="min-w-0">
-              {post.author ? (
+              {post.author && authorClickable ? (
                 <Link href={`/dashboard/network/${post.author.id}`} className="hover:underline">
                   <p className="text-sm font-semibold text-gray-900 truncate">
                     {post.author.firstName} {post.author.lastName}
                   </p>
                 </Link>
+              ) : post.author ? (
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {post.author.firstName} {post.author.lastName}
+                </p>
               ) : (
                 <p className="text-sm font-semibold text-gray-900">Unknown user</p>
               )}

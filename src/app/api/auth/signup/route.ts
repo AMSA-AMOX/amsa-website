@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 import { makeToken, isAmsaAdminEmail } from "@/lib/auth";
+import { sendWelcomeEmail } from "@/lib/email/resend";
 
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY ?? "";
 
@@ -117,6 +118,13 @@ export async function POST(request: Request) {
     }
 
     const token = makeToken({ id: user.id, role });
+
+    // Welcome email — must never block or fail the signup.
+    try {
+      await sendWelcomeEmail({ userEmail: eduEmail, firstName });
+    } catch (emailError) {
+      console.error("Welcome email failed:", emailError);
+    }
 
     return NextResponse.json(
       {

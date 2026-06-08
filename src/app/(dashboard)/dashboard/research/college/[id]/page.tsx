@@ -6,7 +6,17 @@ import { useParams } from "next/navigation";
 import { IoRose, IoRoseOutline } from "react-icons/io5";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import ReviewPromptChips from "@/components/reviews/ReviewPromptChips";
 import { useCollegesData } from "../../use-colleges-data";
+
+const COLLEGE_REVIEW_PROMPTS = [
+  "What's the campus culture like?",
+  "How are the academics and professors?",
+  "What's housing and dining like?",
+  "How was the application process?",
+  "Best and worst parts of the school?",
+  "Any advice for international applicants?",
+];
 import type { ScorecardProfile } from "@/app/api/colleges/[id]/scorecard/route";
 
 
@@ -192,7 +202,7 @@ type SchoolStudent = {
 };
 
 type CollegePost = {
-  id: number; title: string; body: string; images: string[];
+  id: number; body: string; images: string[];
   createdAt: string; appreciationCount: number; topic: string | null;
   author: { id: number; firstName: string; lastName: string; profilePic: string | null; headline: string | null } | null;
   college: { id: number; name: string; logoUrl: string | null } | null;
@@ -201,7 +211,7 @@ type CollegePost = {
 function StudentRow({ s }: { s: SchoolStudent }) {
   const initials = `${s.firstName?.[0] ?? ""}${s.lastName?.[0] ?? ""}`.toUpperCase();
   return (
-    <a href={`/dashboard/network/${s.id}`} className="flex items-center gap-3 py-3 group">
+    <a href={`/dashboard/network/${s.id}`} className="flex border-2 border-gray-200 bg-white rounded-xl items-center gap-3 px-3 py-3 group">
       <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-semibold shrink-0 overflow-hidden">
         {s.profilePic ? <img src={s.profilePic} alt="" className="w-full h-full object-cover" /> : initials}
       </div>
@@ -221,23 +231,22 @@ function StudentRow({ s }: { s: SchoolStudent }) {
 function PostRow({ post }: { post: CollegePost }) {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const initials = `${post.author?.firstName?.[0] ?? ""}${post.author?.lastName?.[0] ?? ""}`.toUpperCase() || "U";
+  const profileHref = post.author ? `/dashboard/network/${post.author.id}` : "#";
   return (
-    <div className="py-4">
+    <a href={profileHref} className="block border-2 border-gray-200 bg-white rounded-xl px-3 py-3 group hover:border-gray-300 transition-colors">
       <div className="flex items-center gap-2.5 mb-2">
         <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold flex items-center justify-center overflow-hidden shrink-0">
           {post.author?.profilePic ? <img src={post.author.profilePic} alt="" className="w-full h-full object-cover" /> : initials}
         </div>
-        <span className="text-xs font-semibold text-gray-700">
+        <span className="text-xs font-semibold text-gray-700 group-hover:text-[#001049] transition-colors">
           {post.author ? `${post.author.firstName} ${post.author.lastName}` : "AMSA Member"}
         </span>
         <span className="text-gray-300">·</span>
         <span className="text-xs text-gray-400">{formatRelative(post.createdAt)}</span>
-        {post.topic && <span className="text-xs text-gray-400 ml-auto">{post.topic}</span>}
       </div>
-      <p className="text-sm font-semibold text-[#001049] leading-snug">{post.title}</p>
-      {post.body && <p className="text-sm text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap line-clamp-4">{post.body}</p>}
+      {post.body && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap line-clamp-4">{post.body}</p>}
       {post.images.length > 0 && (
-        <div className="flex gap-2 mt-3 flex-wrap">
+        <div className="flex gap-2 mt-3 flex-wrap" onClick={(e) => e.preventDefault()}>
           {post.images.slice(0, 4).map((url, i) => (
             <button key={i} onClick={() => setLightbox(url)} className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity">
               <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -247,11 +256,11 @@ function PostRow({ post }: { post: CollegePost }) {
       )}
       {post.appreciationCount > 0 && <p className="text-xs text-gray-400 mt-2">{post.appreciationCount} appreciations</p>}
       {lightbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightbox(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={(e) => { e.preventDefault(); setLightbox(null); }}>
           <img src={lightbox} alt="" className="max-w-full max-h-full rounded-xl object-contain shadow-xl" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
-    </div>
+    </a>
   );
 }
 
@@ -278,7 +287,7 @@ function StudentsSection({ unitid }: { unitid: number }) {
       ) : students.length === 0 ? (
         <p className="text-sm text-gray-400">No AMSA members have linked this school to their profile yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 divide-y divide-gray-100 sm:divide-y-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {students.map((s) => <StudentRow key={s.id} s={s} />)}
         </div>
       )}
@@ -309,11 +318,8 @@ function PostsSection({ unitid }: { unitid: number }) {
       ) : posts.length === 0 ? (
         <p className="text-sm text-gray-400">No posts from this school yet. Be the first to share your experience.</p>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {posts.map((post) => <PostRow key={post.id} post={post} />)}
-          <a href="/dashboard/feed" className="inline-flex items-center gap-1 text-xs font-semibold text-[#001049] hover:underline pt-3">
-            View all in Feed <IcExternalLink size={11}/>
-          </a>
         </div>
       )}
     </Section>
@@ -342,9 +348,24 @@ function CollegeReviewComposer({ collegeId, collegeName, onCreated }: { collegeI
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [usedPrompts, setUsedPrompts] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertPrompt = (q: string) => {
+    setContent((prev) => {
+      const base = prev.replace(/\s+$/, "");
+      const next = (base ? `${base}\n\n` : "") + `${q}\n`;
+      return next.slice(0, 2000);
+    });
+    setUsedPrompts((prev) => new Set(prev).add(q));
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    });
+  };
 
   useEffect(() => {
     const urls = files.map((f) => URL.createObjectURL(f));
@@ -389,7 +410,7 @@ function CollegeReviewComposer({ collegeId, collegeName, onCreated }: { collegeI
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ collegeId, content: content.trim(), images }),
       });
-      if (res?.review) { onCreated(res.review); setContent(""); setFiles([]); }
+      if (res?.review) { onCreated(res.review); setContent(""); setFiles([]); setUsedPrompts(new Set()); }
       else setError(res?.message ?? "Failed to submit.");
     } catch {
       setError("Failed to submit. Please try again.");
@@ -407,6 +428,7 @@ function CollegeReviewComposer({ collegeId, collegeName, onCreated }: { collegeI
   return (
     <div>
       <textarea
+        ref={textareaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={`Share your experience at ${collegeName}…`}
@@ -414,6 +436,7 @@ function CollegeReviewComposer({ collegeId, collegeName, onCreated }: { collegeI
         maxLength={2000}
         className="w-full resize-none rounded-xl border-2 border-gray-300 focus:outline-none focus:border-[#001049] px-3 py-2 text-sm text-gray-800 placeholder-gray-400 transition-colors bg-white"
       />
+      <ReviewPromptChips prompts={COLLEGE_REVIEW_PROMPTS} used={usedPrompts} onPick={insertPrompt} />
       <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickFiles} />
       {previews.length > 0 && (
         <div className="flex items-center gap-2 mt-2 flex-wrap">

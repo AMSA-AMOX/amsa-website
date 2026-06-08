@@ -20,7 +20,9 @@ type EventEmailInput = {
 };
 
 const resendApiKey = process.env.RESEND_API_KEY;
-const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@amsa.mn";
+const fromEmail = process.env.RESEND_FROM_EMAIL || "administration@amsa.mn";
+const welcomeFromEmail = process.env.RESEND_WELCOME_FROM || fromEmail;
+const welcomeTemplateId = process.env.RESEND_WELCOME_TEMPLATE_ID;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export function buildEventEmailHtml(input: {
@@ -41,6 +43,40 @@ export function buildEventEmailHtml(input: {
       <p style="margin-top:20px;color:#666;font-size:13px;">AMSA Events</p>
     </div>
   `;
+}
+
+/**
+ * Sends the welcome email on signup using the published Resend dashboard
+ * template referenced by RESEND_WELCOME_TEMPLATE_ID. Failures are logged and
+ * swallowed so they never block the signup flow.
+ */
+export async function sendWelcomeEmail(input: {
+  userEmail: string;
+  firstName: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("Skipping welcome email: RESEND_API_KEY is not configured");
+    return;
+  }
+  if (!welcomeTemplateId) {
+    console.warn("Skipping welcome email: RESEND_WELCOME_TEMPLATE_ID is not configured");
+    return;
+  }
+
+  const result = await resend.emails.send({
+    from: welcomeFromEmail,
+    to: input.userEmail,
+    template: {
+      id: welcomeTemplateId,
+      variables: {
+        firstName: input.firstName,
+      },
+    },
+  });
+
+  if (result.error) {
+    console.error("Failed to send welcome email with Resend:", result.error.message);
+  }
 }
 
 export async function sendEventEmail(input: EventEmailInput): Promise<void> {

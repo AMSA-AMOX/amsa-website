@@ -50,7 +50,7 @@ export async function GET(
 
   const { data: posts, error } = await supabase
     .from("Posts")
-    .select("id, userId, title, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
+    .select("id, userId, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
     .eq("tagged_college_id", unitid)
     .eq("reviewStatus", "approved")
     .order("createdAt", { ascending: false })
@@ -79,7 +79,6 @@ export async function GET(
   return NextResponse.json({
     posts: posts.map((post) => ({
       id: post.id,
-      title: post.title,
       body: post.body,
       images: normalizeImages(post.images),
       createdAt: post.createdAt,

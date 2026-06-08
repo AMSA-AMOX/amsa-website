@@ -321,7 +321,6 @@ export default function NetworkProfilePage() {
   const [threadsLoaded, setThreadsLoaded] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [questionDraft, setQuestionDraft] = useState("");
-  const [questionIsPublic, setQuestionIsPublic] = useState(true);
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
   const [questionMessage, setQuestionMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -403,10 +402,9 @@ export default function NetworkProfilePage() {
     try {
       await authFetch("/api/threads", {
         method: "POST",
-        body: JSON.stringify({ recipientId: profile.id, question: q, isPublic: questionIsPublic }),
+        body: JSON.stringify({ recipientId: profile.id, question: q, isPublic: true }),
       });
       setQuestionDraft("");
-      setQuestionIsPublic(true);
       setAskOpen(false);
       setQuestionMessage({ text: "Your question has been sent!", ok: true });
       setTimeout(() => setQuestionMessage(null), 4000);
@@ -862,21 +860,23 @@ export default function NetworkProfilePage() {
 
           {/* Posts tab */}
           {activeTab === "posts" && (
-            <div>
-              {loadingPosts && (
-                <div className="divide-y-2 divide-gray-300 animate-pulse">
-                  {Array.from({ length: 3 }).map((_, idx) => (
-                    <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
-                      <div className="flex-1 space-y-2 pt-1">
-                        <div className="h-4 bg-gray-200 rounded w-1/3" />
-                        <div className="h-3 bg-gray-200 rounded w-full" />
-                        <div className="h-3 bg-gray-200 rounded w-4/5" />
+            <div className="max-w-2xl mx-auto px-4 md:px-6">
+              {loadingPosts &&
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="py-5 border-b border-gray-200 space-y-3 animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-gray-100 shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-3.5 bg-gray-100 rounded w-1/3" />
+                        <div className="h-3 bg-gray-100 rounded w-1/4" />
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="pl-14 space-y-2">
+                      <div className="h-4 bg-gray-100 rounded w-full" />
+                      <div className="h-4 bg-gray-100 rounded w-4/5" />
+                    </div>
+                  </div>
+                ))}
               {!loadingPosts && posts.length === 0 && (
                 <div className="py-16 flex flex-col items-center gap-3 text-center">
                   <img src="/assets/empty/leaves.svg" alt="" className="w-56 h-56" />
@@ -893,7 +893,8 @@ export default function NetworkProfilePage() {
                     post={post}
                     onAppreciate={onAppreciate}
                     appreciating={appreciating.has(post.id)}
-                    showAuthor={false}
+                    showAuthor
+                    authorClickable={false}
                   />
                 ))}
             </div>
@@ -939,36 +940,22 @@ export default function NetworkProfilePage() {
       {askOpen && profile && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
+          onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionMessage(null); }}
         >
           <div
-            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#FFCA3A] text-[#001049] font-bold text-base flex items-center justify-center shrink-0 overflow-hidden">
-                  {user?.profilePic
-                    ? <img src={user.profilePic} alt="" className="w-full h-full object-cover" />
-                    : `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase()
-                  }
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-gray-900">Ask {profile.firstName} a question</p>
-                  <p className="text-sm text-gray-400">Your question will appear in their Threads tab</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionIsPublic(true); setQuestionMessage(null); }}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => { setAskOpen(false); setQuestionDraft(""); setQuestionMessage(null); }}
+              className="absolute top-3 right-3 z-10 p-1 text-gray-300 hover:text-gray-500 transition"
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
 
             {/* Textarea */}
             <textarea
@@ -978,35 +965,24 @@ export default function NetworkProfilePage() {
               placeholder={`What would you like to ask ${profile.firstName}?`}
               maxLength={600}
               rows={6}
-              className="w-full px-6 py-5 text-lg text-gray-700 placeholder:text-gray-300 bg-transparent focus:outline-none resize-none"
+              className="w-full px-6 pt-8 pb-5 text-lg text-gray-700 placeholder:text-gray-400 bg-transparent focus:outline-none resize-none"
             />
 
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={!questionIsPublic}
-                  onChange={(e) => setQuestionIsPublic(!e.target.checked)}
-                  className="rounded border-gray-300 accent-[#001049]"
-                />
-                <span className="text-sm text-gray-500">Keep private</span>
-              </label>
-              <div className="flex items-center gap-3">
-                {questionMessage && (
-                  <span className={`text-sm ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
-                    {questionMessage.text}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  disabled={submittingQuestion || questionDraft.trim().length === 0}
-                  onClick={submitQuestion}
-                  className="px-6 py-2.5 rounded-lg text-base font-semibold bg-[#001049] text-white disabled:opacity-40 hover:opacity-90 transition"
-                >
-                  {submittingQuestion ? "Sending…" : "Ask"}
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+              {questionMessage && (
+                <span className={`text-sm ${questionMessage.ok ? "text-green-600" : "text-red-500"}`}>
+                  {questionMessage.text}
+                </span>
+              )}
+              <button
+                type="button"
+                disabled={submittingQuestion || questionDraft.trim().length === 0}
+                onClick={submitQuestion}
+                className="px-6 py-2.5 rounded-lg text-base font-semibold bg-[#001049] text-white disabled:opacity-40 hover:opacity-90 transition"
+              >
+                {submittingQuestion ? "Sending…" : "Ask"}
+              </button>
             </div>
           </div>
         </div>

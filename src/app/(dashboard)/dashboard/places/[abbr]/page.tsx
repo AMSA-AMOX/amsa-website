@@ -6,7 +6,17 @@ import Link from "next/link";
 import { IoRose, IoRoseOutline } from "react-icons/io5";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import ReviewPromptChips from "@/components/reviews/ReviewPromptChips";
 import { STATE_DATA } from "../../research/state-data";
+
+const PLACE_REVIEW_PROMPTS = [
+  "What's the cost of living like?",
+  "How welcoming is the community?",
+  "What's the weather like year-round?",
+  "How easy is it to get around?",
+  "Best things to do nearby?",
+  "Anything you wish you knew before moving here?",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,9 +187,24 @@ function ReviewComposer({ abbr, onCreated }: { abbr: string; onCreated: (r: Revi
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [usedPrompts, setUsedPrompts] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertPrompt = (q: string) => {
+    setContent((prev) => {
+      const base = prev.replace(/\s+$/, "");
+      const next = (base ? `${base}\n\n` : "") + `${q}\n`;
+      return next.slice(0, 2000);
+    });
+    setUsedPrompts((prev) => new Set(prev).add(q));
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    });
+  };
 
   useEffect(() => {
     const urls = files.map((f) => URL.createObjectURL(f));
@@ -224,7 +249,7 @@ function ReviewComposer({ abbr, onCreated }: { abbr: string; onCreated: (r: Revi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stateAbbr: abbr, content: content.trim(), images }),
       });
-      if (res?.review) { onCreated(res.review); setContent(""); setFiles([]); }
+      if (res?.review) { onCreated(res.review); setContent(""); setFiles([]); setUsedPrompts(new Set()); }
       else setError(res?.message ?? "Failed to submit.");
     } catch {
       setError("Failed to submit. Please try again.");
@@ -242,6 +267,7 @@ function ReviewComposer({ abbr, onCreated }: { abbr: string; onCreated: (r: Revi
   return (
     <div>
       <textarea
+        ref={textareaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={`Share your experience living in ${STATE_DATA[abbr.toUpperCase()]?.name}…`}
@@ -249,6 +275,7 @@ function ReviewComposer({ abbr, onCreated }: { abbr: string; onCreated: (r: Revi
         maxLength={2000}
         className="w-full resize-none rounded-xl border-2 border-gray-300 focus:outline-none focus:border-[#001049] px-3 py-2 text-sm text-gray-800 placeholder-gray-400 transition-colors bg-white"
       />
+      <ReviewPromptChips prompts={PLACE_REVIEW_PROMPTS} used={usedPrompts} onPick={insertPrompt} />
       <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickFiles} />
       {previews.length > 0 && (
         <div className="flex items-center gap-2 mt-2 flex-wrap">

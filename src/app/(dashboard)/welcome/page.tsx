@@ -391,111 +391,79 @@ function SchoolSuggestionLogo({ domain, name }: { domain: string | null; name: s
 
 // ─── Thread sub-components ────────────────────────────────────────────────────
 
-function AnsweredThreadActions({
-  thread,
-  onToggleAnon,
+function ThreadDeleteButton({
   onDelete,
-  toggling,
   deleting,
 }: {
-  thread: ThreadItem;
-  onToggleAnon: () => void;
   onDelete: () => void;
-  toggling: boolean;
   deleting: boolean;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  return (
-    <div className="flex items-center gap-3 px-5 py-3 border-t border-gray-100 bg-white">
-      <button
-        type="button"
-        onClick={onToggleAnon}
-        disabled={toggling || deleting}
-        className="text-xs font-medium text-gray-500 hover:text-[#001049] disabled:opacity-50 transition"
-      >
-        {toggling ? "Updating…" : thread.isAnonymous ? "Make public" : "Go anonymous"}
-      </button>
-      <div className="flex-1" />
-      {confirmDelete ? (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Delete?</span>
-          <button
-            type="button"
-            onClick={() => { setConfirmDelete(false); onDelete(); }}
-            disabled={deleting}
-            className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50 transition"
-          >
-            {deleting ? "Deleting…" : "Yes"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(false)}
-            className="text-xs text-gray-400 hover:text-gray-600 transition"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
+  if (confirmDelete) {
+    return (
+      <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => setConfirmDelete(true)}
-          disabled={deleting || toggling}
-          className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50 transition"
+          onClick={() => { setConfirmDelete(false); onDelete(); }}
+          disabled={deleting}
+          className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50 transition"
         >
-          Delete
+          {deleting ? "Deleting…" : "Delete"}
         </button>
-      )}
-    </div>
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(false)}
+          className="text-xs text-gray-400 hover:text-gray-600 transition"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirmDelete(true)}
+      disabled={deleting}
+      aria-label="Delete thread"
+      className="shrink-0 p-1 -mr-1 text-gray-300 hover:text-red-500 disabled:opacity-50 transition"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+      </svg>
+    </button>
   );
 }
 
 function UnansweredCard({
   thread,
-  askerInitials,
-  askerName,
   timeText,
   answerDraft,
-  isAnonDraft,
   onDraftChange,
-  onAnonDraftChange,
   onSubmit,
   onDelete,
   submitting,
   deleting,
 }: {
   thread: ThreadItem;
-  askerInitials: string;
-  askerName: string;
   timeText: string;
   answerDraft: string;
-  isAnonDraft: boolean;
   onDraftChange: (val: string) => void;
-  onAnonDraftChange: (val: boolean) => void;
   onSubmit: () => void;
   onDelete: () => void;
   submitting: boolean;
   deleting: boolean;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
   return (
-    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-sm font-bold shrink-0 overflow-hidden">
-          {thread.asker?.profilePic
-            ? <img src={thread.asker.profilePic} alt={askerName} className="w-full h-full object-cover" />
-            : askerInitials}
+    <article className="bg-white rounded-xl border-2 border-gray-300 overflow-hidden">
+      <div className="px-5 pt-4 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-lg font-bold text-gray-900 leading-snug">{thread.question}</p>
+          <ThreadDeleteButton onDelete={onDelete} deleting={deleting} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{askerName}</p>
-          <p className="text-xs text-gray-400">{timeText}</p>
-        </div>
-        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">Unanswered</span>
+        <p className="text-xs text-gray-400 mt-1">{timeText}</p>
       </div>
-      <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
-        <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
-      </div>
-      <div className="px-5 py-4 bg-white border-b border-gray-100 space-y-2">
+      <div className="px-5 pb-4 space-y-2.5">
         <textarea
           value={answerDraft}
           onChange={(e) => onDraftChange(e.target.value)}
@@ -504,16 +472,7 @@ function UnansweredCard({
           rows={3}
           className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#001049]/20 text-gray-800"
         />
-        <div className="flex items-center justify-between gap-3">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isAnonDraft}
-              onChange={(e) => onAnonDraftChange(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-[#001049] focus:ring-[#001049]/20"
-            />
-            <span className="text-xs text-gray-500">Post anonymously</span>
-          </label>
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={onSubmit}
@@ -523,40 +482,6 @@ function UnansweredCard({
             {submitting ? "Saving…" : "Submit answer"}
           </button>
         </div>
-        {isAnonDraft && (
-          <p className="text-xs text-gray-400">Your name won't appear on your profile or the public feed.</p>
-        )}
-      </div>
-      <div className="flex items-center justify-end gap-2 px-5 py-3 bg-white">
-        {confirmDelete ? (
-          <>
-            <span className="text-xs text-gray-500">Delete this thread?</span>
-            <button
-              type="button"
-              onClick={() => { setConfirmDelete(false); onDelete(); }}
-              disabled={deleting}
-              className="text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50 transition"
-            >
-              {deleting ? "Deleting…" : "Yes, delete"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(false)}
-              className="text-xs text-gray-400 hover:text-gray-600 transition"
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            disabled={deleting}
-            className="text-xs font-medium text-red-400 hover:text-red-600 disabled:opacity-50 transition"
-          >
-            Delete
-          </button>
-        )}
       </div>
     </article>
   );
@@ -618,9 +543,7 @@ export default function DashboardPage() {
   const [pendingLoaded, setPendingLoaded] = useState(false);
   const [threadsView, setThreadsView] = useState<"answered" | "unanswered">("answered");
   const [answerDraft, setAnswerDraft] = useState<Record<number, string>>({});
-  const [anonDraft, setAnonDraft] = useState<Record<number, boolean>>({});
   const [submittingAnswer, setSubmittingAnswer] = useState<Set<number>>(new Set());
-  const [togglingAnon, setTogglingAnon] = useState<Set<number>>(new Set());
   const [deletingThread, setDeletingThread] = useState<Set<number>>(new Set());
   const [threadErrors, setThreadErrors] = useState<Record<number, string>>({});
 
@@ -678,40 +601,17 @@ export default function DashboardPage() {
     setSubmittingAnswer((p) => new Set(p).add(threadId));
     setThreadErrors((p) => ({ ...p, [threadId]: "" }));
     try {
-      const isAnonymous = anonDraft[threadId] ?? false;
       const data = await authFetch(`/api/threads/${threadId}`, {
         method: "PATCH",
-        body: JSON.stringify({ answer, isAnonymous }),
+        body: JSON.stringify({ answer }),
       });
       setPendingThreads((p) => p.filter((t) => t.id !== threadId));
       setThreads((p) => [data.thread as ThreadItem, ...p]);
       setAnswerDraft((p) => { const n = { ...p }; delete n[threadId]; return n; });
-      setAnonDraft((p) => { const n = { ...p }; delete n[threadId]; return n; });
     } catch (e: any) {
       setThreadErrors((p) => ({ ...p, [threadId]: e?.message ?? "Failed to save answer." }));
     } finally {
       setSubmittingAnswer((p) => { const n = new Set(p); n.delete(threadId); return n; });
-    }
-  };
-
-  const handleToggleAnon = async (threadId: number) => {
-    if (togglingAnon.has(threadId)) return;
-    const thread = [...threads, ...pendingThreads].find((t) => t.id === threadId);
-    if (!thread) return;
-    setTogglingAnon((p) => new Set(p).add(threadId));
-    try {
-      await authFetch(`/api/threads/${threadId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ isAnonymous: !thread.isAnonymous }),
-      });
-      const flip = (list: ThreadItem[]) =>
-        list.map((t) => (t.id === threadId ? { ...t, isAnonymous: !t.isAnonymous } : t));
-      setThreads(flip);
-      setPendingThreads(flip);
-    } catch (e: any) {
-      setThreadErrors((p) => ({ ...p, [threadId]: e?.message ?? "Failed to update." }));
-    } finally {
-      setTogglingAnon((p) => { const n = new Set(p); n.delete(threadId); return n; });
     }
   };
 
@@ -1224,20 +1124,23 @@ export default function DashboardPage() {
             </div>
 
             {activeTab === "posts" && (
-              <div className="space-y-3">
+              <div className="max-w-2xl mx-auto px-4 md:px-6">
                 {loadingPosts &&
-                  <div className="divide-y-2 divide-gray-300 animate-pulse">
-                    {Array.from({ length: 3 }).map((_, idx) => (
-                      <div key={idx} className="flex items-start gap-4 px-6 py-5 bg-gray-50">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
-                        <div className="flex-1 space-y-2 pt-1">
-                          <div className="h-4 bg-gray-200 rounded w-1/3" />
-                          <div className="h-3 bg-gray-200 rounded w-full" />
-                          <div className="h-3 bg-gray-200 rounded w-4/5" />
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="py-5 border-b border-gray-200 space-y-3 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-gray-100 shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3.5 bg-gray-100 rounded w-1/3" />
+                          <div className="h-3 bg-gray-100 rounded w-1/4" />
                         </div>
                       </div>
-                    ))}
-                  </div>}
+                      <div className="pl-14 space-y-2">
+                        <div className="h-4 bg-gray-100 rounded w-full" />
+                        <div className="h-4 bg-gray-100 rounded w-4/5" />
+                      </div>
+                    </div>
+                  ))}
                 {!loadingPosts && posts.length === 0 && (
                   <div className="py-16 flex flex-col items-center gap-3 text-center">
                     <img src="/assets/empty/leaves.svg" alt="" className="w-56 h-56" />
@@ -1254,7 +1157,8 @@ export default function DashboardPage() {
                       post={post}
                       onAppreciate={onAppreciate}
                       appreciating={appreciating.has(post.id)}
-                      showAuthor={false}
+                      showAuthor
+                      authorClickable={false}
                       onDelete={onDeletePost}
                       deleting={deletingPost.has(post.id)}
                     />
@@ -1263,7 +1167,7 @@ export default function DashboardPage() {
             )}
 
             {activeTab === "threads" && (
-              <div className="space-y-3">
+              <div className="max-w-2xl mx-auto px-4 md:px-6 space-y-3">
                 {/* Sub-tabs */}
                 <div className="flex justify-center py-4">
                   <div className="flex border-2 border-gray-400 rounded-lg overflow-hidden">
@@ -1320,41 +1224,21 @@ export default function DashboardPage() {
                       </div>
                     )}
                     {!loadingThreads && threads.map((t) => {
-                      const initials = `${t.recipient?.firstName?.[0] ?? ""}${t.recipient?.lastName?.[0] ?? ""}`.toUpperCase();
                       return (
                         <div key={t.id}>
-                          <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                            <div className="px-5 py-4 bg-gray-50">
-                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
-                              <p className="text-sm text-gray-800 leading-relaxed">{t.question}</p>
-                            </div>
-                            <div className="px-5 py-4 bg-white border-t border-gray-100">
-                              <div className="flex items-center gap-2 mb-2.5">
-                                {t.isAnonymous ? (
-                                  <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
-                                ) : (
-                                  <div className="w-7 h-7 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
-                                    {t.recipient?.profilePic
-                                      ? <img src={t.recipient.profilePic} alt={initials} className="w-full h-full object-cover" />
-                                      : initials}
-                                  </div>
-                                )}
-                                <span className="text-sm font-semibold text-gray-800">
-                                  {t.isAnonymous ? "Anonymous" : (t.recipient ? `${t.recipient.firstName} ${t.recipient.lastName}` : "You")}
-                                </span>
-                                {t.isAnonymous && (
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Anonymous</span>
-                                )}
+                          <article className="bg-white rounded-xl border-2 border-gray-300 overflow-hidden">
+                            <div className="px-5 pt-4 pb-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-xl font-bold text-gray-900 leading-snug">{t.question}</p>
+                                <ThreadDeleteButton
+                                  onDelete={() => handleDeleteThread(t.id)}
+                                  deleting={deletingThread.has(t.id)}
+                                />
                               </div>
-                              <p className="text-sm text-gray-600 leading-relaxed">{t.answer}</p>
                             </div>
-                            <AnsweredThreadActions
-                              thread={t}
-                              onToggleAnon={() => handleToggleAnon(t.id)}
-                              onDelete={() => handleDeleteThread(t.id)}
-                              toggling={togglingAnon.has(t.id)}
-                              deleting={deletingThread.has(t.id)}
-                            />
+                            <div className="px-5 pb-4">
+                              <p className="text-md text-gray-600 leading-relaxed">{t.answer}</p>
+                            </div>
                           </article>
                           {threadErrors[t.id] && (
                             <p className="text-xs text-red-500 mt-1 px-1">{threadErrors[t.id]}</p>
@@ -1393,8 +1277,6 @@ export default function DashboardPage() {
                       </div>
                     )}
                     {!pendingLoading && pendingThreads.map((t) => {
-                      const askerInitials = `${t.asker?.firstName?.[0] ?? ""}${t.asker?.lastName?.[0] ?? ""}`.toUpperCase();
-                      const askerName = t.asker ? `${t.asker.firstName} ${t.asker.lastName}`.trim() : "Member";
                       const diff = Date.now() - new Date(t.createdAt).getTime();
                       const mins = Math.floor(diff / 60000);
                       const timeText = mins < 1 ? "just now" : mins < 60 ? `${mins}m` : mins < 1440 ? `${Math.floor(mins / 60)}h` : `${Math.floor(mins / 1440)}d`;
@@ -1402,13 +1284,9 @@ export default function DashboardPage() {
                         <div key={t.id}>
                           <UnansweredCard
                             thread={t}
-                            askerInitials={askerInitials}
-                            askerName={askerName}
                             timeText={timeText}
                             answerDraft={answerDraft[t.id] ?? ""}
-                            isAnonDraft={anonDraft[t.id] ?? false}
                             onDraftChange={(val: string) => setAnswerDraft((p) => ({ ...p, [t.id]: val }))}
-                            onAnonDraftChange={(val: boolean) => setAnonDraft((p) => ({ ...p, [t.id]: val }))}
                             onSubmit={() => handleAnswer(t.id)}
                             onDelete={() => handleDeleteThread(t.id)}
                             submitting={submittingAnswer.has(t.id)}
