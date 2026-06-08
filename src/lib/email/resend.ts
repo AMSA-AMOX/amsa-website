@@ -79,6 +79,44 @@ export async function sendWelcomeEmail(input: {
   }
 }
 
+/**
+ * Sends the password-reset link. Failures are logged and swallowed so the
+ * forgot-password endpoint never reveals whether an account exists.
+ */
+export async function sendPasswordResetEmail(input: {
+  userEmail: string;
+  firstName?: string;
+  resetUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("Skipping password reset email: RESEND_API_KEY is not configured");
+    return;
+  }
+
+  const greeting = input.firstName ? `Hi ${input.firstName},` : "Hi,";
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+      <h2 style="margin-bottom:12px;">Reset your AMSA password</h2>
+      <p>${greeting}</p>
+      <p>We received a request to reset your password. Click the button below to choose a new one. This link expires in 1 hour.</p>
+      <p><a href="${input.resetUrl}" style="display:inline-block;padding:10px 14px;background:#001049;color:#fff;border-radius:8px;text-decoration:none;">Reset password</a></p>
+      <p style="color:#666;font-size:13px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+      <p style="margin-top:20px;color:#666;font-size:13px;">AMSA</p>
+    </div>
+  `;
+
+  const result = await resend.emails.send({
+    from: fromEmail,
+    to: input.userEmail,
+    subject: "Reset your AMSA password",
+    html,
+  });
+
+  if (result.error) {
+    console.error("Failed to send password reset email with Resend:", result.error.message);
+  }
+}
+
 export async function sendEventEmail(input: EventEmailInput): Promise<void> {
   const { data: existing } = await supabase
     .from("EventEmails")
