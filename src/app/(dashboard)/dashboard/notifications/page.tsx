@@ -42,9 +42,23 @@ export default function NotificationsPage() {
     }
 
     setLoadingItems(true);
-    localStorage.setItem("amsa_notif_seen", new Date().toISOString());
     authFetch("/api/user/notifications")
-      .then((res) => setItems(res.notifications ?? []))
+      .then((res) => {
+        const list: NotificationItem[] = res.notifications ?? [];
+        setItems(list);
+        // Mark as seen using the newest notification's server timestamp rather
+        // than the client clock, so client/server clock skew can't make a
+        // just-read notification reappear as unread.
+        const newest = list.reduce((max, n) => {
+          const t = new Date(n.happenedAt).getTime();
+          return t > max ? t : max;
+        }, 0);
+        const seenIso = (newest > 0 ? new Date(newest) : new Date()).toISOString();
+        localStorage.setItem("amsa_notif_seen", seenIso);
+        // localStorage writes aren't reactive, so tell the sidebar to recompute
+        // its unread badge immediately (avoids the cross-component race).
+        window.dispatchEvent(new Event("amsa-notif-seen"));
+      })
       .catch(() => setItems([]))
       .finally(() => setLoadingItems(false));
   }, [loading, user, router, authFetch]);

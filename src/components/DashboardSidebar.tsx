@@ -213,14 +213,25 @@ export default function DashboardSidebar() {
     Promise.all(fetches).then(() => setBadgeCounts(updates));
   }, [user, authFetch]);
 
-  // Recalculate unseen count whenever route changes or notifications update
+  // Recalculate unseen count whenever route changes, notifications update, or
+  // the notifications page marks them as seen. localStorage isn't reactive, so
+  // we listen for an explicit event (same tab) and the storage event (other tabs).
   useEffect(() => {
-    const seenAt = localStorage.getItem("amsa_notif_seen");
-    const cutoff = seenAt ? new Date(seenAt).getTime() : 0;
-    const unseen = cachedNotifs.filter(
-      (n) => new Date(n.happenedAt).getTime() > cutoff
-    ).length;
-    setNotifCount(unseen);
+    const recompute = () => {
+      const seenAt = localStorage.getItem("amsa_notif_seen");
+      const cutoff = seenAt ? new Date(seenAt).getTime() : 0;
+      const unseen = cachedNotifs.filter(
+        (n) => new Date(n.happenedAt).getTime() > cutoff
+      ).length;
+      setNotifCount(unseen);
+    };
+    recompute();
+    window.addEventListener("amsa-notif-seen", recompute);
+    window.addEventListener("storage", recompute);
+    return () => {
+      window.removeEventListener("amsa-notif-seen", recompute);
+      window.removeEventListener("storage", recompute);
+    };
   }, [pathname, cachedNotifs]);
   const visibleNavItems = navItems.filter(
     (item) => !item.allowedRoles || (user?.role ? item.allowedRoles.includes(user.role) : false)
