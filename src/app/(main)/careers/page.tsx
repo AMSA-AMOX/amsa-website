@@ -28,26 +28,28 @@ const positions: Position[] = [
 
 function PositionRow({ position, index }: { position: Position; index: number }) {
   return (
-    <div className="border-b border-white/10 last:border-0 px-8 py-7 flex items-center gap-6 hover:bg-white/3 transition-colors">
-      <span className="text-white/20 font-['Syne-Bold'] text-3xl select-none w-10 shrink-0">
-        {String(index + 1).padStart(2, "0")}
-      </span>
+    <div className="border-b border-white/10 last:border-0 px-5 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 hover:bg-white/3 transition-colors">
+      <div className="flex items-start gap-4 sm:contents">
+        <span className="text-white/20 font-['Syne-Bold'] text-2xl sm:text-3xl select-none w-8 sm:w-10 shrink-0">
+          {String(index + 1).padStart(2, "0")}
+        </span>
 
-      <div className="flex-1 min-w-0">
-        <h3 className="font-['Syne-Bold'] text-xl text-white mb-1">{position.title}</h3>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest">{position.type}</span>
-          <span className="text-white/30 text-xs">·</span>
-          <span className="text-white/50 text-xs">{position.location}</span>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-['Syne-Bold'] text-lg sm:text-xl text-white mb-1">{position.title}</h3>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+            <span className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest">{position.type}</span>
+            <span className="text-white/30 text-xs">·</span>
+            <span className="text-white/50 text-xs">{position.location}</span>
+          </div>
+          <p className="text-white/50 text-sm leading-relaxed">{position.shortDesc}</p>
         </div>
-        <p className="text-white/50 text-sm leading-relaxed">{position.shortDesc}</p>
       </div>
 
       <a
         href={position.applyUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="hero-cta hero-cta-sm shrink-0"
+        className="hero-cta hero-cta-sm shrink-0 self-start sm:self-auto ml-12 sm:ml-0"
       >
         Apply
         <span className="icon">
@@ -64,7 +66,7 @@ export default function CareersPage() {
   return (
     <main className="min-h-screen bg-[#001049]">
       {/* Hero */}
-      <div className="max-w-7xl mx-auto px-10 pt-24 pb-16">
+      <div className="max-w-7xl mx-auto px-5 sm:px-10 pt-20 sm:pt-24 pb-12 sm:pb-16">
         <p className="text-[#FFCA3A] text-xs font-semibold uppercase tracking-widest mb-5">
           Join the Team
         </p>
@@ -78,14 +80,14 @@ export default function CareersPage() {
         </div>
 
         {/* Divider with count */}
-        <div className="mt-14 flex items-center gap-4">
+        <div className="mt-10 sm:mt-14 flex items-center gap-4">
           <span className="text-white/30 text-sm">{positions.length} positions open</span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
       </div>
 
       {/* Positions list */}
-      <div className="max-w-7xl mx-auto px-10 pb-24">
+      <div className="max-w-7xl mx-auto px-5 sm:px-10 pb-16 sm:pb-24">
         <div className="border border-white/10 rounded-2xl overflow-hidden">
           {positions.map((position, i) => (
             <PositionRow key={position.id} position={position} index={i} />

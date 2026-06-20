@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 function SlideButton({ href, className, fillColor, hoverTextColor, children }: {
@@ -47,6 +47,7 @@ function SlideButton({ href, className, fillColor, hoverTextColor, children }: {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,6 +56,26 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Close the mobile menu when clicking/tapping anywhere outside the header,
+  // or when pressing Escape.
+  useEffect(() => {
+    if (!open) return;
+    const handlePointer = (e: PointerEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
 
   const navItems = [
     { name: "Home", to: "/" },
@@ -65,7 +86,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header className={`sticky top-0 z-50 transition-all bg-[#001049] ${scrolled ? "bg-opacity-90 backdrop-blur" : ""}`}>
+    <header ref={headerRef} className={`sticky top-0 z-50 transition-all bg-[#001049] ${scrolled ? "bg-opacity-90 backdrop-blur" : ""}`}>
       <div
         className="flex justify-between items-center"
         style={{
@@ -90,6 +111,7 @@ export default function Navbar() {
             <Link
               key={name}
               href={to}
+              onClick={() => setOpen(false)}
               className="text-white relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:bg-[#FFCA3A] after:w-0 hover:after:w-full after:transition-all"
               style={{ fontSize: "clamp(0.75rem, 1.2vw, 1.25rem)" }}
             >

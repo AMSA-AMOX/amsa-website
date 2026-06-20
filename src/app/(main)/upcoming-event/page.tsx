@@ -165,8 +165,8 @@ export default function UpcomingEventPage() {
           Upcoming Event
         </p>
         <h1
-          className="text-white font-bold leading-tight mb-5"
-          style={{ fontFamily: "Syne-Bold, sans-serif", fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
+          className="text-white font-bold mb-5"
+          style={{ fontFamily: "Syne-Bold, sans-serif", fontSize: "clamp(2rem, 5vw, 3.5rem)", lineHeight: 1.18, paddingTop: "0.08em" }}
         >
           {upcomingEvent.title}
         </h1>
@@ -190,7 +190,7 @@ export default function UpcomingEventPage() {
           <div>
             <h2
               className="text-[#001049] font-bold mb-4"
-              style={{ fontFamily: "Syne-Bold, sans-serif", fontSize: "clamp(1.5rem, 2.5vw, 2rem)" }}
+              style={{ fontFamily: "Syne-Bold, sans-serif", fontSize: "clamp(1.5rem, 2.5vw, 2rem)", lineHeight: 1.2, paddingTop: "0.08em" }}
             >
               About the Event
             </h2>
