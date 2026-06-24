@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const upcomingEvent = {
-  ENABLED: true,
+  ENABLED: false,
 
   // Short label shown in the announcement bar
   barText: "CHANGE YOUR FUTURE 2026!",

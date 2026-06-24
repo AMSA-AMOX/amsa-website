@@ -7,12 +7,12 @@ import "aos/dist/aos.css";
 
 const teamMembers = [
   { name: "Marla", image: "/team/marla.svg", linkedin: "https://www.linkedin.com/in/marla-munkhsaikhan-455141286/" },
-  { name: "Tiffany", image: "/team/tiffany.svg", linkedin: "https://www.linkedin.com/in/tiffany-sanchir-272269298/" },
   { name: "Telmen", image: "/team/telmen.svg", linkedin: "https://linkedin.com/in/telmenbayarbaatar" },
   { name: "Nomiko", image: "/team/nomiko.svg", linkedin: "https://www.linkedin.com/in/nominsuvd-munkhbayar-9655a220b/" },
   { name: "Alex", image: "/team/alex.svg", linkedin: "https://www.linkedin.com/in/queguiner/" },
   { name: "Ozi", image: "/team/ozi.svg", linkedin: "https://www.linkedin.com/in/ozi-erdenebat-12b0ab2b0/" },
   { name: "Bilgee", image: "/team/bilgee.svg", linkedin: "https://www.linkedin.com/in/bilgeeb/" },
+  { name: "Mike", image: "/team/mike.svg", linkedin: "https://www.linkedin.com/in/mike-baasandorj-641086385/" },
   { name: "Arvin", image: "/team/arvin.svg", linkedin: "https://www.linkedin.com/in/arvin-ariunbat-558a3b391/" },
 ];
 
