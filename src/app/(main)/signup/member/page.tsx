@@ -53,7 +53,7 @@ const SignupMember = () => {
         lastName: formData.lastName,
         turnstileToken,
       });
-      router.push("/welcome");
+      router.push("/dashboard/feed");
     } catch (err: any) {
       setError(err?.message || "Registration failed");
       // Reset widget so user can retry

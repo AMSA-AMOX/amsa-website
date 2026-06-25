@@ -74,13 +74,12 @@ function ThreadCard({ thread }: { thread: ThreadItem }) {
     : "M";
 
   return (
-    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 bg-gray-50">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Q</p>
-        <p className="text-sm text-gray-800 leading-relaxed">{thread.question}</p>
+    <article className="bg-white rounded-xl border-2 border-gray-300 overflow-hidden">
+      <div className="px-5 pt-4 pb-3">
+        <p className="text-xl font-bold text-gray-900 leading-snug">{thread.question}</p>
       </div>
-      <div className="px-5 py-4 bg-white border-t border-gray-100">
-        <div className="flex items-center gap-2 mb-2.5">
+      <div className="px-5 pb-4 pt-3 border-t border-gray-200">
+        <div className="flex items-center gap-2 mb-2">
           {thread.isAnonymous ? (
             <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold shrink-0">?</div>
           ) : (
@@ -90,12 +89,12 @@ function ThreadCard({ thread }: { thread: ThreadItem }) {
                 : recipientInitials}
             </div>
           )}
-          <span className="text-sm font-semibold text-gray-800">{recipientName}</span>
+          <span className="text-sm font-semibold text-gray-700">{recipientName}</span>
         </div>
         {thread.answer ? (
-          <p className="text-sm text-gray-600 leading-relaxed">{thread.answer}</p>
+          <p className="text-base text-gray-600 leading-relaxed">{thread.answer}</p>
         ) : (
-          <p className="text-sm text-gray-400 italic">Awaiting answer…</p>
+          <p className="text-base text-gray-400 italic">Awaiting answer…</p>
         )}
       </div>
     </article>
@@ -913,7 +912,7 @@ export default function NetworkProfilePage() {
 
           {/* Threads tab */}
           {activeTab === "threads" && (
-            <div>
+            <div className="max-w-2xl mx-auto px-4 md:px-6 py-4 space-y-3">
               {loadingThreads && (
                 <div className="divide-y-2 divide-gray-300 animate-pulse">
                   {Array.from({ length: 2 }).map((_, idx) => (

@@ -34,7 +34,7 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      router.push("/welcome");
+      router.push("/dashboard/feed");
     } catch (err: any) {
       setError(err?.message || "Login failed");
     } finally {

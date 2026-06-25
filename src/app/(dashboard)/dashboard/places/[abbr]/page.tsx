@@ -563,6 +563,88 @@ function ReviewsColumn({ abbr }: { abbr: string }) {
   );
 }
 
+// ─── Members Section ──────────────────────────────────────────────────────────
+
+type StateMember = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profilePic: string | null;
+  role: string;
+  schoolName: string | null;
+  graduationYear: string | null;
+  city: string | null;
+};
+
+function MemberRow({ m }: { m: StateMember }) {
+  const initials = `${m.firstName?.[0] ?? ""}${m.lastName?.[0] ?? ""}`.toUpperCase();
+  return (
+    <a
+      href={`/dashboard/network/${m.id}`}
+      className="flex border-2 border-gray-200 bg-white rounded-xl items-center gap-3 px-3 py-3 group hover:border-[#001049]/30 transition-colors"
+    >
+      <div className="w-9 h-9 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
+        {m.profilePic
+          ? <img src={m.profilePic} alt="" className="w-full h-full object-cover" />
+          : initials}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-900 group-hover:text-[#001049] transition-colors truncate">
+          {m.firstName} {m.lastName}
+          {m.role === "ambassador" && (
+            <span className="ml-2 text-xs font-medium text-gray-400">Ambassador</span>
+          )}
+        </p>
+        {(m.city || m.schoolName || m.graduationYear) && (
+          <p className="text-xs text-gray-400 truncate">
+            {[m.city, m.schoolName, m.graduationYear].filter(Boolean).join(" · ")}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
+
+function MembersSection({ abbr }: { abbr: string }) {
+  const [members, setMembers] = useState<StateMember[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/places/${abbr.toLowerCase()}/members`)
+      .then((r) => (r.ok ? r.json() : { members: [] }))
+      .then((d) => setMembers(d.members ?? []))
+      .catch(() => setMembers([]))
+      .finally(() => setLoading(false));
+  }, [abbr]);
+
+  if (!loading && members.length === 0) return null;
+
+  return (
+    <InfoSection label="AMSA Members Here">
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-3 border-2 border-gray-100 rounded-xl animate-pulse">
+              <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 bg-gray-200 rounded w-2/3" />
+                <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {members.map((m) => (
+            <MemberRow key={m.id} m={m} />
+          ))}
+        </div>
+      )}
+    </InfoSection>
+  );
+}
+
 // ─── Info Section (flat row, separated by lines) ───────────────────────────────
 
 function InfoSection({ label, children }: { label: string; children: React.ReactNode }) {
@@ -677,6 +759,8 @@ export default function PlaceStatePage() {
               </div>
             </InfoSection>
           )}
+
+          <MembersSection abbr={abbr} />
 
           {/* Housing & resources */}
           <InfoSection label="Find Housing & Resources">
