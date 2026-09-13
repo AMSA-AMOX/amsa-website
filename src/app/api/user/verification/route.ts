@@ -7,6 +7,7 @@ import {
   validateMembershipSubmissionPayload,
 } from "@/lib/membership";
 import { emailDomainLabel, verifySchoolEmail } from "@/lib/college-match";
+import { resolveUserDenorm } from "@/lib/user-denorm";
 
 const MEMBERSHIP_COLUMNS = `
   id,
@@ -237,9 +238,17 @@ export async function POST(request: Request) {
     // Immediately carry the application details over to the user's profile
     // (school, year, major, graduation, location, phone, .edu email) so they
     // don't have to re-enter them on the Profile page.
+    const profileUpdates = membershipToProfileUpdates(normalized);
     const { error: profileError } = await supabase
       .from("Users")
-      .update(membershipToProfileUpdates(normalized))
+      .update({
+        ...profileUpdates,
+        ...(await resolveUserDenorm({
+          schoolName: profileUpdates.schoolName,
+          schoolEmail: profileUpdates.schoolEmail,
+          state: profileUpdates.state,
+        })),
+      })
       .eq("id", payload.id);
 
     if (profileError) {

@@ -35,3 +35,39 @@ The application will be available at [http://localhost:3000](http://localhost:30
 ## Deployment
 
 This application is ready to be deployed on Next.js compatible platforms like [Vercel](https://vercel.com/). Ensure you configure your environment variables in your deployment platform's settings.
+
+## Database migrations
+
+SQL lives in `supabase/migrations/` and is applied by hand in the Supabase SQL
+editor (CI never touches the database). **Apply them before deploying code that
+depends on them** — the order matters:
+
+1. `20260913_0001_indexes.sql` — indexes for the hot queries plus the
+   denormalized `Users.college_unitid / state_abbr / logo_domain` columns.
+2. `20260913_0002_rpc.sql` — the `get_*` / `appreciate_post` SQL functions the
+   API calls via `supabase.rpc()` (one round trip per page).
+3. Backfill existing rows once:
+   ```bash
+   npx tsx --conditions=react-server scripts/backfill-school-names.ts
+   npx tsx --conditions=react-server scripts/backfill-user-denorm.ts
+   ```
+   (add `--dry` to preview.)
+
+Both migrations are idempotent (`if not exists` / `create or replace`).
+
+## Images
+
+Marketing images are committed as right-sized WebP under `public/**/optimized/`
+and served with immutable cache headers. The multi-MB originals live in
+`assets-src/` (not deployed). After changing a source image:
+
+```bash
+npm run images:build
+```
+
+## Latency checks
+
+```bash
+curl -sI "https://www.amsa.mn/api/health?db=1" | grep -i server-timing   # DB round-trip from the function
+curl -so /dev/null -w "%{time_starttransfer}s cache=%header{x-vercel-cache}\n" https://www.amsa.mn/api/colleges
+```

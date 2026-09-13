@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { invalidateShell } from "@/hooks/useShell";
 import {
   AMSA_INTEREST_OPTIONS,
   CAREER_INTEREST_OPTIONS,
@@ -240,6 +241,7 @@ export default function VerificationPage() {
       if (data?.membership?.enrolledUniversity) {
         setForm((prev) => ({ ...prev, enrolledUniversity: data.membership.enrolledUniversity }));
       }
+      invalidateShell();
       setSuccess("US Member application submitted. Admins can now review your application.");
     } catch (e: any) {
       setError(e?.message ?? "Failed to submit US Member application.");

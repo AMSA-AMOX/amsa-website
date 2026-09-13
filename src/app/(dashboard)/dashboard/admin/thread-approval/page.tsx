@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { invalidateShell } from "@/hooks/useShell";
 import SchoolBadge from "@/components/threads/SchoolBadge";
 
 type ThreadUser = {
@@ -146,6 +147,7 @@ export default function ThreadApprovalPage() {
         body: JSON.stringify({ status }),
       });
       setThreads((prev) => prev.filter((t) => t.id !== threadId));
+      invalidateShell();
     } catch (e: any) {
       alert(e?.message ?? "Failed to moderate thread.");
     }

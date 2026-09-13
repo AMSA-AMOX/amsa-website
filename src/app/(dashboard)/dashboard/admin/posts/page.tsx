@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { invalidateShell } from "@/hooks/useShell";
 
 type ModerationPost = {
   id: number;
@@ -110,6 +111,7 @@ export default function AdminPostsQueuePage() {
           reviewNote: notes[post.id] ?? "",
         }),
       });
+      invalidateShell();
       await loadPosts(status);
     } catch (e: any) {
       setError(e?.message ?? "Failed to review post.");

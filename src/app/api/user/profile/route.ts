@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 import { emailDomainLabel, verifySchoolEmail } from "@/lib/college-match";
+import { resolveUserDenorm } from "@/lib/user-denorm";
 
 const ALLOWED_FIELDS = new Set([
   "firstName",
@@ -50,15 +51,17 @@ export async function PATCH(request: Request) {
 
     // Keep the school email and school name consistent: the .edu domain must
     // belong to the named college, and when it does we store the official name.
-    if ("schoolEmail" in updates || "schoolName" in updates) {
+    // Then refresh the denormalized college/state/logo columns from the result.
+    if ("schoolEmail" in updates || "schoolName" in updates || "state" in updates) {
       const { data: current } = await supabase
         .from("Users")
-        .select("schoolName, schoolEmail")
+        .select("schoolName, schoolEmail, state")
         .eq("id", payload.id)
-        .maybeSingle<{ schoolName: string | null; schoolEmail: string | null }>();
+        .maybeSingle<{ schoolName: string | null; schoolEmail: string | null; state: string | null }>();
 
       const schoolEmail = ("schoolEmail" in updates ? updates.schoolEmail : current?.schoolEmail) as string | null;
-      const schoolName = ("schoolName" in updates ? updates.schoolName : current?.schoolName) as string | null;
+      let schoolName = ("schoolName" in updates ? updates.schoolName : current?.schoolName) as string | null;
+      const state = ("state" in updates ? updates.state : current?.state) as string | null;
 
       if (schoolEmail) {
         const check = await verifySchoolEmail(schoolEmail, schoolName);
@@ -71,9 +74,12 @@ export async function PATCH(request: Request) {
           );
         }
         if (check.status === "match" && check.college.name !== schoolName) {
-          updates.schoolName = check.college.name;
+          schoolName = check.college.name;
+          updates.schoolName = schoolName;
         }
       }
+
+      Object.assign(updates, await resolveUserDenorm({ schoolName, schoolEmail, state }));
     }
 
     const { data: user, error } = await supabase

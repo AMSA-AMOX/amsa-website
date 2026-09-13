@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const { data: user, error } = await supabase
       .from("Users")
       .select(
-        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, schoolEmail, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
+        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, schoolEmail, logo_domain, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
       )
       .eq("id", payload.id)
       .single();
@@ -35,7 +35,8 @@ export async function GET(request: Request) {
       if (college) user.schoolName = college.name;
     }
 
-    return NextResponse.json({ user: { ...user, roles } });
+    const { logo_domain, ...rest } = user;
+    return NextResponse.json({ user: { ...rest, logoDomain: logo_domain ?? null, roles } });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

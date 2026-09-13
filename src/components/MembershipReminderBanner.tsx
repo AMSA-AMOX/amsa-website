@@ -1,30 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useShell } from "@/hooks/useShell";
 
 /**
  * Persistent reminder for board members who have not yet filed the US Member
  * application. Board members are auto-promoted at login (via @amsa.mn email)
  * and would otherwise skip the form entirely.
+ *
+ * Reads the shared /api/me/shell payload — no request of its own.
  */
 export default function MembershipReminderBanner() {
   const pathname = usePathname();
-  const { user, authFetch } = useAuth();
-  const [hasSubmitted, setHasSubmitted] = useState<boolean | null>(null);
+  const { user } = useAuth();
+  const { shell } = useShell();
 
   const isBoardMember = user?.role === "board_member";
-
-  // Fetch once per session (not on every route change); the banner disappears
-  // on the next mount after they submit.
-  useEffect(() => {
-    if (!isBoardMember) return;
-    authFetch("/api/user/verification")
-      .then((res) => setHasSubmitted(Boolean(res.membership)))
-      .catch(() => {});
-  }, [isBoardMember, authFetch]);
+  const hasSubmitted = shell ? shell.membershipStatus !== null : null;
 
   if (!isBoardMember || hasSubmitted !== false || pathname === "/verification") return null;
 

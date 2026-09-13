@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useShell } from "@/hooks/useShell";
 
 type NavItem = {
   label: string;
@@ -179,71 +180,16 @@ const navItems: NavItem[] = [
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
-  const { user, logout, authFetch } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [notifCount, setNotifCount] = useState(0);
-  const [cachedNotifs, setCachedNotifs] = useState<Array<{ happenedAt: string }>>([]);
-  const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
 
-  // Fetch notifications once when user logs in
-  useEffect(() => {
-    if (!user) return;
-    authFetch("/api/user/notifications")
-      .then((res) => setCachedNotifs(res.notifications ?? []))
-      .catch(() => {});
-  }, [user, authFetch]);
+  // One shared /api/me/shell call (see useShell) supplies the unseen
+  // notification count and every moderation badge — no list fetches here.
+  const { shell } = useShell();
+  const notifCount = shell?.unseenNotifications ?? 0;
+  const badgeCounts: Record<string, number> = shell?.pending ?? {};
 
-  // Fetch admin badge counts
-  useEffect(() => {
-    if (!user) return;
-    const isAdmin = user.role === "admin";
-    const canApprovePosts = user.role === "admin" || user.role === "board_member";
-    const updates: Record<string, number> = {};
-    const fetches: Promise<void>[] = [];
-
-    if (isAdmin) {
-      fetches.push(
-        authFetch("/api/admin/verification?status=pending")
-          .then((res) => { updates.verification = (res.submissions ?? []).length; })
-          .catch(() => {})
-      );
-    }
-    if (canApprovePosts) {
-      fetches.push(
-        authFetch("/api/posts?reviewStatus=pending&limit=100&includeModeration=true")
-          .then((res) => { updates.posts = (res.posts ?? []).length; })
-          .catch(() => {})
-      );
-      fetches.push(
-        authFetch("/api/hub-threads?view=pending")
-          .then((res) => { updates.threads = (res.threads ?? []).length; })
-          .catch(() => {})
-      );
-    }
-    Promise.all(fetches).then(() => setBadgeCounts(updates));
-  }, [user, authFetch]);
-
-  // Recalculate unseen count whenever route changes, notifications update, or
-  // the notifications page marks them as seen. localStorage isn't reactive, so
-  // we listen for an explicit event (same tab) and the storage event (other tabs).
-  useEffect(() => {
-    const recompute = () => {
-      const seenAt = localStorage.getItem("amsa_notif_seen");
-      const cutoff = seenAt ? new Date(seenAt).getTime() : 0;
-      const unseen = cachedNotifs.filter(
-        (n) => new Date(n.happenedAt).getTime() > cutoff
-      ).length;
-      setNotifCount(unseen);
-    };
-    recompute();
-    window.addEventListener("amsa-notif-seen", recompute);
-    window.addEventListener("storage", recompute);
-    return () => {
-      window.removeEventListener("amsa-notif-seen", recompute);
-      window.removeEventListener("storage", recompute);
-    };
-  }, [pathname, cachedNotifs]);
   const visibleNavItems = navItems.filter(
     (item) => !item.allowedRoles || (user?.role ? item.allowedRoles.includes(user.role) : false)
   );

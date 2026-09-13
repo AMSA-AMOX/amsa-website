@@ -25,25 +25,46 @@ type UserRow = {
   profilePic: string | null;
 };
 
-async function enrichThreads(
-  rows: HubThreadRow[],
-  commentCounts: Map<number, number>,
-  upvoteCounts: Map<number, number>,
-  userUpvotedIds: Set<number>,
-) {
-  if (rows.length === 0) return [];
+type Counts = {
+  commentCounts: Map<number, number>;
+  upvoteCounts: Map<number, number>;
+  userUpvotedIds: Set<number>;
+};
+
+/** Askers, comment counts and upvotes all depend only on the thread rows — one wave. */
+async function loadThreadExtras(rows: HubThreadRow[], viewerId: number, withCounts: boolean) {
+  const userMap = new Map<number, UserRow>();
+  const counts: Counts = { commentCounts: new Map(), upvoteCounts: new Map(), userUpvotedIds: new Set() };
+  if (rows.length === 0) return { userMap, counts };
 
   const askerIds = Array.from(new Set(rows.filter((r) => !r.isAnon).map((r) => r.askerId)));
-  const userMap = new Map<number, UserRow>();
+  const threadIds = rows.map((r) => r.id);
 
-  if (askerIds.length > 0) {
-    const { data: users } = await supabase
-      .from("Users")
-      .select("id, firstName, lastName, profilePic")
-      .in("id", askerIds);
-    ((users ?? []) as UserRow[]).forEach((u) => userMap.set(u.id, u));
-  }
+  const [usersRes, commentsRes, upvotesRes] = await Promise.all([
+    askerIds.length > 0
+      ? supabase.from("Users").select("id, firstName, lastName, profilePic").in("id", askerIds)
+      : Promise.resolve({ data: [] as UserRow[] }),
+    withCounts
+      ? supabase.from("HubComments").select("threadId").in("threadId", threadIds)
+      : Promise.resolve({ data: [] as { threadId: number }[] }),
+    withCounts
+      ? supabase.from("HubThreadUpvotes").select("threadId, userId").in("threadId", threadIds)
+      : Promise.resolve({ data: [] as { threadId: number; userId: number }[] }),
+  ]);
 
+  ((usersRes.data ?? []) as UserRow[]).forEach((u) => userMap.set(u.id, u));
+  ((commentsRes.data ?? []) as { threadId: number }[]).forEach((row) => {
+    counts.commentCounts.set(row.threadId, (counts.commentCounts.get(row.threadId) ?? 0) + 1);
+  });
+  ((upvotesRes.data ?? []) as { threadId: number; userId: number }[]).forEach((row) => {
+    counts.upvoteCounts.set(row.threadId, (counts.upvoteCounts.get(row.threadId) ?? 0) + 1);
+    if (row.userId === viewerId) counts.userUpvotedIds.add(row.threadId);
+  });
+
+  return { userMap, counts };
+}
+
+function shapeThreads(rows: HubThreadRow[], userMap: Map<number, UserRow>, counts: Counts) {
   return rows.map((r) => ({
     id: r.id,
     title: r.title ?? "",
@@ -54,9 +75,9 @@ async function enrichThreads(
     status: r.status,
     isAnon: r.isAnon,
     asker: r.isAnon ? null : (userMap.get(r.askerId) ?? null),
-    commentCount: commentCounts.get(r.id) ?? 0,
-    upvoteCount: upvoteCounts.get(r.id) ?? 0,
-    hasUpvoted: userUpvotedIds.has(r.id),
+    commentCount: counts.commentCounts.get(r.id) ?? 0,
+    upvoteCount: counts.upvoteCounts.get(r.id) ?? 0,
+    hasUpvoted: counts.userUpvotedIds.has(r.id),
     approvedAt: r.approvedAt,
     createdAt: r.createdAt,
   }));
@@ -99,8 +120,8 @@ export async function GET(request: Request) {
       }
 
       const rows = (data ?? []) as HubThreadRow[];
-      const threads = await enrichThreads(rows, new Map(), new Map(), new Set());
-      return NextResponse.json({ threads });
+      const { userMap, counts } = await loadThreadExtras(rows, payload.id, false);
+      return NextResponse.json({ threads: shapeThreads(rows, userMap, counts) });
     }
 
     let query = supabase
@@ -119,26 +140,8 @@ export async function GET(request: Request) {
     }
 
     const rows = (data ?? []) as HubThreadRow[];
-
-    const commentCounts = new Map<number, number>();
-    const upvoteCounts = new Map<number, number>();
-    const userUpvotedIds = new Set<number>();
-    const threadIds = rows.map((r) => r.id);
-    if (threadIds.length > 0) {
-      const [{ data: commentRows }, { data: upvoteRows }] = await Promise.all([
-        supabase.from("HubComments").select("threadId").in("threadId", threadIds),
-        supabase.from("HubThreadUpvotes").select("threadId, userId").in("threadId", threadIds),
-      ]);
-      ((commentRows ?? []) as { threadId: number }[]).forEach((row) => {
-        commentCounts.set(row.threadId, (commentCounts.get(row.threadId) ?? 0) + 1);
-      });
-      ((upvoteRows ?? []) as { threadId: number; userId: number }[]).forEach((row) => {
-        upvoteCounts.set(row.threadId, (upvoteCounts.get(row.threadId) ?? 0) + 1);
-        if (row.userId === payload.id) userUpvotedIds.add(row.threadId);
-      });
-    }
-
-    const threads = await enrichThreads(rows, commentCounts, upvoteCounts, userUpvotedIds);
+    const { userMap, counts } = await loadThreadExtras(rows, payload.id, true);
+    const threads = shapeThreads(rows, userMap, counts);
     const nextCursor = rows.length === limit ? (rows[rows.length - 1].approvedAt ?? null) : null;
 
     return NextResponse.json({ threads, nextCursor });

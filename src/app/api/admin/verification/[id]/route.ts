@@ -3,6 +3,7 @@ import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 import { MEMBERSHIP_ASSIGNED_ROLES, isProtectedRole } from "@/lib/membership";
 import { supabase } from "@/lib/supabase";
 import { findCollegeByEmail } from "@/lib/college-match";
+import { resolveUserDenorm } from "@/lib/user-denorm";
 
 type ReviewBody = {
   reviewStatus?: "approved" | "rejected";
@@ -39,9 +40,9 @@ export async function PATCH(
 
     const { data: existing, error: existingError } = await supabase
       .from("amsa_memberships")
-      .select("id, user_id, email, enrolled_university")
+      .select("id, user_id, email, enrolled_university, state")
       .eq("id", id)
-      .single<{ id: string; user_id: number; email: string; enrolled_university: string | null }>();
+      .single<{ id: string; user_id: number; email: string; enrolled_university: string | null; state: string | null }>();
 
     if (existingError || !existing) {
       return NextResponse.json({ message: "Verification submission not found" }, { status: 404 });
@@ -106,6 +107,11 @@ export async function PATCH(
             // Confirm the .edu email (and its college) on the user's profile
             ...(existing.email?.endsWith(".edu") ? { schoolEmail: existing.email } : {}),
             ...(college ? { schoolName: college.name } : {}),
+            ...(await resolveUserDenorm({
+              schoolName: college?.name ?? existing.enrolled_university,
+              schoolEmail: existing.email,
+              state: existing.state,
+            })),
           }
         : { ...(keepRole ? {} : { role: "member" }), acceptanceStatus: "approved" };
 

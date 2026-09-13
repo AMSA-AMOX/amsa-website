@@ -1,6 +1,7 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
 import { getFollowsTableName } from "@/lib/follows-table";
+import { rpc } from "@/lib/rpc";
 
 type BaseUserRow = {
   id: number;
@@ -20,6 +21,8 @@ export type SearchableMember = {
   schoolName: string | null;
   graduationYear: string | null;
   role: string;
+  /** Root domain for img.logo.dev, resolved at write time (Users.logo_domain). */
+  logoDomain?: string | null;
   followersCount: number;
   followingCount: number;
   mutualCount: number;
@@ -70,12 +73,36 @@ const scoreMember = (member: SearchableMember, query: string) => {
 const clampLimit = (input: number | undefined, fallback = 24) =>
   Math.min(120, Math.max(1, Number.isFinite(input) ? Math.floor(input as number) : fallback));
 
+/**
+ * Discovery / search for the Network page. One `get_network_members` round
+ * trip does the filtering, follower/mutual counts and ranking in SQL
+ * (supabase/migrations/*_rpc.sql). Set NETWORK_RPC=0 to fall back to the
+ * previous multi-query implementation for comparison.
+ */
 export async function listNetworkMembersForUser(
   userId: number,
   options?: { query?: string; limit?: number }
 ): Promise<SearchableMember[]> {
   const q = options?.query?.trim() ?? "";
   const limit = clampLimit(options?.limit, q ? 60 : 24);
+
+  if (process.env.NETWORK_RPC !== "0") {
+    const rows = await rpc<SearchableMember[]>("get_network_members", {
+      p_viewer_id: userId,
+      p_query: q || null,
+      p_limit: limit,
+    });
+    return rows ?? [];
+  }
+
+  return listNetworkMembersLegacy(userId, q, limit);
+}
+
+async function listNetworkMembersLegacy(
+  userId: number,
+  q: string,
+  limit: number
+): Promise<SearchableMember[]> {
 
   const candidateLimit = q ? Math.max(120, limit * 3) : limit;
   let usersQuery = supabase

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { extractSchoolEmailDomain, getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
+import LogoImage, { buildLogoUrl } from "@/components/LogoImage";
 import { socialHandle, socialHref } from "@/lib/social";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
@@ -27,6 +27,7 @@ type FullProfile = {
   createdAt: string;
   schoolName: string | null;
   schoolEmail: string | null;
+  logoDomain?: string | null;
   major: string | null;
   degreeLevel: string | null;
   graduationYear: string | null;
@@ -117,7 +118,6 @@ const YEARS = Array.from({ length: new Date().getFullYear() - 1989 }, (_, i) => 
 
 const DEGREE_LEVELS = ["Associate's","Bachelor's","Master's","PhD / Doctorate","Professional (MD / JD / MBA)","Certificate"];
 const SCHOOL_YEARS = ["Freshman","Sophomore","Junior","Senior","Graduate Student","Alumni"];
-const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
 
 
 const ROLE_LABELS: Record<string, string> = {
@@ -191,183 +191,6 @@ const SectionHeader = ({ title, onAdd }: { title: string; onAdd?: () => void }) 
     )}
   </div>
 );
-
-const LOGO_DOMAIN_CACHE = new Map<string, string | null>();
-const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
-
-const normalizeLookupName = (value: string) => value.trim().toLowerCase();
-
-const findUniversityDomain = (schoolName: string) => {
-  return getKnownSchoolDomain(schoolName);
-};
-
-function nameMatchScore(query: string, resultName: string): number {
-  const normalize = (s: string) =>
-    s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-  const q = normalize(query);
-  const r = normalize(resultName);
-  if (q === r) return 1000;
-  const qWords = q.split(" ").filter(Boolean);
-  const rWords = new Set(r.split(" ").filter(Boolean));
-  const matchedWords = qWords.filter((w) => rWords.has(w)).length;
-  const extraWords = [...rWords].filter((w) => !qWords.includes(w)).length;
-  return matchedWords * 10 - extraWords;
-}
-
-const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promise<string | null> => {
-  const known = getKnownSchoolDomain(name);
-  if (preferEdu && known) return known;
-
-  const variants = getLookupNameVariants(name);
-  for (const variant of variants) {
-    try {
-      const query = encodeURIComponent(variant);
-      const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
-      if (!res.ok) continue;
-      const results = await res.json() as Array<{ name?: string; domain?: string }>;
-      if (!Array.isArray(results) || results.length === 0) continue;
-
-      const pool = preferEdu
-        ? results.filter((r) => r.domain?.toLowerCase().endsWith(".edu"))
-        : results.filter((r) => !!r.domain);
-
-      if (pool.length === 0) continue;
-
-      const best = pool.reduce((a, b) =>
-        nameMatchScore(variant, b.name ?? "") > nameMatchScore(variant, a.name ?? "") ? b : a
-      );
-      if (best.domain) return best.domain;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const buildLogoUrl = (domain: string) => {
-  const base = `https://img.logo.dev/${domain}`;
-  if (!LOGO_DEV_TOKEN) return base;
-  return `${base}?token=${encodeURIComponent(LOGO_DEV_TOKEN)}`;
-};
-
-const resolveLogoDomain = async (
-  name: string,
-  preferEdu: boolean,
-  mappedDomain?: string | null,
-): Promise<string | null> => {
-  if (mappedDomain) return mappedDomain;
-  const key = `${preferEdu ? "edu" : "any"}:${normalizeLookupName(name)}`;
-
-  if (LOGO_DOMAIN_CACHE.has(key)) return LOGO_DOMAIN_CACHE.get(key) ?? null;
-  if (LOGO_DOMAIN_PENDING.has(key)) return LOGO_DOMAIN_PENDING.get(key)!;
-
-  const pending = fetchDomainFromClearbit(name, preferEdu).then((domain) => {
-    LOGO_DOMAIN_CACHE.set(key, domain);
-    LOGO_DOMAIN_PENDING.delete(key);
-    return domain;
-  });
-  LOGO_DOMAIN_PENDING.set(key, pending);
-  return pending;
-};
-
-const useLogoDomain = (
-  name: string | null | undefined,
-  preferEdu: boolean,
-  mappedDomain?: string | null,
-) => {
-  const [domain, setDomain] = useState<string | null>(mappedDomain ?? null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!name?.trim()) {
-      setDomain(null);
-      return;
-    }
-
-    if (mappedDomain) {
-      setDomain(mappedDomain);
-      return;
-    }
-
-    resolveLogoDomain(name, preferEdu, mappedDomain).then((resolved) => {
-      if (!cancelled) setDomain(resolved);
-    });
-
-    return () => { cancelled = true; };
-  }, [name, preferEdu, mappedDomain]);
-
-  return domain;
-};
-
-function UniLogo({ schoolName, schoolEmail, size = 10 }: { schoolName: string | null | undefined; schoolEmail?: string | null; size?: number }) {
-  const [err, setErr] = useState(false);
-  const emailDomain = extractSchoolEmailDomain(schoolEmail);
-  const mappedDomain = emailDomain ?? (schoolName ? findUniversityDomain(schoolName) : null);
-  const domain = useLogoDomain(schoolName, true, mappedDomain);
-  const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
-  const iconSize = `${Math.max(10, size * 2)}px`;
-
-  useEffect(() => {
-    setErr(false);
-  }, [domain, schoolName]);
-
-  if (!domain || err) {
-    return (
-      <div
-        style={boxSize}
-        className="rounded-lg bg-[#001049]/10 flex items-center justify-center text-[#001049] shrink-0"
-      >
-        <svg style={{ width: iconSize, height: iconSize }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-        </svg>
-      </div>
-    );
-  }
-  return (
-    <img
-      src={buildLogoUrl(domain)}
-      alt={schoolName ?? ""}
-      onError={() => setErr(true)}
-      style={boxSize}
-      className="rounded-lg object-contain shrink-0 bg-white border border-gray-100"
-    />
-  );
-}
-
-function CompanyLogo({ company, size = 12 }: { company: string; size?: number }) {
-  const [err, setErr] = useState(false);
-  const domain = useLogoDomain(company, false);
-  const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
-  const iconSize = `${Math.max(10, size * 2)}px`;
-
-  useEffect(() => {
-    setErr(false);
-  }, [domain, company]);
-
-  if (!domain || err) {
-    return (
-      <div
-        style={boxSize}
-        className="rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 shrink-0"
-      >
-        <svg style={{ width: iconSize, height: iconSize }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-        </svg>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={buildLogoUrl(domain)}
-      alt={company}
-      onError={() => setErr(true)}
-      style={boxSize}
-      className="rounded-xl object-contain shrink-0 bg-white border border-gray-100"
-    />
-  );
-}
 
 function SchoolSuggestionLogo({ domain, name }: { domain: string | null; name: string }) {
   const [err, setErr] = useState(false);
@@ -963,7 +786,7 @@ export default function DashboardPage() {
               <div className="py-4 space-y-3 border-b-2 border-gray-300">
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
-                    <UniLogo schoolName={profile.schoolName} schoolEmail={profile.schoolEmail} size={11} />
+                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={11} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
                       {schoolLine && <p className="text-xs text-gray-500">{schoolLine}</p>}
@@ -1350,7 +1173,7 @@ export default function DashboardPage() {
                   {/* Primary school from profile */}
                   {profile?.schoolName && (
                     <div className="flex gap-4 group pb-4 border-b border-gray-100 mb-4 last:border-0 last:mb-0 last:pb-0">
-                      <UniLogo schoolName={profile.schoolName} schoolEmail={profile.schoolEmail} size={12} />
+                      <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={12} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -1374,7 +1197,7 @@ export default function DashboardPage() {
                   {/* Additional education entries */}
                   {educations.map((edu) => (
                     <div key={edu.id} className="flex gap-4 group py-4 border-b border-gray-100 last:border-0 last:pb-0 first:pt-0">
-                      <UniLogo schoolName={edu.schoolName} size={12} />
+                      <LogoImage kind="school" name={edu.schoolName} size={12} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -1422,7 +1245,7 @@ export default function DashboardPage() {
                       : `${exp.startMonth} ${exp.startYear}${exp.endMonth && exp.endYear ? ` – ${exp.endMonth} ${exp.endYear}` : ""}`;
                     return (
                       <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4 group">
-                        <CompanyLogo company={exp.company} size={12} />
+                        <LogoImage kind="company" name={exp.company} size={12} rounded="rounded-xl" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">

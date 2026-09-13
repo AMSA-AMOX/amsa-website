@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { extractSchoolEmailDomain, getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
+import LogoImage from "@/components/LogoImage";
 import { socialHandle, socialHref } from "@/lib/social";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
@@ -17,6 +17,7 @@ type NetworkProfile = {
   bio: string | null;
   schoolName: string | null;
   schoolEmail: string | null;
+  logoDomain?: string | null;
   major: string | null;
   degreeLevel: string | null;
   schoolYear: string | null;
@@ -136,168 +137,6 @@ const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   ambassador:   { label: "Ambassador",   className: "bg-amber-50 text-amber-600" },
   us_member:    { label: "US Member",    className: "bg-blue-50 text-blue-600" },
 };
-
-const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
-const LOGO_DOMAIN_CACHE = new Map<string, string | null>();
-const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
-
-const normalizeLookupName = (value: string) => value.trim().toLowerCase();
-
-/**
- * Score how well a Clearbit result name matches the query.
- * Higher = better match. Based on word overlap so "University of Maryland"
- * scores higher than "University of Mary" for the same query.
- */
-function nameMatchScore(query: string, resultName: string): number {
-  const normalize = (s: string) =>
-    s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-
-  const q = normalize(query);
-  const r = normalize(resultName);
-
-  // Exact match wins
-  if (q === r) return 1000;
-
-  const qWords = q.split(" ").filter(Boolean);
-  const rWords = new Set(r.split(" ").filter(Boolean));
-
-  // How many query words appear in the result
-  const matchedWords = qWords.filter((w) => rWords.has(w)).length;
-  // Penalise extra words in the result not in the query
-  const extraWords = [...rWords].filter((w) => !qWords.includes(w)).length;
-
-  return matchedWords * 10 - extraWords;
-}
-
-const fetchDomainFromClearbit = async (name: string, preferEdu: boolean): Promise<string | null> => {
-  const known = getKnownSchoolDomain(name);
-  if (preferEdu && known) return known;
-
-  const variants = getLookupNameVariants(name);
-  for (const variant of variants) {
-    try {
-      const query = encodeURIComponent(variant);
-      const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
-      if (!res.ok) continue;
-      const results = (await res.json()) as Array<{ name?: string; domain?: string }>;
-      if (!Array.isArray(results) || results.length === 0) continue;
-
-      const pool = preferEdu
-        ? results.filter((r) => r.domain?.toLowerCase().endsWith(".edu"))
-        : results.filter((r) => !!r.domain);
-
-      if (pool.length === 0) continue;
-
-      // Pick the result whose name best matches the query rather than just the first
-      const best = pool.reduce((a, b) =>
-        nameMatchScore(variant, b.name ?? "") > nameMatchScore(variant, a.name ?? "") ? b : a
-      );
-
-      if (best.domain) return best.domain;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const resolveLogoDomain = async (name: string, preferEdu: boolean): Promise<string | null> => {
-  const key = `${preferEdu ? "edu" : "any"}:${normalizeLookupName(name)}`;
-  if (LOGO_DOMAIN_CACHE.has(key)) return LOGO_DOMAIN_CACHE.get(key) ?? null;
-  if (LOGO_DOMAIN_PENDING.has(key)) return LOGO_DOMAIN_PENDING.get(key)!;
-
-  const pending = fetchDomainFromClearbit(name, preferEdu).then((domain) => {
-    LOGO_DOMAIN_CACHE.set(key, domain);
-    LOGO_DOMAIN_PENDING.delete(key);
-    return domain;
-  });
-  LOGO_DOMAIN_PENDING.set(key, pending);
-  return pending;
-};
-
-const buildLogoUrl = (domain: string) => {
-  const base = `https://img.logo.dev/${domain}`;
-  if (!LOGO_DEV_TOKEN) return base;
-  return `${base}?token=${encodeURIComponent(LOGO_DEV_TOKEN)}`;
-};
-
-const useLogoDomain = (name: string | null | undefined, preferEdu: boolean, overrideDomain?: string | null) => {
-  const [domain, setDomain] = useState<string | null>(overrideDomain ?? null);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (overrideDomain) {
-      setDomain(overrideDomain);
-      return;
-    }
-    if (!name?.trim()) {
-      setDomain(null);
-      return;
-    }
-    resolveLogoDomain(name, preferEdu).then((resolved) => {
-      if (!cancelled) setDomain(resolved);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [name, preferEdu, overrideDomain]);
-
-  return domain;
-};
-
-function EntityLogo({
-  name,
-  preferEdu,
-  emailDomain,
-  size = 10,
-  rounded = "rounded-lg",
-}: {
-  name: string | null | undefined;
-  preferEdu: boolean;
-  emailDomain?: string | null;
-  size?: number;
-  rounded?: string;
-}) {
-  const [err, setErr] = useState(false);
-  const domain = useLogoDomain(name, preferEdu, emailDomain);
-  const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
-  const iconSize = `${Math.max(10, size * 2)}px`;
-
-  useEffect(() => {
-    setErr(false);
-  }, [domain, name]);
-
-  if (!domain || err) {
-    return (
-      <div
-        style={boxSize}
-        className={`${rounded} bg-[#001049]/10 flex items-center justify-center text-[#001049] shrink-0`}
-      >
-        {preferEdu ? (
-          /* Graduation cap */
-          <svg style={{ width: iconSize, height: iconSize }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-          </svg>
-        ) : (
-          /* Building */
-          <svg style={{ width: iconSize, height: iconSize }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-          </svg>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={buildLogoUrl(domain)}
-      alt={name ?? ""}
-      onError={() => setErr(true)}
-      style={boxSize}
-      className={`${rounded} object-contain shrink-0 bg-white border border-gray-100`}
-    />
-  );
-}
 
 export default function NetworkProfilePage() {
   const { user, loading, authFetch } = useAuth();
@@ -579,7 +418,7 @@ export default function NetworkProfilePage() {
               <>
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
-                    <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={11} />
+                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={11} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
                       <p className="text-xs text-gray-500">
@@ -814,7 +653,7 @@ export default function NetworkProfilePage() {
                   <div className="space-y-2 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
                 ) : profile?.schoolName ? (
                   <div className="flex gap-4">
-                    <EntityLogo name={profile.schoolName} preferEdu={true} emailDomain={extractSchoolEmailDomain(profile.schoolEmail)} size={12} />
+                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={12} />
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-gray-900">
                         {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}
@@ -842,7 +681,7 @@ export default function NetworkProfilePage() {
                   <div className="divide-y divide-gray-100">
                     {experiences.map((exp) => (
                       <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                        <EntityLogo name={exp.company} preferEdu={false} size={12} rounded="rounded-xl" />
+                        <LogoImage kind="company" name={exp.company} size={12} rounded="rounded-xl" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900 leading-snug">{exp.jobTitle}</p>
                           <p className="text-sm text-gray-600 mt-0.5">

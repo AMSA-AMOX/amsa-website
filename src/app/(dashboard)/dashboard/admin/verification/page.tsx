@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { invalidateShell } from "@/hooks/useShell";
 import { instagramUrl } from "@/lib/membership";
 
 type VerificationSubmission = {
@@ -149,6 +150,7 @@ export default function AdminVerificationPage() {
           adminNote: adminNotes[submission.id] ?? "",
         }),
       });
+      invalidateShell();
       await loadSubmissions(status);
     } catch (e: any) {
       setError(e?.message ?? "Failed to update submission");

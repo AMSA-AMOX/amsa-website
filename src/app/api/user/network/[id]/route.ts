@@ -1,13 +1,45 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
-import { getFollowsTableName } from "@/lib/follows-table";
-import { listNetworkMembersForUser } from "@/lib/network-users";
+import { rpc } from "@/lib/rpc";
+import type { SearchableMember } from "@/lib/network-users";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+type NetworkProfile = {
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    role: string;
+    roles: string[];
+    profilePic: string | null;
+    bio: string | null;
+    schoolName: string | null;
+    schoolEmail: string | null;
+    major: string | null;
+    degreeLevel: string | null;
+    schoolYear: string | null;
+    graduationYear: string | null;
+    linkedin: string | null;
+    instagram: string | null;
+    facebook: string | null;
+    x: string | null;
+    logoDomain: string | null;
+    followersCount: number;
+    followingCount: number;
+    isFollowing: boolean;
+  };
+  experiences: unknown[];
+  nextProfiles: SearchableMember[];
+};
+
+/**
+ * One round trip: `get_network_profile` returns the member, their
+ * experiences, follow counts and 8 ranked "next profiles" (it used to be ~9
+ * sequential queries).
+ */
 export async function GET(request: Request, { params }: RouteContext) {
   let payload;
   try {
@@ -23,124 +55,16 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Invalid member id" }, { status: 400 });
     }
 
-    // The profile row, experiences, follow counts and the suggestion pool are
-    // all independent of each other — one wave instead of four.
-    const loadFollowStats = async () => {
-      try {
-        const followsTable = await getFollowsTableName();
-        const [followersRes, followingRes, isFollowingRes] = await Promise.all([
-          supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followingId", targetId),
-          supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followerId", targetId),
-          supabase
-            .from(followsTable)
-            .select("id", { count: "exact", head: true })
-            .eq("followerId", payload.id)
-            .eq("followingId", targetId),
-        ]);
-        return {
-          followersCount: followersRes.count ?? 0,
-          followingCount: followingRes.count ?? 0,
-          isFollowing: (isFollowingRes.count ?? 0) > 0,
-        };
-      } catch (error: any) {
-        if (error?.code !== "PGRST205") throw error;
-        return { followersCount: 0, followingCount: 0, isFollowing: false };
-      }
-    };
+    const profile = await rpc<NetworkProfile | null>("get_network_profile", {
+      p_viewer_id: payload.id,
+      p_target_id: targetId,
+    });
 
-    const [userRes, experienceRes, followStats, nextProfilesRaw] = await Promise.all([
-      supabase
-        .from("Users")
-        .select(
-          "id, firstName, lastName, role, profilePic, bio, schoolName, schoolEmail, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x"
-        )
-        .eq("id", targetId)
-        .maybeSingle(),
-      supabase
-        .from("Experiences")
-        .select("*")
-        .eq("userId", targetId)
-        .order("currentlyWorking", { ascending: false })
-        .order("startYear", { ascending: false })
-        .order("startMonth", { ascending: false }),
-      loadFollowStats(),
-      listNetworkMembersForUser(payload.id, { limit: 60 }),
-    ]);
-
-    const { data: user, error } = userRes;
-    if (error) {
-      console.error("Network profile user fetch error:", error);
-      return NextResponse.json({ message: "Failed to load member profile" }, { status: 500 });
-    }
-    if (!user) {
+    if (!profile) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 
-    const { data: experiences, error: experienceError } = experienceRes;
-    if (experienceError) {
-      console.error("Network profile experience fetch error:", experienceError);
-    }
-
-    const { followersCount, followingCount, isFollowing } = followStats;
-
-    const targetSchool = (user.schoolName ?? "").trim().toLowerCase();
-    const targetYear = (user.graduationYear ?? "").trim();
-
-    const nextProfiles = nextProfilesRaw
-      .filter((member) => member.id !== targetId)
-      .map((member) => {
-        const sameSchool =
-          !!targetSchool &&
-          (member.schoolName ?? "").trim().toLowerCase() === targetSchool;
-        const sameYear = !!targetYear && (member.graduationYear ?? "").trim() === targetYear;
-        const rankScore =
-          member.mutualCount * 100 +
-          (sameSchool ? 50 : 0) +
-          (sameYear ? 30 : 0) +
-          member.followersCount;
-        return { ...member, sameSchool, sameYear, rankScore };
-      })
-      .sort(
-        (a, b) =>
-          b.rankScore - a.rankScore ||
-          b.mutualCount - a.mutualCount ||
-          b.followersCount - a.followersCount
-      )
-      .slice(0, 8)
-      .map(({ rankScore: _rankScore, ...member }) => member);
-
-    // Compute visible roles for others: admin is hidden, us_member shown instead
-    const primaryRole: string = user.role ?? "member";
-    const visibleRoles = primaryRole === "admin"
-      ? ["us_member"]
-      : primaryRole !== "member" ? [primaryRole] : [];
-
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        firstName: user.firstName ?? "",
-        lastName: user.lastName ?? "",
-        role: primaryRole === "admin" ? "us_member" : primaryRole,
-        roles: visibleRoles,
-        profilePic: user.profilePic,
-        bio: user.bio,
-        schoolName: user.schoolName,
-        schoolEmail: user.schoolEmail,
-        major: user.major,
-        degreeLevel: user.degreeLevel,
-        schoolYear: user.schoolYear,
-        graduationYear: user.graduationYear,
-        linkedin: user.linkedin,
-        instagram: user.instagram,
-        facebook: user.facebook,
-        x: user.x,
-        followersCount,
-        followingCount,
-        isFollowing,
-      },
-      experiences: experiences ?? [],
-      nextProfiles,
-    });
+    return NextResponse.json(profile);
   } catch (e) {
     console.error("Network profile fetch error:", e);
     return NextResponse.json({ message: "Failed to load member profile" }, { status: 500 });

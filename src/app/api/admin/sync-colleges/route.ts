@@ -14,6 +14,10 @@ import { supabase } from "@/lib/supabase";
 import { verifyToken, assertRole } from "@/lib/auth";
 import { USNEWS_RANKS, USNEWS_LAC_IDS } from "@/data/usnews-rankings";
 
+// Paginates the College Scorecard API with throttling; needs longer than the
+// default serverless timeout (10s Hobby / 60s Pro).
+export const maxDuration = 300;
+
 const API_KEY  = process.env.COLLEGE_SCORECARD_API_KEY;
 const BASE_URL = "https://api.data.gov/ed/collegescorecard/v1/schools";
 

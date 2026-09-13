@@ -4,11 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getKnownSchoolDomain, getLookupNameVariants } from "@/lib/logo-lookup";
-
-const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
-const LOGO_DOMAIN_CACHE = new Map<string, string | null>();
-const LOGO_DOMAIN_PENDING = new Map<string, Promise<string | null>>();
+import LogoImage from "@/components/LogoImage";
 
 type NetworkMember = {
   id: number;
@@ -16,112 +12,13 @@ type NetworkMember = {
   lastName: string;
   profilePic: string | null;
   schoolName: string | null;
+  logoDomain?: string | null;
   role: string;
   followersCount: number;
   followingCount: number;
   mutualCount: number;
   isFollowing: boolean;
 };
-
-const normalizeLookupName = (value: string) => value.trim().toLowerCase();
-
-const fetchDomainFromClearbit = async (name: string): Promise<string | null> => {
-  const known = getKnownSchoolDomain(name);
-  if (known) return known;
-
-  const variants = getLookupNameVariants(name);
-  for (const variant of variants) {
-    try {
-      const query = encodeURIComponent(variant);
-      const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${query}`);
-      if (!res.ok) continue;
-      const results = (await res.json()) as Array<{ domain?: string }>;
-      if (!Array.isArray(results) || results.length === 0) continue;
-      const eduMatch = results.find((r) => r.domain?.toLowerCase().endsWith(".edu"));
-      if (eduMatch?.domain) return eduMatch.domain;
-      const anyMatch = results.find((r) => !!r.domain)?.domain;
-      if (anyMatch) return anyMatch;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const buildLogoUrl = (domain: string) => {
-  const base = `https://img.logo.dev/${domain}`;
-  if (!LOGO_DEV_TOKEN) return base;
-  return `${base}?token=${encodeURIComponent(LOGO_DEV_TOKEN)}`;
-};
-
-const resolveSchoolLogoDomain = async (name: string): Promise<string | null> => {
-  const key = normalizeLookupName(name);
-  if (LOGO_DOMAIN_CACHE.has(key)) return LOGO_DOMAIN_CACHE.get(key) ?? null;
-  if (LOGO_DOMAIN_PENDING.has(key)) return LOGO_DOMAIN_PENDING.get(key)!;
-
-  const pending = fetchDomainFromClearbit(name).then((domain) => {
-    LOGO_DOMAIN_CACHE.set(key, domain);
-    LOGO_DOMAIN_PENDING.delete(key);
-    return domain;
-  });
-  LOGO_DOMAIN_PENDING.set(key, pending);
-  return pending;
-};
-
-const useSchoolLogoDomain = (schoolName: string | null | undefined) => {
-  const [domain, setDomain] = useState<string | null>(schoolName ? getKnownSchoolDomain(schoolName) : null);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!schoolName?.trim()) {
-      setDomain(null);
-      return;
-    }
-
-    const known = getKnownSchoolDomain(schoolName);
-    if (known) {
-      setDomain(known);
-      return;
-    }
-
-    resolveSchoolLogoDomain(schoolName).then((resolved) => {
-      if (!cancelled) setDomain(resolved);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolName]);
-
-  return domain;
-};
-
-function SchoolLogo({ schoolName }: { schoolName: string | null | undefined }) {
-  const [err, setErr] = useState(false);
-  const domain = useSchoolLogoDomain(schoolName);
-  const initial = schoolName?.trim()[0]?.toUpperCase() ?? "U";
-
-  useEffect(() => {
-    setErr(false);
-  }, [domain, schoolName]);
-
-  if (!domain || err) {
-    return (
-      <div className="w-7 h-7 rounded-md bg-[#001049]/10 flex items-center justify-center text-[#001049] font-bold text-xs shrink-0">
-        {initial}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={buildLogoUrl(domain)}
-      alt={schoolName ?? ""}
-      onError={() => setErr(true)}
-      className="w-7 h-7 rounded-md object-contain shrink-0 bg-white border border-gray-100"
-    />
-  );
-}
 
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   board_member: { label: "Board Member", className: "bg-purple-50 text-purple-600" },
@@ -329,7 +226,7 @@ export default function NetworkPage() {
                   )}
 
                   <div className="mt-2 min-h-10 flex items-center justify-center gap-2 max-w-full">
-                    <SchoolLogo schoolName={member.schoolName} />
+                    <LogoImage kind="school" domain={member.logoDomain} name={member.schoolName} size={7} rounded="rounded-md" />
                     <p className="text-sm text-gray-500 line-clamp-2">
                       {member.schoolName || "School not added yet"}
                     </p>

@@ -1,29 +1,15 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { normalizeState } from "@/lib/us-states";
+import { rpc } from "@/lib/rpc";
 import { jsonCached, ONE_HOUR } from "@/lib/http";
 
+/**
+ * {"MD": 12, "CA": 30, …} — a single GROUP BY over the indexed
+ * `Users.state_abbr` column (get_state_student_counts), CDN-cached for an hour.
+ */
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from("Users")
-      .select("state")
-      .not("state", "is", null)
-      .neq("state", "");
-
-    if (error) {
-      console.error("student-counts:", error);
-      return NextResponse.json({ counts: {} });
-    }
-
-    const counts: Record<string, number> = {};
-    for (const row of data ?? []) {
-      const abbr = normalizeState(row.state);
-      if (abbr) counts[abbr] = (counts[abbr] ?? 0) + 1;
-    }
-
-    // Public and slow-changing: let the CDN serve it for an hour.
-    return jsonCached({ counts }, ONE_HOUR);
+    const counts = await rpc<Record<string, number>>("get_state_student_counts");
+    return jsonCached({ counts: counts ?? {} }, ONE_HOUR);
   } catch (e) {
     console.error("student-counts:", e);
     return NextResponse.json({ counts: {} });

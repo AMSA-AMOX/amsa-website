@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 import { paymentDueAtFrom } from "@/lib/events/logic";
+import { rpc } from "@/lib/rpc";
 
 const UNLIMITED_SEATS = 1000000;
 
@@ -101,63 +102,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: events, error } = await supabase
-      .from("Events")
-      .select("*, EventImages(id, imageUrl, sortOrder), Users!Events_createdBy_fkey(id, firstName, lastName)")
-      .order("startAt", { ascending: true });
+    // One round trip: events + images + creator + seat/waitlist counts + the
+    // caller's reservation, aggregated in SQL (get_events_with_counts).
+    const events = await rpc<Array<Record<string, any>>>("get_events_with_counts", { p_user_id: payload.id });
 
-    if (error) throw error;
-    const eventIds = (events || []).map((event) => event.id);
-
-    if (eventIds.length === 0) {
-      return NextResponse.json({ events: [] });
-    }
-
-    const { data: reservations, error: reservationsError } = await supabase
-      .from("EventReservations")
-      .select("eventId, status, userId, waitlistPosition, paymentDueAt, paymentStatus")
-      .in("eventId", eventIds)
-      .in("status", ["reserved", "paid", "waitlisted"]);
-
-    if (reservationsError) throw reservationsError;
-
-    const seatCountByEvent = new Map<number, number>();
-    const waitlistCountByEvent = new Map<number, number>();
-    const myReservationByEvent = new Map<number, any>();
-
-    for (const row of reservations || []) {
-      if (row.status === "reserved" || row.status === "paid") {
-        seatCountByEvent.set(row.eventId, (seatCountByEvent.get(row.eventId) || 0) + 1);
-      }
-      if (row.status === "waitlisted") {
-        waitlistCountByEvent.set(row.eventId, (waitlistCountByEvent.get(row.eventId) || 0) + 1);
-      }
-      if (row.userId === payload.id) {
-        myReservationByEvent.set(row.eventId, {
-          status: row.status,
-          waitlistPosition: row.waitlistPosition,
-          paymentDueAt: row.paymentDueAt,
-          paymentStatus: row.paymentStatus,
-          hasPaymentWindow: row.status === "reserved" && row.paymentStatus !== "paid" && Boolean(row.paymentDueAt),
-          paymentWindowHours: 24,
-          defaultDueAt: row.paymentDueAt || paymentDueAtFrom(),
-        });
-      }
-    }
-
-    const hydrated = (events || []).map((event) => {
-      const reservedCount = seatCountByEvent.get(event.id) || 0;
-      const waitlistCount = waitlistCountByEvent.get(event.id) || 0;
-      return {
-        ...event,
-        EventImages: (event.EventImages || []).sort(
-          (a: any, b: any) => a.sortOrder - b.sortOrder
-        ),
-        seatsRemaining: Math.max(0, event.totalSeats - reservedCount),
-        waitlistCount,
-        myReservation: myReservationByEvent.get(event.id) || null,
-      };
-    });
+    const hydrated = (events ?? []).map((event) => ({
+      ...event,
+      myReservation: event.myReservation
+        ? { ...event.myReservation, defaultDueAt: event.myReservation.paymentDueAt || paymentDueAtFrom() }
+        : null,
+    }));
 
     return NextResponse.json({ events: hydrated });
   } catch (e: any) {
