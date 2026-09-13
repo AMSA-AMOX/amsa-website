@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { instagramUrl } from "@/lib/membership";
 
 type VerificationSubmission = {
   id: string;
@@ -52,6 +53,15 @@ type VerificationSubmission = {
 };
 
 type FilterStatus = "pending" | "approved" | "rejected" | "all";
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  board_member: "Board Member",
+  ambassador: "Ambassador",
+  us_member: "US Member",
+  alum: "Alum",
+  member: "Member",
+};
 
 const statusTabs: FilterStatus[] = ["pending", "approved", "rejected", "all"];
 
@@ -206,7 +216,14 @@ export default function AdminVerificationPage() {
                   className="flex-1 min-w-0 text-left"
                 >
                   <h2 className="text-lg font-semibold text-[#001049] truncate">{submission.fullName}</h2>
-                  <p className="text-xs text-gray-500 mt-1">User ID {submission.userId}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    User ID {submission.userId}
+                    {submission.user?.role && submission.user.role !== "member" && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                        {ROLE_LABELS[submission.user.role] ?? submission.user.role}
+                      </span>
+                    )}
+                  </p>
                 </button>
                 <button
                   type="button"
@@ -292,7 +309,11 @@ export default function AdminVerificationPage() {
                         .filter(Boolean)
                         .join(" | ")}
                     />
-                    <Info label="Social Media" value={submission.socialMedia} />
+                    <Info
+                      label="Instagram"
+                      value={submission.socialMedia}
+                      href={submission.socialMedia ? instagramUrl(submission.socialMedia) : undefined}
+                    />
                   </div>
 
                   {submission.eventIdeas && (
@@ -362,11 +383,22 @@ export default function AdminVerificationPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div>
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className="text-sm text-gray-700 mt-0.5 break-words">{value || "-"}</p>
+      {href && value ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-[#001049] mt-0.5 break-words underline underline-offset-2 hover:opacity-80"
+        >
+          {value}
+        </a>
+      ) : (
+        <p className="text-sm text-gray-700 mt-0.5 break-words">{value || "-"}</p>
+      )}
     </div>
   );
 }

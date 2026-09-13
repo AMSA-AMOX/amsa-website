@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
+import { emailDomainLabel, verifySchoolEmail } from "@/lib/college-match";
 
 const ALLOWED_FIELDS = new Set([
   "firstName",
@@ -45,6 +46,34 @@ export async function PATCH(request: Request) {
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ message: "No valid fields to update" }, { status: 400 });
+    }
+
+    // Keep the school email and school name consistent: the .edu domain must
+    // belong to the named college, and when it does we store the official name.
+    if ("schoolEmail" in updates || "schoolName" in updates) {
+      const { data: current } = await supabase
+        .from("Users")
+        .select("schoolName, schoolEmail")
+        .eq("id", payload.id)
+        .maybeSingle<{ schoolName: string | null; schoolEmail: string | null }>();
+
+      const schoolEmail = ("schoolEmail" in updates ? updates.schoolEmail : current?.schoolEmail) as string | null;
+      const schoolName = ("schoolName" in updates ? updates.schoolName : current?.schoolName) as string | null;
+
+      if (schoolEmail) {
+        const check = await verifySchoolEmail(schoolEmail, schoolName);
+        if (check.status === "mismatch") {
+          return NextResponse.json(
+            {
+              message: `Your school email (${emailDomainLabel(schoolEmail)}) belongs to ${check.college.name}, but the school is set to "${schoolName}". Please make them match.`,
+            },
+            { status: 400 },
+          );
+        }
+        if (check.status === "match" && check.college.name !== schoolName) {
+          updates.schoolName = check.college.name;
+        }
+      }
     }
 
     const { data: user, error } = await supabase

@@ -60,6 +60,7 @@ export type MembershipSubmissionPayload = {
   major: string;
   expectedGraduation: string;
   email: string;
+  /** Instagram handle, always stored normalized as "@name". */
   socialMedia: string;
   phone: string;
   careerInterests: string[];
@@ -75,6 +76,25 @@ export type MembershipSubmissionPayload = {
 
 const normalizeString = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
+
+/**
+ * Reduce any way people write an Instagram handle — "@name", "name",
+ * "instagram.com/name/", "https://www.instagram.com/name?igsh=…" — to "@name".
+ * Returns "" when nothing usable is left.
+ */
+export function normalizeInstagramHandle(value: unknown): string {
+  let raw = normalizeString(value);
+  if (!raw) return "";
+  const urlMatch = raw.match(/instagram\.com\/([^/?#\s]+)/i);
+  if (urlMatch) raw = urlMatch[1];
+  const handle = raw.replace(/^@+/, "").replace(/\/+$/, "").trim();
+  return handle ? `@${handle}` : "";
+}
+
+export const INSTAGRAM_HANDLE_PATTERN = /^@[A-Za-z0-9._]{1,30}$/;
+
+export const instagramUrl = (handle: string) =>
+  `https://instagram.com/${handle.replace(/^@/, "")}`;
 
 const normalizeStringArray = (value: unknown) => {
   if (!Array.isArray(value)) return [] as string[];
@@ -101,7 +121,7 @@ export function normalizeMembershipSubmissionPayload(
     major: normalizeString(body.major),
     expectedGraduation: normalizeString(body.expectedGraduation),
     email: normalizeString(body.email).toLowerCase(),
-    socialMedia: normalizeString(body.socialMedia),
+    socialMedia: normalizeInstagramHandle(body.socialMedia),
     phone: normalizeString(body.phone),
     careerInterests: normalizeStringArray(body.careerInterests),
     careerInterestsOther: normalizeString(body.careerInterestsOther),
@@ -128,7 +148,6 @@ export function validateMembershipSubmissionPayload(
     "major",
     "expectedGraduation",
     "email",
-    "socialMedia",
     "phone",
     "heardAboutAmsa",
   ];
@@ -148,9 +167,67 @@ export function validateMembershipSubmissionPayload(
     errors.push("email must be a school email address ending in .edu");
   }
 
+  if (payload.socialMedia && !INSTAGRAM_HANDLE_PATTERN.test(payload.socialMedia)) {
+    errors.push("socialMedia must be a valid Instagram handle (letters, numbers, dots, underscores)");
+  }
+
   if (errors.length > 0) {
     return { ok: false as const, errors };
   }
 
   return { ok: true as const };
+}
+
+// ─── Application → profile sync ──────────────────────────────────────────────
+
+/** Year-in-school values that map 1:1 onto the profile's `schoolYear` field. */
+const PROFILE_SCHOOL_YEARS = new Set([
+  "Freshman",
+  "Sophomore",
+  "Junior",
+  "Senior",
+  "Graduate Student",
+]);
+
+/** Roles that must never be overwritten by a membership review decision. */
+export const PROTECTED_ROLES = ["admin", "board_member", "ambassador"] as const;
+
+export const isProtectedRole = (role: string | null | undefined) =>
+  PROTECTED_ROLES.includes((role ?? "") as (typeof PROTECTED_ROLES)[number]);
+
+/**
+ * Map a submitted US Member application onto the `Users` profile columns so the
+ * information the applicant just typed shows up on their profile immediately.
+ * Fields that can't be mapped cleanly (e.g. "Other" year, free-text graduation
+ * without a year) are left out so existing profile values aren't wiped.
+ */
+export function membershipToProfileUpdates(
+  payload: MembershipSubmissionPayload,
+): Record<string, string> {
+  const updates: Record<string, string> = {
+    schoolEmail: payload.email,
+    schoolName: payload.enrolledUniversity,
+    major: payload.major,
+    state: payload.state,
+    city: payload.city,
+    phoneNumber: payload.phone,
+  };
+
+  if (PROFILE_SCHOOL_YEARS.has(payload.yearInSchool)) {
+    updates.schoolYear = payload.yearInSchool;
+  }
+
+  // "June 2029" / "Spring '29" / "2029" → "2029"
+  const yearMatch = payload.expectedGraduation.match(/\b(20\d{2})\b/);
+  if (yearMatch) {
+    updates.graduationYear = yearMatch[1];
+  } else {
+    const shortYear = payload.expectedGraduation.match(/'(\d{2})\b/);
+    if (shortYear) updates.graduationYear = `20${shortYear[1]}`;
+  }
+
+  // Stored as a full URL so the profile's social link resolves.
+  if (payload.socialMedia) updates.instagram = instagramUrl(payload.socialMedia);
+
+  return updates;
 }

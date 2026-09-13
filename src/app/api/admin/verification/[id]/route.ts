@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
-import { MEMBERSHIP_ASSIGNED_ROLES } from "@/lib/membership";
+import { MEMBERSHIP_ASSIGNED_ROLES, isProtectedRole } from "@/lib/membership";
 import { supabase } from "@/lib/supabase";
+import { findCollegeByEmail } from "@/lib/college-match";
 
 type ReviewBody = {
   reviewStatus?: "approved" | "rejected";
@@ -38,12 +39,20 @@ export async function PATCH(
 
     const { data: existing, error: existingError } = await supabase
       .from("amsa_memberships")
-      .select("id, user_id, email")
+      .select("id, user_id, email, enrolled_university")
       .eq("id", id)
-      .single<{ id: string; user_id: number; email: string }>();
+      .single<{ id: string; user_id: number; email: string; enrolled_university: string | null }>();
 
     if (existingError || !existing) {
       return NextResponse.json({ message: "Verification submission not found" }, { status: 404 });
+    }
+
+    // US Member status requires a verified .edu school email — never approve without one.
+    if (reviewStatus === "approved" && !existing.email?.toLowerCase().endsWith(".edu")) {
+      return NextResponse.json(
+        { message: "Cannot approve: the applicant's school email must end in .edu." },
+        { status: 400 },
+      );
     }
 
     const now = new Date().toISOString();
@@ -71,16 +80,34 @@ export async function PATCH(
 
     if (membershipError) throw membershipError;
 
+    // Board members / admins / ambassadors also submit this form, but a review
+    // decision must never overwrite their elevated role.
+    const { data: applicant, error: applicantError } = await supabase
+      .from("Users")
+      .select("role")
+      .eq("id", existing.user_id)
+      .single<{ role: string | null }>();
+
+    if (applicantError) throw applicantError;
+    const keepRole = isProtectedRole(applicant?.role);
+
+    // Official college name for the profile, resolved from the verified .edu domain.
+    const college =
+      reviewStatus === "approved" && existing.email?.endsWith(".edu")
+        ? await findCollegeByEmail(existing.email, existing.enrolled_university)
+        : null;
+
     const userUpdates =
       reviewStatus === "approved"
         ? {
-            role: assignedRole,
+            ...(keepRole ? {} : { role: assignedRole }),
             acceptanceStatus: "approved",
             emailVerified: true,
-            // Confirm the .edu email on the user's profile
+            // Confirm the .edu email (and its college) on the user's profile
             ...(existing.email?.endsWith(".edu") ? { schoolEmail: existing.email } : {}),
+            ...(college ? { schoolName: college.name } : {}),
           }
-        : { role: "member", acceptanceStatus: "approved" };
+        : { ...(keepRole ? {} : { role: "member" }), acceptanceStatus: "approved" };
 
     const { error: userError } = await supabase
       .from("Users")

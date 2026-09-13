@@ -1,5 +1,6 @@
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardTopBar from "@/components/DashboardTopBar";
+import MembershipReminderBanner from "@/components/MembershipReminderBanner";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* pt-16 offsets the fixed mobile top bar; removed on md+ */}
         <div className="shrink-0 pt-16 md:pt-0">
           <DashboardTopBar />
+          <MembershipReminderBanner />
         </div>
         <main className="flex-1 overflow-y-auto min-h-0">
           {children}

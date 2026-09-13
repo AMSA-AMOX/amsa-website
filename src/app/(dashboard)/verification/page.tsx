@@ -8,6 +8,7 @@ import {
   CAREER_INTEREST_OPTIONS,
   HEARD_ABOUT_AMSA_OPTIONS,
   MENTORSHIP_INTEREST_OPTIONS,
+  normalizeInstagramHandle,
   type MembershipSubmissionPayload,
 } from "@/lib/membership";
 
@@ -16,6 +17,21 @@ type MembershipResponse = MembershipSubmissionPayload & {
   reviewStatus: string;
   assignedRole: string | null;
   adminNote: string;
+};
+
+type ProfileSnapshot = {
+  firstName?: string | null;
+  lastName?: string | null;
+  schoolName?: string | null;
+  schoolEmail?: string | null;
+  schoolYear?: string | null;
+  major?: string | null;
+  graduationYear?: string | null;
+  state?: string | null;
+  city?: string | null;
+  phoneNumber?: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
 };
 
 const YEAR_IN_SCHOOL_OPTIONS = [
@@ -63,6 +79,30 @@ export default function VerificationPage() {
 
   const isLocked = reviewStatus === "approved";
 
+  // Live check: does the .edu email belong to the university they typed?
+  type EmailCheck = { status: "match" | "mismatch" | "unknown"; college: { id: number; name: string } | null };
+  const [emailCheck, setEmailCheck] = useState<EmailCheck | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  useEffect(() => {
+    if (isLocked || loadingForm) return;
+    const email = form.email.trim().toLowerCase();
+    if (!email.includes("@") || !email.endsWith(".edu")) {
+      setEmailCheck(null);
+      return;
+    }
+    let cancelled = false;
+    setCheckingEmail(true);
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ email, name: form.enrolledUniversity.trim() });
+      authFetch(`/api/colleges/match?${params.toString()}`)
+        .then((res) => { if (!cancelled) setEmailCheck(res as EmailCheck); })
+        .catch(() => { if (!cancelled) setEmailCheck(null); })
+        .finally(() => { if (!cancelled) setCheckingEmail(false); });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [form.email, form.enrolledUniversity, isLocked, loadingForm, authFetch]);
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -74,8 +114,12 @@ export default function VerificationPage() {
       setLoadingForm(true);
       setError("");
       try {
-        const data = await authFetch("/api/user/verification");
+        const [data, meData] = await Promise.all([
+          authFetch("/api/user/verification"),
+          authFetch("/api/auth/me").catch(() => null),
+        ]);
         const membership = data?.membership as MembershipResponse | null;
+        const profile = (meData?.user ?? null) as ProfileSnapshot | null;
 
         if (membership) {
           setForm({
@@ -87,7 +131,7 @@ export default function VerificationPage() {
             city: membership.city ?? "",
             major: membership.major ?? "",
             expectedGraduation: membership.expectedGraduation ?? "",
-            email: membership.email ?? (user as any).schoolEmail ?? "",
+            email: membership.email ?? profile?.schoolEmail ?? "",
             socialMedia: membership.socialMedia ?? "",
             phone: membership.phone ?? "",
             careerInterests: membership.careerInterests ?? [],
@@ -102,11 +146,22 @@ export default function VerificationPage() {
           });
           setReviewStatus(membership.reviewStatus ?? "pending");
         } else {
+          // First-time applicant: pre-fill whatever is already on the profile so
+          // the two stay in sync (submitting writes these back to the profile).
           setForm((prev) => ({
             ...prev,
             fullName: `${user.firstName} ${user.lastName}`.trim(),
-            // Pre-fill school email if already saved on profile; leave blank otherwise
-            email: (user as any).schoolEmail ?? "",
+            enrolledUniversity: profile?.schoolName ?? "",
+            yearInSchool: YEAR_IN_SCHOOL_OPTIONS.includes(profile?.schoolYear ?? "")
+              ? (profile?.schoolYear as string)
+              : "",
+            major: profile?.major ?? "",
+            expectedGraduation: profile?.graduationYear ?? "",
+            state: profile?.state ?? "",
+            city: profile?.city ?? "",
+            email: profile?.schoolEmail ?? "",
+            phone: profile?.phoneNumber ?? "",
+            socialMedia: normalizeInstagramHandle(profile?.instagram),
           }));
         }
       } catch (e: any) {
@@ -158,6 +213,13 @@ export default function VerificationPage() {
       return;
     }
 
+    if (emailCheck?.status === "mismatch" && emailCheck.college) {
+      setError(
+        `Your school email belongs to ${emailCheck.college.name}, but you entered "${form.enrolledUniversity}". Please use an email from that university or correct the university name.`,
+      );
+      return;
+    }
+
     setSubmitting(true);
     setError("");
     setSuccess("");
@@ -175,6 +237,9 @@ export default function VerificationPage() {
       });
 
       setReviewStatus(data?.membership?.reviewStatus ?? "pending");
+      if (data?.membership?.enrolledUniversity) {
+        setForm((prev) => ({ ...prev, enrolledUniversity: data.membership.enrolledUniversity }));
+      }
       setSuccess("US Member application submitted. Admins can now review your application.");
     } catch (e: any) {
       setError(e?.message ?? "Failed to submit US Member application.");
@@ -191,7 +256,12 @@ export default function VerificationPage() {
       {/* Intro */}
       <div className="mb-8 space-y-2">
         <p className="text-base text-gray-500">
-          Use this form to apply for US Member status. Your submission is linked to your account and reviewed by admins.
+          {user.role === "board_member"
+            ? "All board members are required to complete this US Member application. Submitting it will not change your board member role."
+            : "Use this form to apply for US Member status. Your submission is linked to your account and reviewed by admins."}
+        </p>
+        <p className="text-sm text-gray-400">
+          The school, major, graduation, location and contact details you enter here are saved to your profile as well.
         </p>
         {reviewStatus === "approved" && (
           <p className="text-base font-semibold text-green-700">Your application has been approved.</p>
@@ -242,16 +312,39 @@ export default function VerificationPage() {
               <TextField label="City" value={form.city} onChange={(v) => updateField("city", v)} required disabled={isLocked} placeholder="Enter your city" />
               <TextField label="Major" value={form.major} onChange={(v) => updateField("major", v)} required disabled={isLocked} placeholder="Enter your major" />
               <TextField label="Expected Graduation" value={form.expectedGraduation} onChange={(v) => updateField("expectedGraduation", v)} required disabled={isLocked} placeholder="e.g., June 2029" />
-              <TextField label="School Email (.edu)" type="email" value={form.email} onChange={(v) => updateField("email", v)} required disabled={isLocked} placeholder="you@university.edu" hint={!isLocked ? "Must end in .edu — used to verify enrollment" : undefined} />
+              <div className="space-y-1.5">
+                <TextField label="School Email (.edu)" type="email" value={form.email} onChange={(v) => updateField("email", v)} required disabled={isLocked} placeholder="you@university.edu" hint={!isLocked ? "Must end in .edu — must belong to the university above" : undefined} />
+                {!isLocked && (checkingEmail || emailCheck) && (
+                  <p
+                    className={`text-xs ${
+                      checkingEmail
+                        ? "text-gray-400"
+                        : emailCheck?.status === "match"
+                          ? "text-green-700"
+                          : emailCheck?.status === "mismatch"
+                            ? "text-red-600"
+                            : "text-gray-400"
+                    }`}
+                  >
+                    {checkingEmail
+                      ? "Checking school email…"
+                      : emailCheck?.status === "match"
+                        ? `✓ Email verified for ${emailCheck.college?.name}`
+                        : emailCheck?.status === "mismatch"
+                          ? `✗ This email belongs to ${emailCheck.college?.name}, not "${form.enrolledUniversity}"`
+                          : "We couldn't match this email domain to a college — an admin will verify it manually."}
+                  </p>
+                )}
+              </div>
               <TextField label="Phone" value={form.phone} onChange={(v) => updateField("phone", v)} required disabled={isLocked} placeholder="Enter your phone number" />
             </div>
             <TextField
-              label="Social Media (FB/IG handles)"
+              label="Instagram Handle"
               value={form.socialMedia}
               onChange={(v) => updateField("socialMedia", v)}
-              required
               disabled={isLocked}
-              placeholder="e.g., @username or facebook.com/yourname"
+              placeholder="@username"
+              hint={!isLocked ? "Optional — your Instagram @handle so we can find and tag you" : undefined}
             />
           </section>
 

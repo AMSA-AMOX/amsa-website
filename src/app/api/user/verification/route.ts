@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import {
+  membershipToProfileUpdates,
   normalizeMembershipSubmissionPayload,
   validateMembershipSubmissionPayload,
 } from "@/lib/membership";
+import { emailDomainLabel, verifySchoolEmail } from "@/lib/college-match";
 
 const MEMBERSHIP_COLUMNS = `
   id,
@@ -144,6 +146,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // The .edu email must belong to the university the applicant named. When
+    // it does, use the official college name so the profile and college pages
+    // line up. If the domain isn't in our colleges table we can't tell — let
+    // it through for admins to review.
+    const emailCheck = await verifySchoolEmail(normalized.email, normalized.enrolledUniversity);
+    if (emailCheck.status === "mismatch") {
+      return NextResponse.json(
+        {
+          message: `Your school email (${emailDomainLabel(normalized.email)}) belongs to ${emailCheck.college.name}, but you entered "${normalized.enrolledUniversity}". Please use an email from that university or correct the university name.`,
+          college: emailCheck.college,
+        },
+        { status: 400 },
+      );
+    }
+    if (emailCheck.status === "match") {
+      normalized.enrolledUniversity = emailCheck.college.name;
+    }
+
     const { data: existing, error: existingError } = await supabase
       .from("amsa_memberships")
       .select("id, review_status")
@@ -214,13 +234,22 @@ export async function POST(request: Request) {
       membership = created;
     }
 
-    // Immediately sync the verified .edu email to the user's profile for logo lookup
-    await supabase
+    // Immediately carry the application details over to the user's profile
+    // (school, year, major, graduation, location, phone, .edu email) so they
+    // don't have to re-enter them on the Profile page.
+    const { error: profileError } = await supabase
       .from("Users")
-      .update({ schoolEmail: normalized.email })
+      .update(membershipToProfileUpdates(normalized))
       .eq("id", payload.id);
 
-    return NextResponse.json({ membership: toClientPayload(membership) }, { status: 201 });
+    if (profileError) {
+      console.error("Profile sync after verification submit failed:", profileError);
+    }
+
+    return NextResponse.json(
+      { membership: toClientPayload(membership), college: emailCheck.college },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("POST /api/user/verification failed:", error);
     return NextResponse.json({ message: "Failed to submit verification form" }, { status: 500 });
