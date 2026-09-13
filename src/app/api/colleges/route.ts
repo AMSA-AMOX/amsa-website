@@ -464,8 +464,10 @@ export async function GET() {
     ))
     .sort((a, b) => b.financialAccessibilityScore - a.financialAccessibilityScore);
 
+  // The catalog only changes on an admin sync; serve it from the CDN for a day
+  // and keep serving stale for a week while a single background refresh runs.
   return NextResponse.json(
     { colleges },
-    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600" } }
+    { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } }
   );
 }

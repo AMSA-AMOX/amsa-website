@@ -52,12 +52,22 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const { data: thread, error } = await supabase
-      .from("HubThreads")
-      .select("id, askerId, title, question, category, categoryDomain, images, status, isAnon, approvedBy, approvedAt, createdAt")
-      .eq("id", threadId)
-      .single();
+    // Wave 1: thread, its comments and its upvotes are all keyed on threadId.
+    const [threadRes, commentsRes, threadUpvotesRes] = await Promise.all([
+      supabase
+        .from("HubThreads")
+        .select("id, askerId, title, question, category, categoryDomain, images, status, isAnon, approvedBy, approvedAt, createdAt")
+        .eq("id", threadId)
+        .single(),
+      supabase
+        .from("HubComments")
+        .select("id, threadId, authorId, content, isAnon, parentId, createdAt")
+        .eq("threadId", threadId)
+        .order("createdAt", { ascending: true }),
+      supabase.from("HubThreadUpvotes").select("userId").eq("threadId", threadId),
+    ]);
 
+    const { data: thread, error } = threadRes;
     if (error || !thread) {
       return NextResponse.json({ message: "Thread not found." }, { status: 404 });
     }
@@ -69,54 +79,37 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ message: "Thread not found." }, { status: 404 });
     }
 
-    // Fetch all comments (top-level + replies)
-    const { data: comments } = await supabase
-      .from("HubComments")
-      .select("id, threadId, authorId, content, isAnon, parentId, createdAt")
-      .eq("threadId", threadId)
-      .order("createdAt", { ascending: true });
-
-    const commentRows = (comments ?? []) as HubCommentRow[];
+    const commentRows = (commentsRes.data ?? []) as HubCommentRow[];
     const commentIds = commentRows.map((c) => c.id);
 
-    // Thread upvotes
-    const { data: threadUpvotes } = await supabase
-      .from("HubThreadUpvotes")
-      .select("userId")
-      .eq("threadId", threadId);
-
-    const threadUpvoteList = (threadUpvotes ?? []) as { userId: number }[];
+    const threadUpvoteList = (threadUpvotesRes.data ?? []) as { userId: number }[];
     const threadUpvoteCount = threadUpvoteList.length;
     const threadHasUpvoted = threadUpvoteList.some((u) => u.userId === payload.id);
 
-    // Comment upvotes
-    const commentUpvoteCounts = new Map<number, number>();
-    const commentUserUpvoted = new Set<number>();
-    if (commentIds.length > 0) {
-      const { data: commentUpvotes } = await supabase
-        .from("HubCommentUpvotes")
-        .select("commentId, userId")
-        .in("commentId", commentIds);
-      ((commentUpvotes ?? []) as { commentId: number; userId: number }[]).forEach((u) => {
-        commentUpvoteCounts.set(u.commentId, (commentUpvoteCounts.get(u.commentId) ?? 0) + 1);
-        if (u.userId === payload.id) commentUserUpvoted.add(u.commentId);
-      });
-    }
-
-    // Resolve user IDs
     const userIds = Array.from(new Set([
       ...(t.isAnon ? [] : [t.askerId]),
       ...commentRows.filter((c) => !c.isAnon).map((c) => c.authorId),
     ]));
 
+    // Wave 2: comment upvotes and author rows both depend only on wave 1.
+    const [commentUpvotesRes, usersRes] = await Promise.all([
+      commentIds.length > 0
+        ? supabase.from("HubCommentUpvotes").select("commentId, userId").in("commentId", commentIds)
+        : Promise.resolve({ data: [] as { commentId: number; userId: number }[] }),
+      userIds.length > 0
+        ? supabase.from("Users").select("id, firstName, lastName, profilePic").in("id", userIds)
+        : Promise.resolve({ data: [] as UserRow[] }),
+    ]);
+
+    const commentUpvoteCounts = new Map<number, number>();
+    const commentUserUpvoted = new Set<number>();
+    ((commentUpvotesRes.data ?? []) as { commentId: number; userId: number }[]).forEach((u) => {
+      commentUpvoteCounts.set(u.commentId, (commentUpvoteCounts.get(u.commentId) ?? 0) + 1);
+      if (u.userId === payload.id) commentUserUpvoted.add(u.commentId);
+    });
+
     const userMap = new Map<number, UserRow>();
-    if (userIds.length > 0) {
-      const { data: users } = await supabase
-        .from("Users")
-        .select("id, firstName, lastName, profilePic")
-        .in("id", userIds);
-      ((users ?? []) as UserRow[]).forEach((u) => userMap.set(u.id, u));
-    }
+    ((usersRes.data ?? []) as UserRow[]).forEach((u) => userMap.set(u.id, u));
 
     // Build comment objects
     const commentMap = new Map<number, any>();

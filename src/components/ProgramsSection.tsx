@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import Image from "next/image";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
@@ -11,7 +12,7 @@ const programs = [
     accent: "Leadership & College Readiness",
     description: "A one-day annual conference inspiring high school students in Mongolia to pursue higher education in the U.S.",
     location: "Ulaanbaatar, Mongolia",
-    image: "/assets/programs/cyf2025.jpg",
+    image: "/assets/optimized/cyf2025.webp",
   },
   {
     short: "BUOP",
@@ -19,7 +20,7 @@ const programs = [
     accent: "Scholarships & Mentorship",
     description: "Empowering 1600+ students over 10 years with workshops, mentorship, and U.S. university preparation.",
     location: "Ulaanbaatar, Mongolia",
-    image: "/assets/programs/BUOP.png",
+    image: "/assets/optimized/BUOP.webp",
   },
   {
     short: "AGM",
@@ -27,7 +28,7 @@ const programs = [
     accent: "Networking & Growth",
     description: "Our flagship members-only conference rotating across top U.S. colleges every Thanksgiving break.",
     location: "United States",
-    image: "/assets/programs/1.png",
+    image: "/assets/optimized/programs-1.webp",
   },
 ];
 
@@ -106,12 +107,14 @@ export default function ProgramsSection() {
               key={i}
               data-aos="fade-up"
               data-aos-delay={cell.delay}
-              className="rounded-2xl overflow-hidden"
+              className="relative rounded-2xl overflow-hidden"
             >
-              <img
+              <Image
                 src={program.image}
                 alt={program.short}
-                className="w-full h-full object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover"
               />
             </div>
           );

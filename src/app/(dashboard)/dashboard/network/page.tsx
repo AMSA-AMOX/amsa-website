@@ -181,14 +181,12 @@ export default function NetworkPage() {
       return;
     }
 
-    const timeout = setTimeout(() => {
-      if (query.trim()) {
-        runSearch(query);
-      } else {
-        loadDiscovery();
-      }
-    }, 250);
-
+    // Only debounce while typing; the initial discovery load fires immediately.
+    if (!query.trim()) {
+      loadDiscovery();
+      return;
+    }
+    const timeout = setTimeout(() => runSearch(query), 250);
     return () => clearTimeout(timeout);
   }, [user, loading, query, loadDiscovery, runSearch, router]);
 

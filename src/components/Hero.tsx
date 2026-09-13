@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 
+// Optimized WebP copies (see scripts/optimize-images.mjs); all 1600 px wide.
 const heroImages = [
-  { src: "/assets/Hero-alt2.png", alt: "AMSA Students at Yale" },
-  { src: "/assets/2014agm.jpg", alt: "AMSA AGM 2014" },
-  { src: "/assets/2017agm.JPG", alt: "AMSA AGM 2017" },
-  { src: "/assets/2025agm.jpg", alt: "AMSA AGM 2025" },
+  { src: "/assets/optimized/Hero-alt2.webp", alt: "AMSA Students at Yale" },
+  { src: "/assets/optimized/2014agm.webp", alt: "AMSA AGM 2014" },
+  { src: "/assets/optimized/2017agm.webp", alt: "AMSA AGM 2017" },
+  { src: "/assets/optimized/2025agm.webp", alt: "AMSA AGM 2025" },
 ];
+const HERO_SIZES = "(max-width: 820px) 100vw, (max-width: 1040px) 1040px, 1200px";
 
 function Hero() {
   const [current, setCurrent] = useState(0);
@@ -28,7 +31,7 @@ function Hero() {
   return (
     <section className="relative w-full bg-[#001049] overflow-visible">
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <img src="/assets/herobg.svg" className="w-full h-full object-cover" />
+        <Image src="/assets/optimized/herobg.webp" alt="" fill sizes="100vw" className="object-cover" priority />
       </div>
 
       <div className="relative z-10 flex flex-col items-center text-center px-4 pt-16 md:pt-20 lg:pt-24 pb-0">
@@ -83,10 +86,14 @@ function Hero() {
             style={{ aspectRatio: "16/9" }}
           >
             {activeImage && (
-              <img
+              <Image
+                key={activeImage.src}
                 src={activeImage.src}
                 alt={activeImage.alt}
-                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                fill
+                sizes={HERO_SIZES}
+                className="object-cover rounded-lg"
+                priority={safeCurrent === 0}
               />
             )}
             {/* Slide indicators */}

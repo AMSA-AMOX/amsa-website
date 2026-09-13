@@ -23,14 +23,51 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Invalid member id" }, { status: 400 });
     }
 
-    const { data: user, error } = await supabase
-      .from("Users")
-      .select(
-        "id, firstName, lastName, role, profilePic, bio, schoolName, schoolEmail, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x"
-      )
-      .eq("id", targetId)
-      .maybeSingle();
+    // The profile row, experiences, follow counts and the suggestion pool are
+    // all independent of each other — one wave instead of four.
+    const loadFollowStats = async () => {
+      try {
+        const followsTable = await getFollowsTableName();
+        const [followersRes, followingRes, isFollowingRes] = await Promise.all([
+          supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followingId", targetId),
+          supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followerId", targetId),
+          supabase
+            .from(followsTable)
+            .select("id", { count: "exact", head: true })
+            .eq("followerId", payload.id)
+            .eq("followingId", targetId),
+        ]);
+        return {
+          followersCount: followersRes.count ?? 0,
+          followingCount: followingRes.count ?? 0,
+          isFollowing: (isFollowingRes.count ?? 0) > 0,
+        };
+      } catch (error: any) {
+        if (error?.code !== "PGRST205") throw error;
+        return { followersCount: 0, followingCount: 0, isFollowing: false };
+      }
+    };
 
+    const [userRes, experienceRes, followStats, nextProfilesRaw] = await Promise.all([
+      supabase
+        .from("Users")
+        .select(
+          "id, firstName, lastName, role, profilePic, bio, schoolName, schoolEmail, major, degreeLevel, schoolYear, graduationYear, linkedin, instagram, facebook, x"
+        )
+        .eq("id", targetId)
+        .maybeSingle(),
+      supabase
+        .from("Experiences")
+        .select("*")
+        .eq("userId", targetId)
+        .order("currentlyWorking", { ascending: false })
+        .order("startYear", { ascending: false })
+        .order("startMonth", { ascending: false }),
+      loadFollowStats(),
+      listNetworkMembersForUser(payload.id, { limit: 60 }),
+    ]);
+
+    const { data: user, error } = userRes;
     if (error) {
       console.error("Network profile user fetch error:", error);
       return NextResponse.json({ message: "Failed to load member profile" }, { status: 500 });
@@ -39,48 +76,16 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 
-
-    const { data: experiences, error: experienceError } = await supabase
-      .from("Experiences")
-      .select("*")
-      .eq("userId", targetId)
-      .order("currentlyWorking", { ascending: false })
-      .order("startYear", { ascending: false })
-      .order("startMonth", { ascending: false });
-
+    const { data: experiences, error: experienceError } = experienceRes;
     if (experienceError) {
       console.error("Network profile experience fetch error:", experienceError);
     }
 
-    let followersCount = 0;
-    let followingCount = 0;
-    let isFollowing = false;
-
-    try {
-      const followsTable = await getFollowsTableName();
-      const [followersRes, followingRes, isFollowingRes] = await Promise.all([
-        supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followingId", targetId),
-        supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followerId", targetId),
-        supabase
-          .from(followsTable)
-          .select("id", { count: "exact", head: true })
-          .eq("followerId", payload.id)
-          .eq("followingId", targetId),
-      ]);
-
-      followersCount = followersRes.count ?? 0;
-      followingCount = followingRes.count ?? 0;
-      isFollowing = (isFollowingRes.count ?? 0) > 0;
-    } catch (error: any) {
-      if (error?.code !== "PGRST205") {
-        throw error;
-      }
-    }
+    const { followersCount, followingCount, isFollowing } = followStats;
 
     const targetSchool = (user.schoolName ?? "").trim().toLowerCase();
     const targetYear = (user.graduationYear ?? "").trim();
 
-    const nextProfilesRaw = await listNetworkMembersForUser(payload.id, { limit: 60 });
     const nextProfiles = nextProfilesRaw
       .filter((member) => member.id !== targetId)
       .map((member) => {

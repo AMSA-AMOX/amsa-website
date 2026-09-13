@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { verifyToken, ROLES } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import {
@@ -76,13 +76,15 @@ export async function POST(
           getUserById(promoted.promotedUserId),
         ]);
 
-        await sendWaitlistPromotedEmail({
-          eventId,
-          userId: promoted.promotedUserId,
-          userEmail: promotedUser.email,
-          eventTitle: event.title,
-          paymentDueAt: promoted.paymentDueAt,
-        });
+        after(() =>
+          sendWaitlistPromotedEmail({
+            eventId,
+            userId: promoted.promotedUserId,
+            userEmail: promotedUser.email,
+            eventTitle: event.title,
+            paymentDueAt: promoted.paymentDueAt,
+          }).catch((e) => console.error("Waitlist promotion email failed:", e)),
+        );
       }
     }
 

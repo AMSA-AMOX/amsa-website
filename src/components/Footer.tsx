@@ -21,7 +21,12 @@ const socialLinks = [
 const Footer = () => {
   return (
     <footer className="relative w-full text-[#FFFCF3] bg-[#001049] overflow-hidden">
-      <img src="/assets/footerbg.svg" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover object-top" />
+      {/* Decorative background: an optimized raster of the old 19 MB footerbg.svg, loaded lazily by CSS. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-top opacity-90"
+        style={{ backgroundImage: "url(/assets/optimized/footerbg.webp)" }}
+      />
 
       <div className="relative z-10 px-6 md:px-10 xl:px-14 pt-20 pb-10">
 

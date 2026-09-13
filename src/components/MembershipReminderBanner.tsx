@@ -17,12 +17,14 @@ export default function MembershipReminderBanner() {
 
   const isBoardMember = user?.role === "board_member";
 
+  // Fetch once per session (not on every route change); the banner disappears
+  // on the next mount after they submit.
   useEffect(() => {
     if (!isBoardMember) return;
     authFetch("/api/user/verification")
       .then((res) => setHasSubmitted(Boolean(res.membership)))
       .catch(() => {});
-  }, [isBoardMember, authFetch, pathname]);
+  }, [isBoardMember, authFetch]);
 
   if (!isBoardMember || hasSubmitted !== false || pathname === "/verification") return null;
 

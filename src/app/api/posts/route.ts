@@ -128,24 +128,6 @@ export async function GET(request: Request) {
       )
     );
 
-    let usersById = new Map<number, RawUserRow>();
-    if (userIds.length > 0) {
-      const { data: users, error: usersError } = await supabase
-        .from("Users")
-        .select("id, firstName, lastName, headline, profilePic")
-        .in("id", userIds);
-
-      if (usersError) {
-        console.error("List post users failed:", usersError);
-        return NextResponse.json({ message: "Failed to load posts" }, { status: 500 });
-      }
-
-      usersById = new Map<number, RawUserRow>(
-        ((users ?? []) as RawUserRow[]).map((user) => [user.id, user])
-      );
-    }
-
-    // Fetch college info for tagged posts
     const collegeIds = Array.from(
       new Set(
         safePosts
@@ -153,34 +135,39 @@ export async function GET(request: Request) {
           .filter((id): id is number => id !== null)
       )
     );
-    let collegesById = new Map<number, RawCollegeRow>();
-    if (collegeIds.length > 0) {
-      const { data: colleges } = await supabase
-        .from("colleges_base")
-        .select("unitid, name, school_url")
-        .in("unitid", collegeIds);
-      for (const c of (colleges ?? []) as RawCollegeRow[]) {
-        collegesById.set(c.unitid, c);
-      }
+
+    // Authors, tagged colleges and the viewer's appreciations only depend on
+    // the post list — fetch all three in one wave.
+    const [usersRes, collegesRes, helpfulRes] = await Promise.all([
+      userIds.length > 0
+        ? supabase.from("Users").select("id, firstName, lastName, headline, profilePic").in("id", userIds)
+        : Promise.resolve({ data: [] as RawUserRow[], error: null }),
+      collegeIds.length > 0
+        ? supabase.from("colleges_base").select("unitid, name, school_url").in("unitid", collegeIds)
+        : Promise.resolve({ data: [] as RawCollegeRow[], error: null }),
+      viewerId
+        ? supabase
+            .from("PostHelpfuls")
+            .select("postId")
+            .eq("userId", viewerId)
+            .in("postId", safePosts.map((post) => post.id))
+        : Promise.resolve({ data: [] as Array<{ postId: number }>, error: null }),
+    ]);
+
+    if (usersRes.error) {
+      console.error("List post users failed:", usersRes.error);
+      return NextResponse.json({ message: "Failed to load posts" }, { status: 500 });
     }
 
-    let appreciationRows: Array<{ postId: number }> = [];
-    if (viewerId) {
-      const { data: helpfulData, error: helpfulError } = await supabase
-        .from("PostHelpfuls")
-        .select("postId")
-        .eq("userId", viewerId)
-        .in(
-          "postId",
-          safePosts.map((post) => post.id)
-        );
-
-      if (!helpfulError) {
-        appreciationRows = (helpfulData ?? []) as Array<{ postId: number }>;
-      }
-    }
-
-    const appreciationSet = new Set(appreciationRows.map((row) => row.postId));
+    const usersById = new Map<number, RawUserRow>(
+      ((usersRes.data ?? []) as RawUserRow[]).map((user) => [user.id, user])
+    );
+    const collegesById = new Map<number, RawCollegeRow>(
+      ((collegesRes.data ?? []) as RawCollegeRow[]).map((c) => [c.unitid, c])
+    );
+    const appreciationSet = new Set(
+      (helpfulRes.error ? [] : ((helpfulRes.data ?? []) as Array<{ postId: number }>)).map((row) => row.postId)
+    );
 
     return NextResponse.json({
       posts: safePosts.map((post) => {

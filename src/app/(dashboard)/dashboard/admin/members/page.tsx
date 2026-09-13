@@ -91,17 +91,16 @@ export default function AdminMembersPage() {
     }
   }, [authFetch]);
 
-  // Initial load
+  // Single fetch effect: immediate on first load, debounced while typing.
   useEffect(() => {
     if (!user || user.role !== "admin") return;
-    fetchMembers("");
-  }, [user, fetchMembers]);
-
-  // Debounced search
-  useEffect(() => {
+    if (!query) {
+      fetchMembers("");
+      return;
+    }
     const t = setTimeout(() => fetchMembers(query), 300);
     return () => clearTimeout(t);
-  }, [query, fetchMembers]);
+  }, [user, query, fetchMembers]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);

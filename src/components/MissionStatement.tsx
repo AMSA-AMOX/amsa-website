@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import Image from "next/image";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
@@ -21,25 +22,31 @@ export default function MissionStatement() {
       <div className="relative flex items-center justify-center">
         {/* Left scattered images — desktop only */}
         <div className="hidden xl:block absolute left-0 w-[340px] h-[460px] pointer-events-none">
-          <img
-            src="/assets/FloatingGallery/Floating1.png"
+          <Image
+            src="/assets/optimized/Floating1.webp"
             alt=""
+            width={170}
+            height={170}
             data-aos="fade-right"
             data-aos-delay="0"
             className="absolute rounded-full object-cover shadow-xl -rotate-6"
             style={{ width: 170, height: 170, top: 0, left: 30 }}
           />
-          <img
-            src="/assets/FloatingGallery/Floating2.png"
+          <Image
+            src="/assets/optimized/Floating2.webp"
             alt=""
+            width={125}
+            height={125}
             data-aos="fade-right"
             data-aos-delay="80"
             className="absolute rounded-full object-cover shadow-xl rotate-3"
             style={{ width: 125, height: 125, top: 155, left: 160 }}
           />
-          <img
-            src="/assets/FloatingGallery/Floating3.png"
+          <Image
+            src="/assets/optimized/Floating3.webp"
             alt=""
+            width={155}
+            height={155}
             data-aos="fade-right"
             data-aos-delay="160"
             className="absolute rounded-full object-cover shadow-xl -rotate-2"
@@ -99,25 +106,31 @@ export default function MissionStatement() {
 
         {/* Right scattered images — desktop only */}
         <div className="hidden xl:block absolute right-0 w-[340px] h-[460px] pointer-events-none">
-          <img
-            src="/assets/FloatingGallery/Floating7.png"
+          <Image
+            src="/assets/optimized/Floating7.webp"
             alt=""
+            width={140}
+            height={140}
             data-aos="fade-left"
             data-aos-delay="0"
             className="absolute rounded-full object-cover shadow-xl rotate-5"
             style={{ width: 140, height: 140, top: 10, right: 60 }}
           />
-          <img
-            src="/assets/FloatingGallery/Floating5.png"
+          <Image
+            src="/assets/optimized/Floating5.webp"
             alt=""
+            width={175}
+            height={175}
             data-aos="fade-left"
             data-aos-delay="80"
             className="absolute rounded-full object-cover shadow-xl -rotate-4"
             style={{ width: 175, height: 175, top: 145, right: 160 }}
           />
-          <img
-            src="/assets/FloatingGallery/Floating6.png"
+          <Image
+            src="/assets/optimized/Floating6.webp"
             alt=""
+            width={130}
+            height={130}
             data-aos="fade-left"
             data-aos-delay="160"
             className="absolute rounded-full object-cover shadow-xl rotate-2"

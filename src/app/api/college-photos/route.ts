@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jsonCached, ONE_DAY, ONE_WEEK } from "@/lib/http";
 
 export type CollegePhoto = {
   id: number;
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       alt: p.alt || `${name} campus`,
     }));
 
-    return NextResponse.json({ photos });
+    return jsonCached({ photos }, ONE_DAY, ONE_WEEK);
   } catch {
     return NextResponse.json({ photos: [] });
   }

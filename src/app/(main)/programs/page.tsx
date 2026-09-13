@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import Image from "next/image";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
@@ -8,7 +9,7 @@ const programs = [
   {
     title: "Annual General Meeting",
     short: "AGM",
-    image: "/assets/Hero-alt1.png",
+    image: "/assets/optimized/Hero-alt1.webp",
     componentShiftClass: "md:translate-x-10",
     cardSide: "left",
     description: `AGM is a two-day members-only conference held during Thanksgiving break. It rotates across U.S. colleges, helping AMSA members network and grow. Since the first AGM at MIT/Harvard in 2012, we've visited NYU, UChicago, Georgia Tech, UC Berkeley, and more—including virtual during COVID-19. It's a space for learning, bonding, and sharing.`,
@@ -18,7 +19,7 @@ const programs = [
   {
     title: "Change Your Future",
     short: "CYF",
-    image: "/assets/programs/cyf2025.jpg",
+    image: "/assets/optimized/cyf2025.webp",
     componentShiftClass: "md:-translate-x-10",
     cardSide: "right",
     description: `CYF is a one-day annual leadership and college-readiness conference organized for high school students in Mongolia. The event inspires youth to pursue education abroad, with workshops, panel discussions, and mentorship. Participants meet students who've received scholarships from U.S. universities.`,
@@ -28,7 +29,7 @@ const programs = [
   {
     title: "Best University Opportunity Program",
     short: "BUOP",
-    image: "/assets/programs/BUOP.png",
+    image: "/assets/optimized/BUOP.webp",
     componentShiftClass: "md:-translate-x-8",
     cardSide: "left",
     description: `BUOP empowers college students with personal and professional development workshops. The sessions cover time management, resume writing, career paths, mental health, and more—run by professionals and mentors across the AMSA network.`,
@@ -38,7 +39,7 @@ const programs = [
   {
     title: "Temege Campaign",
     short: "TEMEGE",
-    image: "/assets/programs/Temege.png",
+    image: "/assets/optimized/Temege.webp",
     componentShiftClass: "md:translate-x-12",
     cardSide: "right",
     description: `Since 2011, the Association of Mongolian Students in America has been organizing the "Best University Opportunity Program - BUOP" to reach and share our success stories with students in Mongolia. We are aware of how some people think only the wealthy go to the U.S for college, and we do not deny it as a misconception, either. This is why we are doing this fundraising campaign: to raise funds, helping underprivileged children fulfill their dreams and study at top universities in the US. Your support will help us lower the price of the tax to host more inclusive events open to the general public.`,
@@ -48,7 +49,7 @@ const programs = [
   {
     title: "Global Mind Mentorship",
     short: "GMM",
-    image: "/assets/programs/GlobalMind.png",
+    image: "/assets/optimized/GlobalMind.webp",
     componentShiftClass: "md:translate-x-8",
     cardSide: "left",
     description: `This 8-month mentorship program pairs industry professionals with college students in the U.S., who in turn guide Mongolian high school students on applying to U.S. schools. With monthly sessions, career support, and webinars, it builds a learning bridge across generations.`,
@@ -58,7 +59,7 @@ const programs = [
   {
     title: "Curiosity Corner",
     short: "CCorner",
-    image: "/assets/programs/CuriosityCorner.png",
+    image: "/assets/optimized/CuriosityCorner.webp",
     componentShiftClass: "md:-translate-x-12",
     cardSide: "right",
     description: `This online interview series runs during the college application season. Weekly episodes on YouTube, Spotify, and Instagram feature Mongolian students studying abroad. They share stories, challenges, and advice—building inspiration and a sense of community.`,
@@ -104,10 +105,13 @@ export default function ProgramsPage() {
               className={`relative w-full transition-transform ${program.componentShiftClass}`}
             >
               <div className="relative overflow-hidden rounded-[22px] shadow-2xl h-65 md:h-130">
-                <img
+                <Image
                   src={program.image}
                   alt={program.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority={index === 0}
                 />
               </div>
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { hasSeatAvailable, paymentDueAtFrom } from "@/lib/events/logic";
@@ -86,13 +86,15 @@ export async function POST(
 
       if (reserveError) throw reserveError;
 
-      await sendReservationConfirmationEmail({
-        eventId,
-        userId: payload.id,
-        userEmail: user.email,
-        eventTitle: event.title,
-        paymentDueAt,
-      });
+      after(() =>
+        sendReservationConfirmationEmail({
+          eventId,
+          userId: payload.id,
+          userEmail: user.email,
+          eventTitle: event.title,
+          paymentDueAt,
+        }).catch((e) => console.error("Reservation email failed:", e)),
+      );
 
       return NextResponse.json(
         {
@@ -119,13 +121,15 @@ export async function POST(
 
     if (waitlistError) throw waitlistError;
 
-    await sendWaitlistEmail({
-      eventId,
-      userId: payload.id,
-      userEmail: user.email,
-      eventTitle: event.title,
-      waitlistPosition,
-    });
+    after(() =>
+      sendWaitlistEmail({
+        eventId,
+        userId: payload.id,
+        userEmail: user.email,
+        eventTitle: event.title,
+        waitlistPosition,
+      }).catch((e) => console.error("Waitlist email failed:", e)),
+    );
 
     return NextResponse.json(
       {

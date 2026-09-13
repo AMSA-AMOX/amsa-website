@@ -6,14 +6,14 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 const teamMembers = [
-  { name: "Marla", image: "/team/marla.svg", linkedin: "https://www.linkedin.com/in/marla-munkhsaikhan-455141286/" },
-  { name: "Telmen", image: "/team/telmen.svg", linkedin: "https://linkedin.com/in/telmenbayarbaatar" },
-  { name: "Nomiko", image: "/team/nomiko.svg", linkedin: "https://www.linkedin.com/in/nominsuvd-munkhbayar-9655a220b/" },
-  { name: "Alex", image: "/team/alex.svg", linkedin: "https://www.linkedin.com/in/queguiner/" },
-  { name: "Ozi", image: "/team/ozi.svg", linkedin: "https://www.linkedin.com/in/ozi-erdenebat-12b0ab2b0/" },
-  { name: "Bilgee", image: "/team/bilgee.svg", linkedin: "https://www.linkedin.com/in/bilgeeb/" },
-  { name: "Mike", image: "/team/mike.svg", linkedin: "https://www.linkedin.com/in/mike-baasandorj-641086385/" },
-  { name: "Arvin", image: "/team/arvin.svg", linkedin: "https://www.linkedin.com/in/arvin-ariunbat-558a3b391/" },
+  { name: "Marla", image: "/team/optimized/marla.webp", linkedin: "https://www.linkedin.com/in/marla-munkhsaikhan-455141286/" },
+  { name: "Telmen", image: "/team/optimized/telmen.webp", linkedin: "https://linkedin.com/in/telmenbayarbaatar" },
+  { name: "Nomiko", image: "/team/optimized/nomiko.webp", linkedin: "https://www.linkedin.com/in/nominsuvd-munkhbayar-9655a220b/" },
+  { name: "Alex", image: "/team/optimized/alex.webp", linkedin: "https://www.linkedin.com/in/queguiner/" },
+  { name: "Ozi", image: "/team/optimized/ozi.webp", linkedin: "https://www.linkedin.com/in/ozi-erdenebat-12b0ab2b0/" },
+  { name: "Bilgee", image: "/team/optimized/bilgee.webp", linkedin: "https://www.linkedin.com/in/bilgeeb/" },
+  { name: "Mike", image: "/team/optimized/mike.webp", linkedin: "https://www.linkedin.com/in/mike-baasandorj-641086385/" },
+  { name: "Arvin", image: "/team/optimized/arvin.webp", linkedin: "https://www.linkedin.com/in/arvin-ariunbat-558a3b391/" },
 ];
 
 const strategyBoardMembers = [

@@ -27,14 +27,12 @@ export async function GET(request: Request) {
     const role = user.role ?? "member";
     const roles = role === "admin" ? ["admin", "us_member"] : [role];
 
-    // Older approvals only saved the .edu email, leaving schoolName empty so
-    // the profile showed no college. Backfill it from the email domain.
+    // Users approved before the profile sync may have no schoolName; the
+    // persistent fix is `scripts/backfill-school-names.ts` (run once). Here we
+    // only fill it in the response so the profile renders — no write on a read.
     if (!user.schoolName && user.schoolEmail) {
       const college = await findCollegeByEmail(user.schoolEmail);
-      if (college) {
-        user.schoolName = college.name;
-        await supabase.from("Users").update({ schoolName: college.name }).eq("id", user.id);
-      }
+      if (college) user.schoolName = college.name;
     }
 
     return NextResponse.json({ user: { ...user, roles } });

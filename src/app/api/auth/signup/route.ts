@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 import { makeToken, isAmsaAdminEmail } from "@/lib/auth";
@@ -119,12 +119,13 @@ export async function POST(request: Request) {
 
     const token = makeToken({ id: user.id, role });
 
-    // Welcome email — must never block or fail the signup.
-    try {
-      await sendWelcomeEmail({ userEmail: eduEmail, firstName });
-    } catch (emailError) {
-      console.error("Welcome email failed:", emailError);
-    }
+    // Welcome email — sent after the response is flushed so the Resend round
+    // trip never adds to signup latency, and can never fail the signup.
+    after(() =>
+      sendWelcomeEmail({ userEmail: eduEmail, firstName }).catch((emailError) => {
+        console.error("Welcome email failed:", emailError);
+      }),
+    );
 
     return NextResponse.json(
       {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 
 export type User = {
@@ -59,48 +59,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const saveAuth = (t: string, u: User) => {
+  // Everything exposed through context is memoized: many pages list `authFetch`
+  // in effect deps, so a fresh identity on every provider render used to
+  // re-fire every data fetch in the app (e.g. after updateUser on profile save).
+  const saveAuth = useCallback((t: string, u: User) => {
     setToken(t);
     setUser(u);
     localStorage.setItem("amsa_auth", JSON.stringify({ token: t, user: u }));
-  };
+  }, []);
 
-  const clearAuth = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("amsa_auth");
-  };
-
-  const login = async (email: string, password: string): Promise<User> => {
+  const login = useCallback(async (email: string, password: string): Promise<User> => {
     const data = await api("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
     saveAuth(data.token, data.user);
     return data.user;
-  };
+  }, [saveAuth]);
 
-  const signup = async (opts: SignupPayload): Promise<User> => {
+  const signup = useCallback(async (opts: SignupPayload): Promise<User> => {
     const data = await api("/api/auth/signup", {
       method: "POST",
       body: JSON.stringify({ ...opts, email: opts.email.trim() }),
     });
     saveAuth(data.token, data.user);
     return data.user;
-  };
+  }, [saveAuth]);
 
-  const logout = () => {
-    clearAuth();
-  };
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("amsa_auth");
+  }, []);
 
-  const updateUser = (partial: Partial<User>) => {
-    if (!user || !token) return;
-    const updated = { ...user, ...partial };
-    setUser(updated);
-    localStorage.setItem("amsa_auth", JSON.stringify({ token, user: updated }));
-  };
+  const updateUser = useCallback((partial: Partial<User>) => {
+    setUser((current) => {
+      if (!current || !token) return current;
+      const updated = { ...current, ...partial };
+      localStorage.setItem("amsa_auth", JSON.stringify({ token, user: updated }));
+      return updated;
+    });
+  }, [token]);
 
-  const authFetch = (path: string, opts: RequestInit = {}) => {
+  const authFetch = useCallback((path: string, opts: RequestInit = {}) => {
     if (!token) return Promise.reject({ message: "Not authenticated" });
     return api(path, {
       ...opts,
@@ -109,15 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         Authorization: `Bearer ${token}`,
       },
     });
-  };
+  }, [token]);
 
-  return (
-    <AuthContext.Provider
-      value={{ user, token, login, signup, logout, authFetch, loading, updateUser }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, token, login, signup, logout, authFetch, loading, updateUser }),
+    [user, token, login, signup, logout, authFetch, loading, updateUser],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {

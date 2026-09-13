@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { STATE_DATA } from "@/app/(dashboard)/dashboard/research/state-data";
+import { jsonCached, ONE_DAY, ONE_WEEK } from "@/lib/http";
 
 type RouteContext = { params: Promise<{ abbr: string }> };
 
@@ -72,7 +73,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       }
     }
 
-    return NextResponse.json({ photos });
+    return jsonCached({ photos }, ONE_DAY, ONE_WEEK);
   } catch {
     return NextResponse.json({ photos: [] });
   }

@@ -22,6 +22,35 @@ type UserRow = {
   role: string | null;
 };
 type EventRow = { id: number; title: string | null; startAt: string | null; createdAt: string | null };
+type QuestionRow = { id: number; askerId: number; question: string; createdAt: string };
+type AnsweredRow = { id: number; recipientId: number; answeredAt: string; isAnonymous: boolean | null };
+type ReportRow = { id: number; postId: number; reporterId: number; createdAt: string };
+
+const NETWORK_ROLES = ["ambassador", "us_member", "board_member", "admin"];
+const MOD_ROLES = ["admin", "board_member"];
+
+const fullName = (u: UserRow | undefined) =>
+  (u ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() : "") || "Someone";
+
+/** Followers, tolerating a follows table without a createdAt column. */
+async function loadFollowers(userId: number): Promise<FollowRow[]> {
+  try {
+    const table = await getFollowsTableName();
+    const withCreatedAt = await supabase
+      .from(table)
+      .select("followerId, createdAt")
+      .eq("followingId", userId)
+      .order("createdAt", { ascending: false })
+      .limit(20);
+    if (!withCreatedAt.error) return (withCreatedAt.data ?? []) as FollowRow[];
+    if (!String(withCreatedAt.error.message || "").toLowerCase().includes("createdat")) return [];
+    const plain = await supabase.from(table).select("followerId").eq("followingId", userId).limit(20);
+    return (plain.data ?? []) as FollowRow[];
+  } catch (e: any) {
+    if (e?.code !== "PGRST205") console.error("Notifications follow feed error:", e);
+    return [];
+  }
+}
 
 export async function GET(request: Request) {
   let payload;
@@ -31,234 +60,138 @@ export async function GET(request: Request) {
     return res as NextResponse;
   }
 
+  const role = payload.role ?? "";
+  const canAnswer = NETWORK_ROLES.includes(role);
+  const isMod = MOD_ROLES.includes(role);
+
   try {
-    const notifications: NotificationItem[] = [];
-
-    // Fetch current user info for welcome notification
-    const { data: currentUser } = await supabase
-      .from("Users")
-      .select("firstName, createdAt")
-      .eq("id", payload.id)
-      .single();
-
-    if (currentUser?.createdAt) {
-      notifications.push({
-        id: `welcome-${payload.id}`,
-        type: "welcome",
-        title: `Welcome to AMSA, ${currentUser.firstName ?? ""}!`.trim(),
-        description: "Your account is all set. Explore the network and connect with other Mongolian students.",
-        happenedAt: currentUser.createdAt,
-        href: "/dashboard/feed",
-      });
-    }
-
-    try {
-      const followsTable = await getFollowsTableName();
-      const withCreatedAt = await supabase
-        .from(followsTable)
-        .select("followerId, createdAt")
-        .eq("followingId", payload.id)
-        .order("createdAt", { ascending: false })
-        .limit(20);
-
-      // Fallback when createdAt does not exist on follows table.
-      const followersQuery =
-        withCreatedAt.error && String(withCreatedAt.error.message || "").toLowerCase().includes("createdat")
-          ? await supabase
-          .from(followsTable)
-          .select("followerId")
-          .eq("followingId", payload.id)
-          .limit(20)
-          : withCreatedAt;
-
-      if (!followersQuery.error) {
-        const followRows = (followersQuery.data ?? []) as Array<{ followerId: number; createdAt?: string | null }>;
-        const followerIds = Array.from(new Set(followRows.map((row) => row.followerId)));
-        if (followerIds.length > 0) {
-          const { data: users } = await supabase
-            .from("Users")
-            .select("id, firstName, lastName, profilePic, role")
-            .in("id", followerIds);
-
-          const userById = new Map<number, UserRow>((users ?? []).map((u: any) => [u.id, u as UserRow]));
-
-          for (const row of followRows) {
-            const actor = userById.get(row.followerId);
-            if (!actor) continue;
-            const fullName = `${actor.firstName ?? ""} ${actor.lastName ?? ""}`.trim() || "Someone";
-            const canOpenProfile = ["ambassador", "us_member", "board_member", "admin"].includes(actor.role ?? "");
-            notifications.push({
-              id: `follow-${row.followerId}-${row.createdAt ?? "na"}`,
-              type: "follow",
-              title: "New follower",
-              description: `${fullName} followed you.`,
-              happenedAt: row.createdAt ?? new Date(0).toISOString(),
-              href: canOpenProfile ? `/dashboard/network/${row.followerId}` : undefined,
-              avatarUrl: actor.profilePic,
-            });
-          }
-        }
-      }
-    } catch (e: any) {
-      if (e?.code !== "PGRST205") {
-        console.error("Notifications follow feed error:", e);
-      }
-    }
-
-    const { data: events, error: eventsError } = await supabase
-      .from("Events")
-      .select("id, title, startAt, createdAt")
-      .order("createdAt", { ascending: false })
-      .limit(20);
-
-    if (!eventsError) {
-      for (const event of (events ?? []) as EventRow[]) {
-        notifications.push({
-          id: `event-${event.id}`,
-          type: "event",
-          title: "Event update",
-          description: `${event.title ?? "Untitled event"} is available in Events.`,
-          happenedAt: event.createdAt ?? event.startAt ?? new Date(0).toISOString(),
-          href: "/dashboard/events",
-        });
-      }
-    } else {
-      console.error("Notifications events feed error:", eventsError);
-    }
-
-    // Thread question notifications (for ambassador+ only)
-    if (["ambassador", "us_member", "board_member", "admin"].includes(payload.role ?? "")) {
-      try {
-        const { data: threadRows, error: threadError } = await supabase
-          .from("Threads")
-          .select("id, askerId, question, createdAt")
-          .eq("recipientId", payload.id)
-          .is("answer", null)
-          .order("createdAt", { ascending: false })
-          .limit(10);
-
-        if (!threadError && threadRows && threadRows.length > 0) {
-          const askerIds = Array.from(new Set((threadRows as any[]).map((r) => r.askerId)));
-          const { data: askers } = await supabase
-            .from("Users")
-            .select("id, firstName, lastName, profilePic")
-            .in("id", askerIds);
-
-          const askerById = new Map<number, UserRow>(
-            ((askers ?? []) as any[]).map((u) => [u.id, u as UserRow])
-          );
-
-          for (const row of threadRows as any[]) {
-            const asker = askerById.get(row.askerId);
-            const name = asker
-              ? `${asker.firstName ?? ""} ${asker.lastName ?? ""}`.trim() || "Someone"
-              : "Someone";
-            notifications.push({
-              id: `thread-${row.id}`,
-              type: "thread_question",
-              title: "New question",
-              description: `${name} asked you a question.`,
-              happenedAt: row.createdAt,
-              href: "/welcome?threads=unanswered",
-              avatarUrl: asker?.profilePic ?? null,
-            });
-          }
-        }
-      } catch (e) {
-        console.error("Notifications thread question feed error:", e);
-      }
-    }
-
-    // Thread answered notifications (for askers whose questions got answered)
-    try {
-      const { data: answeredRows, error: answeredError } = await supabase
+    // Wave 1: every source is independent — fetch them all at once.
+    const [me, followRows, events, questions, answered, reports] = await Promise.all([
+      supabase.from("Users").select("firstName, createdAt").eq("id", payload.id).maybeSingle(),
+      loadFollowers(payload.id),
+      supabase.from("Events").select("id, title, startAt, createdAt").order("createdAt", { ascending: false }).limit(20),
+      canAnswer
+        ? supabase
+            .from("Threads")
+            .select("id, askerId, question, createdAt")
+            .eq("recipientId", payload.id)
+            .is("answer", null)
+            .order("createdAt", { ascending: false })
+            .limit(10)
+        : Promise.resolve({ data: [] as QuestionRow[], error: null }),
+      supabase
         .from("Threads")
         .select("id, recipientId, answeredAt, isAnonymous")
         .eq("askerId", payload.id)
         .not("answer", "is", null)
         .order("answeredAt", { ascending: false })
-        .limit(10);
+        .limit(10),
+      isMod
+        ? supabase.from("PostReports").select("id, postId, reporterId, createdAt").order("createdAt", { ascending: false }).limit(20)
+        : Promise.resolve({ data: [] as ReportRow[], error: null }),
+    ]);
 
-      if (!answeredError && answeredRows && answeredRows.length > 0) {
-        const nonAnonRows = (answeredRows as any[]).filter((r) => !r.isAnonymous);
-        const recipientIds = Array.from(new Set(nonAnonRows.map((r) => r.recipientId)));
+    const questionRows = (questions.data ?? []) as QuestionRow[];
+    const answeredRows = (answered.data ?? []) as AnsweredRow[];
+    const reportRows = (reports.data ?? []) as ReportRow[];
+    if (events.error) console.error("Notifications events feed error:", events.error);
 
-        const recipientById = new Map<number, UserRow>();
-        if (recipientIds.length > 0) {
-          const { data: recipients } = await supabase
-            .from("Users")
-            .select("id, firstName, lastName, profilePic")
-            .in("id", recipientIds);
-          ((recipients ?? []) as any[]).forEach((u) => recipientById.set(u.id, u as UserRow));
-        }
+    // Wave 2: one Users lookup for every actor referenced above.
+    const actorIds = new Set<number>();
+    followRows.forEach((r) => actorIds.add(r.followerId));
+    questionRows.forEach((r) => actorIds.add(r.askerId));
+    answeredRows.filter((r) => !r.isAnonymous).forEach((r) => actorIds.add(r.recipientId));
+    reportRows.forEach((r) => actorIds.add(r.reporterId));
 
-        for (const row of answeredRows as any[]) {
-          const isAnon = row.isAnonymous ?? false;
-          const recipient = isAnon ? null : recipientById.get(row.recipientId);
-          const name = recipient
-            ? `${recipient.firstName ?? ""} ${recipient.lastName ?? ""}`.trim() || "Someone"
-            : "Someone";
-          notifications.push({
-            id: `thread-answered-${row.id}`,
-            type: "thread_answered",
-            title: "Question answered",
-            description: isAnon ? "Someone answered your question." : `${name} answered your question.`,
-            happenedAt: row.answeredAt,
-            href: "/dashboard/inbox",
-            avatarUrl: isAnon ? null : (recipient?.profilePic ?? null),
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Notifications thread answered feed error:", e);
+    const userById = new Map<number, UserRow>();
+    if (actorIds.size > 0) {
+      const { data: users } = await supabase
+        .from("Users")
+        .select("id, firstName, lastName, profilePic, role")
+        .in("id", Array.from(actorIds));
+      (users ?? []).forEach((u: any) => userById.set(u.id, u as UserRow));
     }
 
-    // Report notifications for admins and board members
-    if (payload.role === "admin" || payload.role === "board_member") {
-      try {
-        const { data: reports, error: reportsError } = await supabase
-          .from("PostReports")
-          .select("id, postId, reporterId, createdAt")
-          .order("createdAt", { ascending: false })
-          .limit(20);
+    const notifications: NotificationItem[] = [];
 
-        if (!reportsError && reports && reports.length > 0) {
-          const reporterIds = Array.from(new Set((reports as any[]).map((r) => r.reporterId)));
-          const { data: reporters } = await supabase
-            .from("Users")
-            .select("id, firstName, lastName, profilePic")
-            .in("id", reporterIds);
-
-          const reporterById = new Map<number, UserRow>(
-            ((reporters ?? []) as any[]).map((u) => [u.id, u as UserRow])
-          );
-
-          for (const report of reports as any[]) {
-            const reporter = reporterById.get(report.reporterId);
-            const name = reporter
-              ? `${reporter.firstName ?? ""} ${reporter.lastName ?? ""}`.trim() || "Someone"
-              : "Someone";
-            notifications.push({
-              id: `post-report-${report.id}`,
-              type: "post_report",
-              title: "Post reported",
-              description: `${name} reported a post.`,
-              happenedAt: report.createdAt,
-              href: `/dashboard/feed?reportedPostId=${report.postId}`,
-              avatarUrl: reporter?.profilePic ?? null,
-            });
-          }
-        }
-      } catch (e) {
-        console.error("Notifications post reports error:", e);
-      }
+    if (me.data?.createdAt) {
+      notifications.push({
+        id: `welcome-${payload.id}`,
+        type: "welcome",
+        title: `Welcome to AMSA, ${me.data.firstName ?? ""}!`.trim(),
+        description: "Your account is all set. Explore the network and connect with other Mongolian students.",
+        happenedAt: me.data.createdAt,
+        href: "/dashboard/feed",
+      });
     }
 
-    notifications.sort((a, b) => {
-      const aTime = new Date(a.happenedAt).getTime();
-      const bTime = new Date(b.happenedAt).getTime();
-      return bTime - aTime;
-    });
+    for (const row of followRows) {
+      const actor = userById.get(row.followerId);
+      if (!actor) continue;
+      const canOpenProfile = NETWORK_ROLES.includes(actor.role ?? "");
+      notifications.push({
+        id: `follow-${row.followerId}-${row.createdAt ?? "na"}`,
+        type: "follow",
+        title: "New follower",
+        description: `${fullName(actor)} followed you.`,
+        happenedAt: row.createdAt ?? new Date(0).toISOString(),
+        href: canOpenProfile ? `/dashboard/network/${row.followerId}` : undefined,
+        avatarUrl: actor.profilePic,
+      });
+    }
+
+    for (const event of (events.data ?? []) as EventRow[]) {
+      notifications.push({
+        id: `event-${event.id}`,
+        type: "event",
+        title: "Event update",
+        description: `${event.title ?? "Untitled event"} is available in Events.`,
+        happenedAt: event.createdAt ?? event.startAt ?? new Date(0).toISOString(),
+        href: "/dashboard/events",
+      });
+    }
+
+    for (const row of questionRows) {
+      const asker = userById.get(row.askerId);
+      notifications.push({
+        id: `thread-${row.id}`,
+        type: "thread_question",
+        title: "New question",
+        description: `${fullName(asker)} asked you a question.`,
+        happenedAt: row.createdAt,
+        href: "/welcome?threads=unanswered",
+        avatarUrl: asker?.profilePic ?? null,
+      });
+    }
+
+    for (const row of answeredRows) {
+      const isAnon = row.isAnonymous ?? false;
+      const recipient = isAnon ? undefined : userById.get(row.recipientId);
+      notifications.push({
+        id: `thread-answered-${row.id}`,
+        type: "thread_answered",
+        title: "Question answered",
+        description: isAnon ? "Someone answered your question." : `${fullName(recipient)} answered your question.`,
+        happenedAt: row.answeredAt,
+        href: "/dashboard/inbox",
+        avatarUrl: isAnon ? null : (recipient?.profilePic ?? null),
+      });
+    }
+
+    for (const report of reportRows) {
+      const reporter = userById.get(report.reporterId);
+      notifications.push({
+        id: `post-report-${report.id}`,
+        type: "post_report",
+        title: "Post reported",
+        description: `${fullName(reporter)} reported a post.`,
+        happenedAt: report.createdAt,
+        href: `/dashboard/feed?reportedPostId=${report.postId}`,
+        avatarUrl: reporter?.profilePic ?? null,
+      });
+    }
+
+    notifications.sort((a, b) => new Date(b.happenedAt).getTime() - new Date(a.happenedAt).getTime());
 
     return NextResponse.json({ notifications: notifications.slice(0, 30) });
   } catch (e: any) {

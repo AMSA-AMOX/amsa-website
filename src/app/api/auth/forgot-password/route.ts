@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { makeResetToken } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email/resend";
@@ -27,15 +27,17 @@ export async function POST(request: Request) {
         new URL(request.url).origin;
       const resetUrl = `${origin}/reset-password?token=${encodeURIComponent(token)}`;
 
-      try {
-        await sendPasswordResetEmail({
+      // Send after the response so timing can't reveal whether the email exists
+      // and the Resend round trip doesn't add to the request.
+      after(() =>
+        sendPasswordResetEmail({
           userEmail: user.email,
           firstName: user.firstName ?? undefined,
           resetUrl,
-        });
-      } catch (emailError) {
-        console.error("Password reset email failed:", emailError);
-      }
+        }).catch((emailError) => {
+          console.error("Password reset email failed:", emailError);
+        }),
+      );
     }
 
     return NextResponse.json({

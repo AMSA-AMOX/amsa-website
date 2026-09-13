@@ -2,21 +2,23 @@
 
 import React from "react";
 
+// PNGs are served as right-sized WebP from /assets/optimized/universities
+// (scripts/optimize-images.mjs); SVGs are used directly.
 const logos = [
-  "brown.svg",
-  "aclogo.png",
-  "columbia.png",
-  "harvardlogo.png",
-  "mit.png",
-  "yale.png",
-  "berk.svg",
-  "umdlogo.svg",
-  "princeton.svg",
-  "cornell.png",
-  "nyu.svg",
-  "stanford.svg",
-  "gmu.png",
-  "wesleyan.png",
+  "/assets/universities/brown.svg",
+  "/assets/optimized/universities/aclogo.webp",
+  "/assets/optimized/universities/columbia.webp",
+  "/assets/optimized/universities/harvardlogo.webp",
+  "/assets/optimized/universities/mit.webp",
+  "/assets/optimized/universities/yale.webp",
+  "/assets/universities/berk.svg",
+  "/assets/universities/umdlogo.svg",
+  "/assets/universities/princeton.svg",
+  "/assets/optimized/universities/cornell.webp",
+  "/assets/universities/nyu.svg",
+  "/assets/universities/stanford.svg",
+  "/assets/optimized/universities/gmu.webp",
+  "/assets/optimized/universities/wesleyan.webp",
 ];
 
 function UniversityLogos() {
@@ -55,9 +57,11 @@ function UniversityLogos() {
           {logos.concat(logos).map((logo, index) => (
             <img
               key={index}
-              src={`/assets/universities/${logo}`}
+              src={logo}
               alt={`University logo ${index}`}
               className="logo-img"
+              loading="lazy"
+              decoding="async"
             />
           ))}
         </div>
