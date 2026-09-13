@@ -158,3 +158,46 @@ export async function sendEventEmail(input: EventEmailInput): Promise<void> {
     console.error("Failed to write EventEmails log:", logError.message);
   }
 }
+
+const feedbackToEmail = process.env.FEEDBACK_TO_EMAIL || "telmenbayarbaatar@amsa.mn";
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * Delivers an in-app feedback submission to the admin inbox. Reply-To is set
+ * to the member so admins can answer directly from their mail client.
+ * Throws on failure so the API can tell the user it wasn't sent.
+ */
+export async function sendFeedbackEmail(input: {
+  category: string;
+  message: string;
+  page: string | null;
+  user: { id: number; email: string; firstName: string; lastName: string; role: string };
+}): Promise<void> {
+  if (!resend) throw new Error("RESEND_API_KEY is not configured");
+
+  const name = `${input.user.firstName} ${input.user.lastName}`.trim() || "A member";
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+      <h2 style="margin-bottom:12px;">New feedback: ${escapeHtml(input.category)}</h2>
+      <p style="white-space:pre-wrap;padding:12px 14px;background:#f5f5f5;border-radius:8px;">${escapeHtml(input.message)}</p>
+      <table style="font-size:13px;color:#444;border-collapse:collapse;margin-top:16px;">
+        <tr><td style="padding:2px 12px 2px 0;">From</td><td>${escapeHtml(name)} &lt;${escapeHtml(input.user.email)}&gt; (#${input.user.id}, ${escapeHtml(input.user.role)})</td></tr>
+        <tr><td style="padding:2px 12px 2px 0;">Page</td><td>${escapeHtml(input.page ?? "—")}</td></tr>
+        <tr><td style="padding:2px 12px 2px 0;">Sent</td><td>${new Date().toISOString()}</td></tr>
+      </table>
+      <p style="margin-top:20px;color:#666;font-size:13px;">Reply to this email to answer ${escapeHtml(input.user.firstName || "them")} directly.</p>
+    </div>
+  `;
+
+  const result = await resend.emails.send({
+    from: fromEmail,
+    to: feedbackToEmail,
+    replyTo: input.user.email,
+    subject: `[AMSA feedback] ${input.category}: ${input.message.slice(0, 60).replace(/\s+/g, " ")}${input.message.length > 60 ? "…" : ""}`,
+    html,
+  });
+
+  if (result.error) throw new Error(result.error.message);
+}

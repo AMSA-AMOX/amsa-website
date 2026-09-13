@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useShell } from "@/hooks/useShell";
+import FeedbackButton from "@/components/FeedbackButton";
 
 type NavItem = {
   label: string;
@@ -345,6 +346,7 @@ export default function DashboardSidebar() {
           </svg>
           Sign out
         </button>
+        <FeedbackButton />
       </div>
     </div>
   );

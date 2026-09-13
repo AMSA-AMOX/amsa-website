@@ -452,7 +452,8 @@ export default function PlacesPage() {
     const q = search.trim().toLowerCase();
     return ALL_STATE_ABBRS.filter((abbr) => {
       const info = STATE_DATA[abbr];
-      if (q && !info.name.toLowerCase().includes(q) && !info.cities.some((c) => c.toLowerCase().includes(q))) return false;
+      // Match on the state only — its full name or two-letter abbreviation.
+      if (q && !info.name.toLowerCase().includes(q) && abbr.toLowerCase() !== q) return false;
       if (colTiers.size > 0 && !colTiers.has(info.colTier)) return false;
       if (transit.size > 0 && !transit.has(info.publicTransport)) return false;
       return true;
@@ -472,7 +473,7 @@ export default function PlacesPage() {
           </svg>
           <input
             type="text"
-            placeholder="State or city…"
+            placeholder="Search states…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg text-lg bg-gray-50 focus:border-gray-500 focus:bg-white focus:outline-none transition"
