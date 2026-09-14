@@ -201,15 +201,18 @@ export default function DashboardSidebar() {
 
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase();
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+  // Plain JSX (not a nested component): a component declared inside render is
+  // a new type each time, which makes React remount the whole subtree — and
+  // reset FeedbackButton's open state — on every sidebar re-render.
+  const sidebarContent = (
+    <div className="flex flex-col h-full min-h-0">
       {/* Logo */}
       <div className="px-6 py-5">
         <img src="/assets/logo.png" alt="AMSA" className="h-14 w-auto" />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-6">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-6">
         <div className="space-y-0.5">
           {topItems.map((item) => {
             const active = pathname === item.href;
@@ -322,8 +325,8 @@ export default function DashboardSidebar() {
         )}
       </nav>
 
-      {/* User footer */}
-      <div className="px-4 py-4 border-t-2 border-gray-300">
+      {/* User footer — pinned; the nav above scrolls on short screens */}
+      <div className="shrink-0 px-4 py-4 border-t-2 border-gray-300">
         <div className="flex items-center gap-3 px-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-[#FFCA3A] flex items-center justify-center text-[#001049] text-xs font-bold shrink-0 overflow-hidden">
             {user?.profilePic ? (
@@ -354,8 +357,8 @@ export default function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-50 min-h-screen fixed top-0 left-0 z-40 border-r-2 border-gray-300">
-        <SidebarContent />
+      <aside className="hidden md:flex flex-col w-60 shrink-0 bg-gray-50 h-screen fixed top-0 left-0 z-40 border-r-2 border-gray-300">
+        {sidebarContent}
       </aside>
 
       {/* Mobile top bar */}
@@ -381,7 +384,7 @@ export default function DashboardSidebar() {
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-gray-100 border-r-2 border-gray-300 flex flex-col">
-            <SidebarContent />
+            {sidebarContent}
           </aside>
         </div>
       )}

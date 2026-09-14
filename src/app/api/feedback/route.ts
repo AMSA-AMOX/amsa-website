@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { sendFeedbackEmail } from "@/lib/email/resend";
 
-export const FEEDBACK_CATEGORIES = ["Bug", "Idea", "Question", "Other"] as const;
+const FEEDBACK_CATEGORIES = ["Bug", "Idea", "Question", "Other"] as const;
 type Category = (typeof FEEDBACK_CATEGORIES)[number];
 
 const MIN_LEN = 10;

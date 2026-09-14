@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   // so they are NOT bundled into the server bundle (avoids dialect issues with Sequelize)
   serverExternalPackages: ["sequelize", "mysql2", "bcryptjs", "jsonwebtoken", "@google/genai"],
 
+  // Keep the dev-tools badge off the sidebar's bottom-left "Send feedback" button.
+  devIndicators: { position: "bottom-right" },
+
   images: {
     // Serve AVIF/WebP at the rendered size instead of the multi-MB originals.
     formats: ["image/avif", "image/webp"],

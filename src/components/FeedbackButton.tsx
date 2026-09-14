@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -75,8 +76,8 @@ export default function FeedbackButton() {
         Send feedback
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {open && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={close} />
           <div
             role="dialog"
@@ -176,7 +177,8 @@ export default function FeedbackButton() {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
