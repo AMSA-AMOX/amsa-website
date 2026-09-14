@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TextareaHTMLAttributes } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import SchoolBadge from "@/components/threads/SchoolBadge";
@@ -78,6 +78,37 @@ function formatRelative(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 30) return `${d}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// Single-row textarea that grows with its content. The comment and reply boxes
+// used to be <input>s, which scroll sideways instead of wrapping.
+function GrowingTextarea({ value, className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const fit = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    // scrollHeight excludes the border; with border-box sizing it must be added back.
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }, []);
+  useEffect(fit, [fit, value]);
+  // Text reflows when the box gets narrower (viewport resize, sidebar toggle);
+  // refit on width changes only so our own height writes don't re-trigger it.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let width = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fit();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fit]);
+  return (
+    <textarea ref={ref} rows={1} value={value} className={`block resize-none overflow-hidden ${className ?? ""}`} {...rest} />
+  );
 }
 
 // ─── Upvote icon ──────────────────────────────────────────────────────────────
@@ -296,9 +327,9 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
 
       {/* Body */}
       <div className="pl-14">
-        <p className="text-lg font-medium text-gray-800 leading-snug mb-1">{thread.title}</p>
+        <p className="text-lg font-medium text-gray-800 leading-snug mb-1 wrap-break-word">{thread.title}</p>
         {thread.body && (
-          <p className="text-base font-light text-gray-500 leading-relaxed whitespace-pre-wrap">{thread.body}</p>
+          <p className="text-base font-light text-gray-500 leading-relaxed whitespace-pre-wrap wrap-break-word">{thread.body}</p>
         )}
 
         {imageCount > 0 && (
@@ -368,7 +399,7 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
                             <span className="text-sm font-semibold text-gray-800">{authorName}</span>
                             <span className="text-xs text-gray-400">{formatRelative(c.createdAt)}</span>
                           </div>
-                          <p className="text-sm text-gray-700 leading-relaxed">{c.content}</p>
+                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap wrap-break-word">{c.content}</p>
                           <div className="mt-1.5 flex items-center gap-4">
                             <button
                               type="button"
@@ -390,22 +421,21 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
                           {/* Inline reply input */}
                           {replyingToId === c.id && (
                             <div className="mt-2 relative">
-                              <input
-                                type="text"
+                              <GrowingTextarea
                                 value={replyDraft}
                                 onChange={(e) => setReplyDraft(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleReply(c.id); } }}
+                                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(c.id); } }}
                                 placeholder={`Reply to ${authorName}...`}
                                 maxLength={2000}
                                 autoFocus
-                                className="w-full border border-gray-200 rounded-full pl-4 pr-12 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
+                                className="w-full border border-gray-200 rounded-3xl pl-4 pr-12 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
                               />
                               {replyDraft.trim().length > 0 && (
                                 <button
                                   type="button"
                                   disabled={replySubmitting}
                                   onClick={() => handleReply(c.id)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#001049] disabled:opacity-50 hover:opacity-70 transition"
+                                  className="absolute right-3 bottom-3 text-[#001049] disabled:opacity-50 hover:opacity-70 transition"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
@@ -433,7 +463,7 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
                                     <span className="text-sm font-semibold text-gray-800">{replyAuthorName}</span>
                                     <span className="text-xs text-gray-400">{formatRelative(r.createdAt)}</span>
                                   </div>
-                                  <p className="text-sm text-gray-700 leading-relaxed">{r.content}</p>
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap wrap-break-word">{r.content}</p>
                                   <button
                                     type="button"
                                     onClick={() => handleCommentUpvote(r.id)}
@@ -470,21 +500,20 @@ function ThreadCard({ thread, isAdmin, onDeleted }: { thread: HubThread; isAdmin
           )}
           <p className="text-lg font-semibold text-gray-800 mb-2">Comment</p>
           <div className="relative">
-            <input
-              type="text"
+            <GrowingTextarea
               value={commentDraft}
               onChange={(e) => setCommentDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleComment(); } }}
               placeholder="Add a comment..."
               maxLength={2000}
-              className="w-full border border-gray-200 rounded-full pl-4 pr-12 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
+              className="w-full border border-gray-200 rounded-3xl pl-4 pr-12 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-[#001049]/20 bg-white"
             />
             {commentDraft.trim().length > 0 && (
               <button
                 type="button"
                 disabled={submitting}
                 onClick={handleComment}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#001049] disabled:opacity-50 hover:opacity-70 transition"
+                className="absolute right-3 bottom-3 text-[#001049] disabled:opacity-50 hover:opacity-70 transition"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />

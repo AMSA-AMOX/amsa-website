@@ -206,11 +206,11 @@ export default function ThreadDetailPage() {
             </div>
 
             {/* Title */}
-            <h1 className="text-xl font-bold text-gray-900 leading-snug">{thread.title}</h1>
+            <h1 className="text-xl font-bold text-gray-900 leading-snug wrap-break-word">{thread.title}</h1>
 
             {/* Body */}
             {thread.body && (
-              <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{thread.body}</p>
+              <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap wrap-break-word">{thread.body}</p>
             )}
 
             <ImageGallery images={thread.images} />
@@ -241,7 +241,7 @@ export default function ThreadDetailPage() {
                     <span className="text-gray-300">·</span>
                     <span className="text-xs text-gray-400">{formatRelative(c.createdAt)}</span>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">{c.content}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap wrap-break-word">{c.content}</p>
                 </div>
               );
             })}
