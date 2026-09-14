@@ -551,6 +551,7 @@ function CollegeReviewsColumn({ collegeId, collegeName }: { collegeId: number; c
 
   const load = useCallback(() => {
     setLoading(true);
+    setError("");
     const fetcher = user
       ? authFetch(`/api/colleges/reviews?collegeId=${collegeId}`)
       : fetch(`/api/colleges/reviews?collegeId=${collegeId}`).then((r) => r.json());
@@ -595,8 +596,11 @@ function CollegeReviewsColumn({ collegeId, collegeName }: { collegeId: number; c
             {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
           </p>
           {error && !loading && (
-            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              {error} — make sure the <code className="font-mono">college_reviews</code> table exists in Supabase.
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+              <span>Couldn&apos;t load reviews right now.</span>
+              <button type="button" onClick={load} className="font-semibold underline hover:text-amber-900 shrink-0">
+                Try again
+              </button>
             </p>
           )}
           {loading ? (

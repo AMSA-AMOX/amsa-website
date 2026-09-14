@@ -440,6 +440,7 @@ function ReviewsColumn({ abbr }: { abbr: string }) {
 
   const load = useCallback(() => {
     setLoading(true);
+    setError("");
     const fetcher = user
       ? authFetch(`/api/places/reviews?stateAbbr=${abbr}`)
       : fetch(`/api/places/reviews?stateAbbr=${abbr}`).then((r) => r.json());
@@ -514,8 +515,11 @@ function ReviewsColumn({ abbr }: { abbr: string }) {
           </p>
 
           {error && !loading && (
-            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              {error} — make sure the <code className="font-mono">place_reviews</code> table exists in Supabase.
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+              <span>Couldn&apos;t load reviews right now.</span>
+              <button type="button" onClick={load} className="font-semibold underline hover:text-amber-900 shrink-0">
+                Try again
+              </button>
             </p>
           )}
 
