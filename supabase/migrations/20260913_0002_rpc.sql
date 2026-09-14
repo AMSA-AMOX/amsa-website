@@ -185,6 +185,7 @@ language sql stable as $$
       end as score
     from cand c, q
   )
+  -- p_query given but nothing searchable in it → no results (matches the old JS).
   select coalesce(jsonb_agg(jsonb_build_object(
     'id', s.id, 'firstName', s."firstName", 'lastName', s."lastName", 'profilePic', s."profilePic",
     'schoolName', s."schoolName", 'graduationYear', s."graduationYear", 'role', s.role,
@@ -192,12 +193,12 @@ language sql stable as $$
     'followersCount', s.followers_count, 'followingCount', s.following_count,
     'mutualCount', s.mutual_count, 'isFollowing', s.is_following
   ) order by
-      case when (select text from q) is null then (s.role = 'ambassador')::int else s.score end desc,
+      case when p_query is null then (s.role = 'ambassador')::int else s.score end desc,
       s.mutual_count desc, s.followers_count desc, s."firstName" asc), '[]'::jsonb)
   from (
-    select * from scored s, q
-    where q.text is null or s.score > 0
-    order by case when q.text is null then (s.role = 'ambassador')::int else s.score end desc,
+    select * from scored s
+    where p_query is null or s.score > 0
+    order by case when p_query is null then (s.role = 'ambassador')::int else s.score end desc,
              s.mutual_count desc, s.followers_count desc, s."firstName" asc
     limit greatest(1, least(coalesce(p_limit, 24), 120))
   ) s;

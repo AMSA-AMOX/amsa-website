@@ -44,9 +44,10 @@ export function useShell() {
           return data;
         });
         inflight = { key, promise };
-        promise.finally(() => {
+        const clear = () => {
           if (inflight?.promise === promise) inflight = null;
-        });
+        };
+        promise.then(clear, clear); // no unhandled rejection; the awaiter below handles errors
       }
       try {
         setShell(await inflight.promise);
