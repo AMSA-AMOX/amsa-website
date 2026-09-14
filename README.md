@@ -48,7 +48,9 @@ depends on them** — the order matters:
    API calls via `supabase.rpc()` (one round trip per page).
 3. `20260914_0003_experience_logo.sql` — `Experiences.companyUrl / logoDomain`,
    the employer logo domain resolved when an experience is saved.
-4. Backfill existing rows once:
+4. `20260914_0004_hub_thread_body_optional.sql` — lets a thread be posted with
+   a title only; the old check constraint rejected an empty body.
+5. Backfill existing rows once:
    ```bash
    npx tsx --conditions=react-server scripts/backfill-school-names.ts
    npx tsx --conditions=react-server scripts/backfill-user-denorm.ts
