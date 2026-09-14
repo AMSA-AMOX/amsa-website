@@ -10,5 +10,8 @@ server/.env
 .env.development.local
 .next/
 docs/
-supabase/migrations/
+# Supabase CLI dumps stay ignored; hand-written migrations (dated, in the repo
+# README) are tracked because the API's rpc() calls depend on them.
+supabase/migrations/*
+!supabase/migrations/20260913_*.sql
 /data/
