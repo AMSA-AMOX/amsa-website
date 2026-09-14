@@ -544,7 +544,7 @@ function CollegeCard({
               </span>
               {college.nationalRank != null && (
                 <BadgePill
-                  label={`US Rank #${college.nationalRank}`}
+                  label={`${college.type === "liberal_arts" ? "LAC" : "Nat'l"} Rank #${college.nationalRank}`}
                   color="navy"
                 />
               )}
@@ -828,8 +828,8 @@ function FilterDropdown({
 
   const activeCount =
     (filters.selectedField !== "Any" ? 1 : 0) +
-    (filters.sortBy !== "ranking" && filters.sortBy !== "lac_ranking" ? 1 : 0) +
-    (filters.schoolCategory !== "all" ? 1 : 0) +
+    (filters.sortBy !== "ranking" ? 1 : 0) +
+    (filters.schoolCategory !== "national_universities" ? 1 : 0) +
     (filters.offersAidOnly ? 1 : 0) +
     (filters.meetsFullNeedOnly ? 1 : 0) +
     (filters.meritScholarshipsOnly ? 1 : 0) +
@@ -877,8 +877,7 @@ function FilterDropdown({
               onChange={(e) => set("sortBy", e.target.value as Filters["sortBy"])}
               className="w-full rounded-xl border-2 border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
             >
-              <option value="ranking">National University Ranking</option>
-              <option value="lac_ranking">National Liberal Arts College Ranking</option>
+              <option value="ranking">US News Ranking</option>
               <option value="affordability">Financial Accessibility Score</option>
             </select>
           </div>
@@ -891,7 +890,6 @@ function FilterDropdown({
               onChange={(e) => set("schoolCategory", e.target.value as Filters["schoolCategory"])}
               className="w-full rounded-xl border-2 border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
             >
-              <option value="all">All schools</option>
               <option value="national_universities">National Universities</option>
               <option value="liberal_arts_colleges">National Liberal Arts Colleges</option>
             </select>
@@ -1079,6 +1077,8 @@ export default function ResearchPage() {
   };
 
   const filtered = useMemo(() => {
+    // Each category is one US News list; the two lists' ranks aren't comparable.
+    const lacOnly = filters.schoolCategory === "liberal_arts_colleges";
     return colleges
       .filter((c) => {
         if (selectedState && c.state?.trim().toUpperCase() !== selectedState) return false;
@@ -1108,10 +1108,7 @@ export default function ResearchPage() {
             return false;
           }
         }
-        if (filters.sortBy === "ranking"     && c.type === "liberal_arts") return false;
-        if (filters.sortBy === "lac_ranking" && c.type !== "liberal_arts") return false;
-        if (filters.schoolCategory === "national_universities" && c.type === "liberal_arts") return false;
-        if (filters.schoolCategory === "liberal_arts_colleges" && c.type !== "liberal_arts") return false;
+        if ((c.type === "liberal_arts") !== lacOnly) return false;
         if (filters.searchQuery.trim()) {
           const q = filters.searchQuery.toLowerCase().trim();
           const haystack = `${c.name} ${c.location} ${c.state}`.toLowerCase();
@@ -1120,10 +1117,11 @@ export default function ResearchPage() {
         return true;
       })
       .sort((a, b) => {
-        if (filters.sortBy === "ranking" || filters.sortBy === "lac_ranking") {
+        if (filters.sortBy === "ranking") {
+          // Unranked schools trail, ordered by financial score.
           const ar = a.nationalRank ?? Number.MAX_SAFE_INTEGER;
           const br = b.nationalRank ?? Number.MAX_SAFE_INTEGER;
-          return ar - br;
+          if (ar !== br) return ar - br;
         }
         return b.financialAccessibilityScore - a.financialAccessibilityScore;
       });
@@ -1159,6 +1157,7 @@ export default function ResearchPage() {
     filters.stemOptOnly ||
     (filters.selectedField !== "Any" && filters.selectedField.trim().length > 0) ||
     filters.sortBy !== "ranking" ||
+    filters.schoolCategory !== "national_universities" ||
     filters.searchQuery.trim().length > 0;
 
   return (
@@ -1209,7 +1208,7 @@ export default function ResearchPage() {
                 )}
               </p>
               <p className="text-xs text-gray-400 hidden sm:block">
-                Sorted by {filters.sortBy === "ranking" ? "US National Ranking" : "Financial Accessibility Score"}
+                Sorted by {filters.sortBy === "ranking" ? "US News Ranking" : "Financial Accessibility Score"}
               </p>
             </div>
 

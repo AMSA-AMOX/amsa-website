@@ -397,38 +397,74 @@ function merge(
   };
 }
 
+// ─── Fetch helpers ───────────────────────────────────────────────────────────
+
+// Supabase caps every request at 1000 rows and silently truncates beyond that,
+// so the catalog has to be read in pages and the joined tables looked up in
+// unitid batches small enough that no single response can hit the cap.
+const PAGE_SIZE  = 1000;
+const BATCH_SIZE = 500;
+
+async function fetchAllRows<T>(table: string, orderBy: string): Promise<{ rows: T[]; error: string | null }> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .order(orderBy)
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) return { rows, error: error.message };
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < PAGE_SIZE) return { rows, error: null };
+  }
+}
+
+async function fetchByIds<T>(
+  table: string, select: string, idColumn: string, ids: number[]
+): Promise<{ rows: T[]; error: string | null }> {
+  const batches: PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>[] = [];
+  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+    batches.push(supabase.from(table).select(select).in(idColumn, ids.slice(i, i + BATCH_SIZE)));
+  }
+  const rows: T[] = [];
+  let error: string | null = null;
+  for (const res of await Promise.all(batches)) {
+    if (res.error) error = res.error.message;
+    rows.push(...((res.data ?? []) as T[]));
+  }
+  return { rows, error };
+}
+
 // ─── Route ───────────────────────────────────────────────────────────────────
 
 export async function GET() {
-  const { data: baseRows, error: baseErr } = await supabase
-    .from("colleges_base")
-    .select("*");
+  const { rows: baseRows, error: baseErr } = await fetchAllRows<CollegesBaseRow>("colleges_base", "unitid");
 
   if (baseErr) {
-    console.error("[colleges] colleges_base error:", baseErr.message);
+    console.error("[colleges] colleges_base error:", baseErr);
     return NextResponse.json({ error: "Failed to load college list" }, { status: 500 });
   }
 
-  if (!baseRows || baseRows.length === 0) {
+  if (baseRows.length === 0) {
     return NextResponse.json(
       { error: "colleges_base is empty — run the Sync Colleges action from the admin panel." },
       { status: 503 }
     );
   }
 
-  const unitIds = (baseRows as CollegesBaseRow[]).map((r) => r.unitid);
+  const unitIds = baseRows.map((r) => r.unitid);
 
   // Use persisted US News national_rank directly (null = unranked, no badge shown)
   const nationalRankMap = new Map<number, number>();
-  (baseRows as CollegesBaseRow[]).forEach((s) => {
+  baseRows.forEach((s) => {
     if (s.national_rank != null) nationalRankMap.set(s.unitid, s.national_rank);
   });
 
   // Load all data sources in parallel
   const [aidResult, ipedsResult, sfaResult] = await Promise.all([
-    supabase.from("college_intl_aid").select("*").in("scorecard_id", unitIds),
-    supabase.from("ipeds_fallback").select("*").in("unitid", unitIds),
-    supabase.from("ipeds_sfa").select(
+    fetchByIds<IntlAidRow>("college_intl_aid", "*", "scorecard_id", unitIds),
+    fetchByIds<IpedsFallbackRow>("ipeds_fallback", "*", "unitid", unitIds),
+    fetchByIds<IpedsSfaRow>("ipeds_sfa",
       "unitid,data_year,total_undergrads,ftft_count," +
       "ftft_any_aid_pct,ftft_grant_scholarship_pct," +
       "ftft_any_grant_avg,ftft_any_grant_pct," +
@@ -437,24 +473,24 @@ export async function GET() {
       "ftft_fed_loan_pct,ftft_fed_loan_avg," +
       "ftft_other_loan_pct,ftft_other_loan_avg," +
       "ftft_loan_pct," +
-      "all_grant_avg,all_grant_pct,all_pell_pct,all_fed_loan_pct"
-    ).in("unitid", unitIds),
+      "all_grant_avg,all_grant_pct,all_pell_pct,all_fed_loan_pct",
+      "unitid", unitIds),
   ]);
 
-  if (aidResult.error)   console.error("[colleges] college_intl_aid:", aidResult.error.message);
-  if (ipedsResult.error) console.error("[colleges] ipeds_fallback:",   ipedsResult.error.message);
-  if (sfaResult.error)   console.error("[colleges] ipeds_sfa:",        sfaResult.error.message);
+  if (aidResult.error)   console.error("[colleges] college_intl_aid:", aidResult.error);
+  if (ipedsResult.error) console.error("[colleges] ipeds_fallback:",   ipedsResult.error);
+  if (sfaResult.error)   console.error("[colleges] ipeds_sfa:",        sfaResult.error);
 
   const aidMap = new Map<number, IntlAidRow>();
-  for (const row of aidResult.data ?? []) aidMap.set(row.scorecard_id, row as IntlAidRow);
+  for (const row of aidResult.rows) aidMap.set(row.scorecard_id, row);
 
   const ipedsMap = new Map<number, IpedsFallbackRow>();
-  for (const row of ipedsResult.data ?? []) ipedsMap.set(row.unitid, row as IpedsFallbackRow);
+  for (const row of ipedsResult.rows) ipedsMap.set(row.unitid, row);
 
   const sfaMap = new Map<number, IpedsSfaRow>();
-  for (const row of (sfaResult.data ?? []) as any[]) sfaMap.set(row.unitid, row as IpedsSfaRow);
+  for (const row of sfaResult.rows) sfaMap.set(row.unitid, row);
 
-  const colleges: College[] = (baseRows as CollegesBaseRow[])
+  const colleges: College[] = baseRows
     .map((base) => merge(
       base,
       aidMap.get(base.unitid),

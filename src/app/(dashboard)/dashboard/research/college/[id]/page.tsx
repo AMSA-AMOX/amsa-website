@@ -672,7 +672,9 @@ export default function CollegeDetailPage() {
   // Header meta line (plain text, no pills).
   const meta = [
     college.type === "public" ? "Public" : college.type === "liberal_arts" ? "Liberal Arts" : "Private",
-    college.nationalRank != null ? `US Rank #${college.nationalRank}` : null,
+    college.nationalRank != null
+      ? `${college.type === "liberal_arts" ? "LAC" : "Nat'l"} Rank #${college.nationalRank}`
+      : null,
     college.stemOptEligible ? "STEM OPT eligible" : null,
     college.meetsFullDemonstratedNeed ? "Meets full need" : null,
     college.noLoanPolicy ? "No loans" : null,
