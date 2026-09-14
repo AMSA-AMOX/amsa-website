@@ -46,14 +46,17 @@ depends on them** — the order matters:
    denormalized `Users.college_unitid / state_abbr / logo_domain` columns.
 2. `20260913_0002_rpc.sql` — the `get_*` / `appreciate_post` SQL functions the
    API calls via `supabase.rpc()` (one round trip per page).
-3. Backfill existing rows once:
+3. `20260914_0003_experience_logo.sql` — `Experiences.companyUrl / logoDomain`,
+   the employer logo domain resolved when an experience is saved.
+4. Backfill existing rows once:
    ```bash
    npx tsx --conditions=react-server scripts/backfill-school-names.ts
    npx tsx --conditions=react-server scripts/backfill-user-denorm.ts
+   npx tsx --conditions=react-server scripts/backfill-experience-logos.ts
    ```
    (add `--dry` to preview.)
 
-Both migrations are idempotent (`if not exists` / `create or replace`).
+All migrations are idempotent (`if not exists` / `create or replace`).
 
 ## Images
 

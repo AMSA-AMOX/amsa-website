@@ -107,6 +107,8 @@ type Experience = {
   userId: number;
   jobTitle: string;
   company: string;
+  companyUrl: string | null;
+  logoDomain: string | null;
   employmentType: string | null;
   startMonth: string;
   startYear: string;
@@ -681,7 +683,7 @@ export default function NetworkProfilePage() {
                   <div className="divide-y divide-gray-100">
                     {experiences.map((exp) => (
                       <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
-                        <LogoImage kind="company" name={exp.company} size={12} rounded="rounded-xl" />
+                        <LogoImage kind="company" domain={exp.logoDomain} name={exp.company} location={exp.location} size={12} rounded="rounded-xl" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900 leading-snug">{exp.jobTitle}</p>
                           <p className="text-sm text-gray-600 mt-0.5">

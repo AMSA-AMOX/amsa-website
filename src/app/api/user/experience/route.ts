@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
+import { resolveExperienceLogoDomain } from "@/lib/experience-denorm";
 
 export async function GET(request: Request) {
   let payload;
@@ -37,11 +38,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { jobTitle, company, employmentType, startMonth, startYear, endMonth, endYear, currentlyWorking, location, description } = body;
+    const { jobTitle, company, companyUrl, employmentType, startMonth, startYear, endMonth, endYear, currentlyWorking, location, description } = body;
 
     if (!jobTitle || !company || !startMonth || !startYear) {
       return NextResponse.json({ message: "Job title, company, start month, and start year are required" }, { status: 400 });
     }
+
+    const logoDomain = await resolveExperienceLogoDomain({ company, companyUrl });
 
     const { data: experience, error } = await supabase
       .from("Experiences")
@@ -49,6 +52,8 @@ export async function POST(request: Request) {
         userId: payload.id,
         jobTitle,
         company,
+        companyUrl: companyUrl?.trim() || null,
+        logoDomain,
         employmentType: employmentType || null,
         startMonth,
         startYear,

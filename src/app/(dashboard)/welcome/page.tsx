@@ -43,6 +43,8 @@ type Experience = {
   userId: number;
   jobTitle: string;
   company: string;
+  companyUrl: string | null;
+  logoDomain: string | null;
   employmentType: string | null;
   startMonth: string;
   startYear: string;
@@ -54,7 +56,7 @@ type Experience = {
 };
 
 type ExpForm = {
-  jobTitle: string; company: string; employmentType: string;
+  jobTitle: string; company: string; companyUrl: string; employmentType: string;
   startMonth: string; startYear: string; endMonth: string; endYear: string;
   currentlyWorking: boolean; location: string; description: string;
 };
@@ -108,7 +110,7 @@ type ThreadItem = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EMPTY_EXP: ExpForm = {
-  jobTitle: "", company: "", employmentType: "", startMonth: "", startYear: "",
+  jobTitle: "", company: "", companyUrl: "", employmentType: "", startMonth: "", startYear: "",
   endMonth: "", endYear: "", currentlyWorking: false, location: "", description: "",
 };
 
@@ -665,7 +667,7 @@ export default function DashboardPage() {
   const openAddExp = () => { setExpForm(EMPTY_EXP); setExpError(""); setExpModal({ open: true, editing: null }); };
   const openEditExp = (exp: Experience) => {
     setExpForm({
-      jobTitle: exp.jobTitle, company: exp.company, employmentType: exp.employmentType ?? "",
+      jobTitle: exp.jobTitle, company: exp.company, companyUrl: exp.companyUrl ?? "", employmentType: exp.employmentType ?? "",
       startMonth: exp.startMonth, startYear: exp.startYear,
       endMonth: exp.endMonth ?? "", endYear: exp.endYear ?? "",
       currentlyWorking: exp.currentlyWorking, location: exp.location ?? "", description: exp.description ?? "",
@@ -1245,7 +1247,7 @@ export default function DashboardPage() {
                       : `${exp.startMonth} ${exp.startYear}${exp.endMonth && exp.endYear ? ` – ${exp.endMonth} ${exp.endYear}` : ""}`;
                     return (
                       <div key={exp.id} className="py-4 first:pt-0 last:pb-0 flex gap-4 group">
-                        <LogoImage kind="company" name={exp.company} size={12} rounded="rounded-xl" />
+                        <LogoImage kind="company" domain={exp.logoDomain} name={exp.company} location={exp.location} size={12} rounded="rounded-xl" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -1521,6 +1523,10 @@ export default function DashboardPage() {
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company <span className="text-red-400">*</span></label>
                   <input type="text" value={expForm.company} onChange={(e) => setExpForm((f) => ({ ...f, company: e.target.value }))} placeholder="e.g. Google" className={inputCls} />
                 </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company Website</label>
+                <input type="url" value={expForm.companyUrl} onChange={(e) => setExpForm((f) => ({ ...f, companyUrl: e.target.value }))} placeholder="e.g. google.com — used for the logo" className={inputCls} />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Employment Type</label>

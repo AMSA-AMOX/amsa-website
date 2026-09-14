@@ -13,5 +13,5 @@ docs/
 # Supabase CLI dumps stay ignored; hand-written migrations (dated, in the repo
 # README) are tracked because the API's rpc() calls depend on them.
 supabase/migrations/*
-!supabase/migrations/20260913_*.sql
+!supabase/migrations/2026[0-9][0-9][0-9][0-9]_*.sql
 /data/

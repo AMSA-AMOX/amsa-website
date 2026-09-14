@@ -168,16 +168,64 @@ export const getKnownSchoolDomain = (name: string | null | undefined): string | 
   return null;
 };
 
-export const getLookupNameVariants = (name: string): string[] => {
-  const base = name.trim();
-  if (!base) return [];
+// ─── Employers ───────────────────────────────────────────────────────────────
 
-  const variants = [
-    base,
-    base.replace(/\s*&\s*/g, " and "),
-    base.replace(/\s+and\s+/gi, " & "),
-    base.replace(/[^\w\s&]/g, " ").replace(/\s+/g, " ").trim(),
-  ];
-
-  return Array.from(new Set(variants.filter(Boolean)));
+const COMPANY_DOMAIN_ALIASES: Record<string, string> = {
+  "association of mongolian students in america": "amsa.mn",
+  amsa: "amsa.mn",
 };
+
+/** Legal suffixes that never appear in the domain: "Mobicom Corporation" → "Mobicom". */
+const CORPORATE_SUFFIX = /\s+(llc|l l c|inc|incorporated|corp|corporation|co|company|ltd|limited|llp|plc|gmbh)$/;
+
+const SCHOOL_WORD = /\b(university|college|institute|school|academy|polytechnic|state)\b/;
+
+const MONGOLIA = /mongolia|ulaanbaatar|улаанбаатар|монгол/i;
+
+/** Does an employer name read as a school, so the colleges table may know it? */
+export const looksLikeSchool = (name: string | null | undefined) =>
+  SCHOOL_WORD.test(normalizeEntityName(name ?? ""));
+
+/**
+ * Alias lookup for employer names, matching whole words only so a company
+ * whose name merely begins with an alias doesn't get a school's logo
+ * ("WashU Student Technician Services" → wustl.edu, "Mitsubishi" ↛ mit.edu).
+ */
+export const getKnownEmployerDomain = (name: string | null | undefined): string | null => {
+  const normalized = normalizeEntityName(name ?? "");
+  if (!normalized) return null;
+  if (COMPANY_DOMAIN_ALIASES[normalized]) return COMPANY_DOMAIN_ALIASES[normalized];
+  if (SCHOOL_DOMAIN_ALIASES[normalized]) return SCHOOL_DOMAIN_ALIASES[normalized];
+  for (const [key, domain] of Object.entries(SCHOOL_DOMAIN_ALIASES)) {
+    if (normalized.startsWith(`${key} `)) return domain;
+  }
+  return null;
+};
+
+/**
+ * Domains worth trying for an employer typed as free text, best first. The
+ * name alone can't say which is right, so the caller tries them in order until
+ * one has a logo. "FoundationBio | CURB" → foundationbio.com; "Mobicom
+ * Corporation" in Mongolia → mobicom.mn, mobicom.com.
+ */
+export function employerDomainCandidates(
+  name: string | null | undefined,
+  location?: string | null,
+): string[] {
+  const out: string[] = [];
+  const push = (d: string | null) => { if (d && !out.includes(d)) out.push(d); };
+
+  // Keep the part before a separator: "FoundationBio | CURB", "Acme (Intern)"
+  const head = (name ?? "").split(/\s+[|/\u2013\u2014-]\s+|\s*\(/)[0];
+  push(getKnownEmployerDomain(head));
+
+  let core = normalizeEntityName(head);
+  for (let prev = ""; prev !== core; ) { prev = core; core = core.replace(CORPORATE_SUFFIX, ""); }
+  const slug = core.replace(/\s/g, "");
+  if (!slug) return out;
+
+  if (SCHOOL_WORD.test(core)) push(`${slug}.edu`);
+  const tlds = MONGOLIA.test(location ?? "") ? ["mn", "com"] : ["com", "mn"];
+  for (const tld of tlds) push(`${slug}.${tld}`);
+  return out;
+}

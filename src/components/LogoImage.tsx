@@ -1,43 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { extractSchoolEmailDomain, getKnownSchoolDomain } from "@/lib/logo-lookup";
+import { useState } from "react";
+import { employerDomainCandidates, extractSchoolEmailDomain, getKnownSchoolDomain } from "@/lib/logo-lookup";
 
 const LOGO_DEV_TOKEN = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
 
+/**
+ * logo.dev answers an unknown domain with a generated monogram (HTTP 200), which
+ * would hide a wrong guess behind a fake logo; ask for a 404 instead so the
+ * <img> errors and the caller can try the next candidate or show the icon.
+ */
 export const buildLogoUrl = (domain: string) => {
-  const base = `https://img.logo.dev/${domain}`;
-  return LOGO_DEV_TOKEN ? `${base}?token=${encodeURIComponent(LOGO_DEV_TOKEN)}` : base;
-};
-
-/** "Goldman Sachs" → goldmansachs.com. Wrong guesses just fall back to the icon. */
-const guessCompanyDomain = (name: string | null | undefined) => {
-  const slug = (name ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
-  return slug ? `${slug}.com` : null;
+  const params = new URLSearchParams({ fallback: "404" });
+  if (LOGO_DEV_TOKEN) params.set("token", LOGO_DEV_TOKEN);
+  return `https://img.logo.dev/${domain}?${params}`;
 };
 
 /**
- * Resolve a logo domain synchronously — no browser-side lookups. Schools come
+ * Domains to try for a logo, best first — no browser-side lookups. Schools come
  * from the server (`logoDomain`, written when the profile is saved), the .edu
- * email, or the alias table; companies from a domain guess.
+ * email, or the alias table. Employers get the server-resolved domain when the
+ * row has one, else guesses from the name (see employerDomainCandidates).
  */
-export function resolveLogoDomain(input: {
+export function logoDomainCandidates(input: {
   domain?: string | null;
   name?: string | null;
   email?: string | null;
+  location?: string | null;
   kind: "school" | "company";
-}): string | null {
-  if (input.domain) return input.domain;
+}): string[] {
+  if (input.domain) return [input.domain];
   if (input.kind === "school") {
-    return extractSchoolEmailDomain(input.email) ?? (input.name ? getKnownSchoolDomain(input.name) : null);
+    const d = extractSchoolEmailDomain(input.email) ?? (input.name ? getKnownSchoolDomain(input.name) : null);
+    return d ? [d] : [];
   }
-  return guessCompanyDomain(input.name);
+  return employerDomainCandidates(input.name, input.location);
 }
 
 export default function LogoImage({
   domain,
   name,
   email,
+  location,
   kind,
   size = 10,
   rounded = "rounded-lg",
@@ -46,22 +50,24 @@ export default function LogoImage({
   domain?: string | null;
   name?: string | null;
   email?: string | null;
+  /** Employer location; "Mongolia" makes .mn the first guess */
+  location?: string | null;
   kind: "school" | "company";
   /** Tailwind spacing unit: size 10 → 40px box */
   size?: number;
   rounded?: string;
   className?: string;
 }) {
-  const [err, setErr] = useState(false);
-  const resolved = resolveLogoDomain({ domain, name, email, kind });
+  const candidates = logoDomainCandidates({ domain, name, email, location, kind });
+  // Which candidate is showing; starts over when the candidate list changes.
+  const key = candidates.join("|");
+  const [state, setState] = useState({ key, attempt: 0 });
+  const attempt = state.key === key ? state.attempt : 0;
+  const resolved = candidates[attempt];
   const boxSize = { width: `${size * 4}px`, height: `${size * 4}px` };
   const iconSize = `${Math.max(10, size * 2)}px`;
 
-  useEffect(() => {
-    setErr(false);
-  }, [resolved]);
-
-  if (!resolved || err) {
+  if (!resolved) {
     return (
       <div
         style={boxSize}
@@ -83,9 +89,10 @@ export default function LogoImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element -- third-party logo CDN, already sized
     <img
+      key={resolved}
       src={buildLogoUrl(resolved)}
       alt={name ?? ""}
-      onError={() => setErr(true)}
+      onError={() => setState({ key, attempt: attempt + 1 })}
       loading="lazy"
       decoding="async"
       style={boxSize}
