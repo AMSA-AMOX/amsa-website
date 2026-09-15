@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { hasSeatAvailable, paymentDueAtFrom } from "@/lib/events/logic";
+import { hasEventEnded, hasSeatAvailable, paymentDueAtFrom } from "@/lib/events/logic";
 import {
   getEventById,
   getNextWaitlistPosition,
@@ -38,6 +38,12 @@ export async function POST(
       getUserById(payload.id),
       getEventById(eventId),
     ]);
+    if (hasEventEnded(event.endAt)) {
+      return NextResponse.json(
+        { message: "This event has already ended." },
+        { status: 400 }
+      );
+    }
     if (event.eventMode === "virtual") {
       return NextResponse.json(
         {

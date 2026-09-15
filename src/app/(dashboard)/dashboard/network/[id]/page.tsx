@@ -134,6 +134,11 @@ type NextProfile = {
   sameYear: boolean;
 };
 
+// Follow and Ask a Direct Question share one outline style so their resting
+// border and hover match (they used to be gray-300 vs gray-200).
+const OUTLINE_BUTTON =
+  "rounded-lg border-2 border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition";
+
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   board_member: { label: "Board Member", className: "bg-purple-50 text-purple-600" },
   ambassador:   { label: "Ambassador",   className: "bg-amber-50 text-amber-600" },
@@ -447,7 +452,7 @@ export default function NetworkProfilePage() {
                 type="button"
                 onClick={toggleFollow}
                 disabled={followInFlight}
-                className="flex-1 flex items-center justify-center px-3 py-2 rounded-lg border-2 border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 transition disabled:opacity-60"
+                className={`flex-1 flex items-center justify-center px-4 py-2.5 ${OUTLINE_BUTTON} disabled:opacity-60`}
               >
                 {profile.isFollowing ? "Following" : "Follow"}
               </button>
@@ -495,7 +500,7 @@ export default function NetworkProfilePage() {
               <button
                 type="button"
                 onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
-                className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 text-gray-700 hover:border-gray-400 transition"
+                className={`w-full px-4 py-2.5 ${OUTLINE_BUTTON}`}
               >
                 Ask a Direct Question
               </button>
@@ -566,7 +571,7 @@ export default function NetworkProfilePage() {
                         type="button"
                         onClick={toggleFollow}
                         disabled={followInFlight}
-                        className="mt-2 px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:border-gray-400 transition"
+                        className={`mt-2 px-3 py-1.5 ${OUTLINE_BUTTON} disabled:opacity-60`}
                       >
                         {profile.isFollowing ? "Following" : "Follow"}
                       </button>
@@ -608,7 +613,7 @@ export default function NetworkProfilePage() {
                     <button
                       type="button"
                       onClick={() => { setAskOpen(true); setQuestionMessage(null); }}
-                      className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 text-gray-700 hover:border-gray-400 transition"
+                      className={`w-full px-4 py-2.5 ${OUTLINE_BUTTON}`}
                     >
                       Ask a Direct Question
                     </button>

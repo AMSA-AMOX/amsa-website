@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import EventComposer, { type DashboardEvent } from "@/components/events/EventComposer";
+import { hasEventEnded } from "@/lib/events/logic";
 
 const UNLIMITED_SEATS = 1000000;
 
@@ -98,13 +99,13 @@ export default function EventsPage() {
   const isAdmin = user?.role === "admin";
 
   const upcomingEvents = useMemo(() => {
-    const now = Date.now();
-    return events.filter((e) => !e.endAt || new Date(e.endAt).getTime() >= now);
+    const now = new Date();
+    return events.filter((e) => !hasEventEnded(e.endAt, now));
   }, [events]);
 
   const pastEvents = useMemo(() => {
-    const now = Date.now();
-    return events.filter((e) => e.endAt && new Date(e.endAt).getTime() < now);
+    const now = new Date();
+    return events.filter((e) => hasEventEnded(e.endAt, now));
   }, [events]);
 
   const loadEvents = async () => {
@@ -219,11 +220,10 @@ export default function EventsPage() {
     const isVirtualOnly = event.eventMode === "virtual";
     const isVirtualJoinEnabled = event.eventMode === "virtual" || event.eventMode === "hybrid";
     const isInPersonLink = event.eventMode === "in_person" && Boolean(event.virtualMeetingUrl);
-    const now = Date.now();
-    const startAtMs = event.startAt ? new Date(event.startAt).getTime() : null;
-    const endAtMs = event.endAt ? new Date(event.endAt).getTime() : null;
-    const hasStarted = startAtMs !== null ? now >= startAtMs : true;
-    const hasEnded = endAtMs !== null ? now > endAtMs : false;
+    const now = new Date();
+    const hasStarted = event.startAt ? now.getTime() >= new Date(event.startAt).getTime() : true;
+    // Same test as the Upcoming/Past split: a past event shows no member actions.
+    const hasEnded = hasEventEnded(event.endAt, now);
     const tz = event.timezone || "Asia/Ulaanbaatar";
 
     return (
@@ -273,63 +273,67 @@ export default function EventsPage() {
           </div>
 
           <div className="pt-2 flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-1">
-            {event.startAt && event.endAt && (
-              <button type="button" onClick={() => downloadCalendarReminder(event)}
-                className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">
-                Add reminder
-              </button>
-            )}
-
-            {isVirtualJoinEnabled && (
+            {hasEnded ? (
+              <span className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed">
+                Event ended
+              </span>
+            ) : (
               <>
-                {!hasStarted ? (
-                  <span className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed">
-                    Has not started
-                  </span>
-                ) : hasEnded ? (
-                  <span className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed">
-                    Event ended
-                  </span>
-                ) : event.virtualMeetingUrl ? (
-                  <a href={event.virtualMeetingUrl} target="_blank" rel="noreferrer"
+                {event.startAt && event.endAt && (
+                  <button type="button" onClick={() => downloadCalendarReminder(event)}
+                    className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50">
+                    Add reminder
+                  </button>
+                )}
+
+                {isVirtualJoinEnabled && (
+                  <>
+                    {!hasStarted ? (
+                      <span className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed">
+                        Has not started
+                      </span>
+                    ) : event.virtualMeetingUrl ? (
+                      <a href={event.virtualMeetingUrl} target="_blank" rel="noreferrer"
+                        className="px-4 py-2.5 text-sm rounded-lg bg-[#001049] text-white hover:bg-[#122371]">
+                        Join
+                      </a>
+                    ) : (
+                      <span className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed">
+                        Link unavailable
+                      </span>
+                    )}
+                  </>
+                )}
+
+                {isInPersonLink && (
+                  <a href={event.virtualMeetingUrl!} target="_blank" rel="noreferrer"
                     className="px-4 py-2.5 text-sm rounded-lg bg-[#001049] text-white hover:bg-[#122371]">
-                    Join
+                    Register
                   </a>
-                ) : (
-                  <span className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed">
-                    Link unavailable
-                  </span>
                 )}
-              </>
-            )}
 
-            {isInPersonLink && (
-              <a href={event.virtualMeetingUrl!} target="_blank" rel="noreferrer"
-                className="px-4 py-2.5 text-sm rounded-lg bg-[#001049] text-white hover:bg-[#122371]">
-                Register
-              </a>
-            )}
-
-            {!isVirtualOnly && !isInPersonLink && !myReservation && (
-              <button type="button" onClick={() => handleReserve(event.id)} disabled={isBusy}
-                className="px-4 py-2.5 text-sm rounded-lg bg-[#001049] text-white hover:bg-[#122371] disabled:opacity-60">
-                Reserve spot
-              </button>
-            )}
-
-            {!isVirtualOnly && !isInPersonLink && myReservation && (
-              <>
-                {(myReservation.status === "reserved" || myReservation.status === "paid") && (
-                  <button type="button" onClick={() => handleCancel(event.id)} disabled={isBusy}
-                    className="px-4 py-2.5 text-sm rounded-lg border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-60">
-                    Cancel
+                {!isVirtualOnly && !isInPersonLink && !myReservation && (
+                  <button type="button" onClick={() => handleReserve(event.id)} disabled={isBusy}
+                    className="px-4 py-2.5 text-sm rounded-lg bg-[#001049] text-white hover:bg-[#122371] disabled:opacity-60">
+                    Reserve spot
                   </button>
                 )}
-                {myReservation.status === "waitlisted" && (
-                  <button type="button" onClick={() => handleCancel(event.id)} disabled={isBusy}
-                    className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-60">
-                    Leave waitlist
-                  </button>
+
+                {!isVirtualOnly && !isInPersonLink && myReservation && (
+                  <>
+                    {(myReservation.status === "reserved" || myReservation.status === "paid") && (
+                      <button type="button" onClick={() => handleCancel(event.id)} disabled={isBusy}
+                        className="px-4 py-2.5 text-sm rounded-lg border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-60">
+                        Cancel
+                      </button>
+                    )}
+                    {myReservation.status === "waitlisted" && (
+                      <button type="button" onClick={() => handleCancel(event.id)} disabled={isBusy}
+                        className="px-4 py-2.5 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-60">
+                        Leave waitlist
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}

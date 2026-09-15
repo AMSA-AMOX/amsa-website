@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   PAYMENT_WINDOW_HOURS,
+  hasEventEnded,
   hasSeatAvailable,
   nextWaitlistPosition,
   paymentDueAtFrom,
@@ -41,4 +42,13 @@ test("shouldExpireReservation returns true only for overdue unpaid reserved stat
     false
   );
   assert.equal(shouldExpireReservation("reserved", "unpaid", null, now), false);
+});
+
+test("hasEventEnded is true only once endAt is in the past", () => {
+  const now = new Date("2026-03-22T10:00:00.000Z");
+  assert.equal(hasEventEnded("2026-03-22T09:59:59.000Z", now), true);
+  assert.equal(hasEventEnded("2026-03-22T10:00:00.000Z", now), false);
+  assert.equal(hasEventEnded("2026-03-22T10:00:01.000Z", now), false);
+  assert.equal(hasEventEnded(null, now), false);
+  assert.equal(hasEventEnded(undefined, now), false);
 });

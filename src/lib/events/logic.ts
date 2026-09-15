@@ -22,6 +22,12 @@ export function hasSeatAvailable(totalSeats: number, activeSeatCount: number): b
   return activeSeatCount < totalSeats;
 }
 
+/** An event with no end time never counts as ended. */
+export function hasEventEnded(endAt: string | null | undefined, now = new Date()): boolean {
+  if (!endAt) return false;
+  return new Date(endAt).getTime() < now.getTime();
+}
+
 export function shouldExpireReservation(
   status: ReservationStatus,
   paymentStatus: string,
