@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { rpc } from "@/lib/rpc";
+import { supabase } from "@/lib/supabase";
 import type { SearchableMember } from "@/lib/network-users";
 
 type RouteContext = {
@@ -27,6 +28,8 @@ type NetworkProfile = {
     facebook: string | null;
     x: string | null;
     logoDomain: string | null;
+    /** colleges_base.unitid; links the school logo to its college page. */
+    collegeId: number | null;
     followersCount: number;
     followingCount: number;
     isFollowing: boolean;
@@ -62,6 +65,19 @@ export async function GET(request: Request, { params }: RouteContext) {
 
     if (!profile) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
+    }
+
+    // `collegeId` was added to get_network_profile in
+    // supabase/migrations/20260917_0005_network_profile_college_id.sql. Until
+    // that runs, the RPC omits the key entirely (undefined, not null), so read
+    // the indexed column directly rather than ship a profile with no logo link.
+    if (profile.user.collegeId === undefined) {
+      const { data } = await supabase
+        .from("Users")
+        .select("college_unitid")
+        .eq("id", targetId)
+        .maybeSingle<{ college_unitid: number | null }>();
+      profile.user.collegeId = data?.college_unitid ?? null;
     }
 
     return NextResponse.json(profile);

@@ -38,27 +38,22 @@ This application is ready to be deployed on Next.js compatible platforms like [V
 
 ## Database migrations
 
-SQL lives in `supabase/migrations/` and is applied by hand in the Supabase SQL
-editor (CI never touches the database). **Apply them before deploying code that
-depends on them** — the order matters:
+SQL lives in `supabase/migrations/`, one dated file per change with a header
+comment explaining it. Nothing applies them automatically: run each new file
+in the Supabase SQL editor, in filename order, **before deploying code that
+depends on it**. They are all idempotent (`if not exists` / `create or replace`),
+so re-running one is harmless.
 
-1. `20260913_0001_indexes.sql` — indexes for the hot queries plus the
-   denormalized `Users.college_unitid / state_abbr / logo_domain` columns.
-2. `20260913_0002_rpc.sql` — the `get_*` / `appreciate_post` SQL functions the
-   API calls via `supabase.rpc()` (one round trip per page).
-3. `20260914_0003_experience_logo.sql` — `Experiences.companyUrl / logoDomain`,
-   the employer logo domain resolved when an experience is saved.
-4. `20260914_0004_hub_thread_body_optional.sql` — lets a thread be posted with
-   a title only; the old check constraint rejected an empty body.
-5. Backfill existing rows once:
-   ```bash
-   npx tsx --conditions=react-server scripts/backfill-school-names.ts
-   npx tsx --conditions=react-server scripts/backfill-user-denorm.ts
-   npx tsx --conditions=react-server scripts/backfill-experience-logos.ts
-   ```
-   (add `--dry` to preview.)
+Setting up a fresh database? Apply every file, then backfill the derived
+columns once:
 
-All migrations are idempotent (`if not exists` / `create or replace`).
+```bash
+npx tsx --conditions=react-server scripts/backfill-school-names.ts
+npx tsx --conditions=react-server scripts/backfill-user-denorm.ts
+npx tsx --conditions=react-server scripts/backfill-experience-logos.ts
+```
+
+(add `--dry` to preview.)
 
 ## Images
 

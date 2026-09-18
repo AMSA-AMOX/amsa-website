@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import LogoImage from "@/components/LogoImage";
+import { collegeHref } from "@/lib/college-href";
 import { socialHandle, socialHref } from "@/lib/social";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
@@ -18,6 +19,8 @@ type NetworkProfile = {
   schoolName: string | null;
   schoolEmail: string | null;
   logoDomain?: string | null;
+  /** colleges_base.unitid, when the school resolved to a known college. */
+  collegeId?: number | null;
   major: string | null;
   degreeLevel: string | null;
   schoolYear: string | null;
@@ -425,7 +428,7 @@ export default function NetworkProfilePage() {
               <>
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
-                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={11} />
+                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={11} href={collegeHref(profile.collegeId)} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
                       <p className="text-xs text-gray-500">
@@ -660,7 +663,7 @@ export default function NetworkProfilePage() {
                   <div className="space-y-2 animate-pulse">{[1,2,3].map(i => <div key={i} className="h-4 bg-gray-100 rounded" />)}</div>
                 ) : profile?.schoolName ? (
                   <div className="flex gap-4">
-                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={12} />
+                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={12} href={collegeHref(profile.collegeId)} />
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-gray-900">
                         {[profile.degreeLevel, profile.major].filter(Boolean).join(", ") || profile.schoolName}

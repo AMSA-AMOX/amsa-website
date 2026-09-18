@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import LogoImage, { buildLogoUrl } from "@/components/LogoImage";
+import { collegeHref } from "@/lib/college-href";
 import { socialHandle, socialHref } from "@/lib/social";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
@@ -28,6 +29,8 @@ type FullProfile = {
   schoolName: string | null;
   schoolEmail: string | null;
   logoDomain?: string | null;
+  /** colleges_base.unitid, when the school resolved to a known college. */
+  collegeId?: number | null;
   major: string | null;
   degreeLevel: string | null;
   graduationYear: string | null;
@@ -788,7 +791,7 @@ export default function DashboardPage() {
               <div className="py-4 space-y-3 border-b-2 border-gray-300">
                 {profile?.schoolName && (
                   <div className="flex items-center gap-2.5">
-                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={11} />
+                    <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={11} href={collegeHref(profile.collegeId)} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{profile.schoolName}</p>
                       {schoolLine && <p className="text-xs text-gray-500">{schoolLine}</p>}
@@ -1175,7 +1178,7 @@ export default function DashboardPage() {
                   {/* Primary school from profile */}
                   {profile?.schoolName && (
                     <div className="flex gap-4 group pb-4 border-b border-gray-100 mb-4 last:border-0 last:mb-0 last:pb-0">
-                      <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={12} />
+                      <LogoImage kind="school" domain={profile.logoDomain} name={profile.schoolName} email={profile.schoolEmail} size={12} href={collegeHref(profile.collegeId)} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">

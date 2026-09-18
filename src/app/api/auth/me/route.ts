@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const { data: user, error } = await supabase
       .from("Users")
       .select(
-        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, schoolEmail, logo_domain, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
+        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, schoolEmail, logo_domain, college_unitid, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
       )
       .eq("id", payload.id)
       .single();
@@ -32,11 +32,16 @@ export async function GET(request: Request) {
     // only fill it in the response so the profile renders — no write on a read.
     if (!user.schoolName && user.schoolEmail) {
       const college = await findCollegeByEmail(user.schoolEmail);
-      if (college) user.schoolName = college.name;
+      if (college) {
+        user.schoolName = college.name;
+        user.college_unitid ??= college.id;
+      }
     }
 
-    const { logo_domain, ...rest } = user;
-    return NextResponse.json({ user: { ...rest, logoDomain: logo_domain ?? null, roles } });
+    const { logo_domain, college_unitid, ...rest } = user;
+    return NextResponse.json({
+      user: { ...rest, logoDomain: logo_domain ?? null, collegeId: college_unitid ?? null, roles },
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

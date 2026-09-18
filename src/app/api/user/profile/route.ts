@@ -87,7 +87,7 @@ export async function PATCH(request: Request) {
       .update(updates)
       .eq("id", payload.id)
       .select(
-        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, schoolEmail, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
+        "id, email, firstName, lastName, role, acceptanceStatus, profilePic, level, headline, bio, createdAt, phoneNumber, city, state, schoolName, schoolEmail, logo_domain, college_unitid, major, degreeLevel, graduationYear, schoolYear, personalEmail, x, facebook, instagram, linkedin"
       )
       .single();
 
@@ -96,7 +96,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: "Update failed" }, { status: 500 });
     }
 
-    return NextResponse.json({ user });
+    // Same shape as /api/auth/me — the profile page swaps its state for this.
+    const { logo_domain, college_unitid, ...rest } = user;
+    return NextResponse.json({
+      user: { ...rest, logoDomain: logo_domain ?? null, collegeId: college_unitid ?? null },
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ message: "Update failed" }, { status: 500 });
