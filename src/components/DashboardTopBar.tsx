@@ -16,6 +16,7 @@ const TITLE_MAP: Record<string, string> = {
   "/dashboard/places": "Places",
   "/dashboard/inbox": "Inbox",
   "/dashboard/blogs": "Blogs",
+  "/dashboard/settings": "Settings",
   "/dashboard/admin/members": "Members",
   "/dashboard/admin/verification": "Verification Queue",
   "/dashboard/admin/posts": "Post Approval",
