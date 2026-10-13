@@ -201,3 +201,47 @@ export async function sendFeedbackEmail(input: {
 
   if (result.error) throw new Error(result.error.message);
 }
+
+const reportsToEmail = process.env.REPORTS_TO_EMAIL || feedbackToEmail;
+
+/**
+ * Tells moderators about a new content report. The Terms promise action
+ * within 24 hours, so this goes out immediately; the queue at
+ * /dashboard/admin/reports is the record.
+ */
+export async function sendReportEmail(input: {
+  targetLabel: string;
+  reasonLabel: string;
+  details: string | null;
+  preview: string;
+  reporter: { id: number; name: string; email: string };
+  queueUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("Skipping report email: RESEND_API_KEY is not configured");
+    return;
+  }
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+      <h2 style="margin-bottom:12px;">${escapeHtml(input.targetLabel)} reported: ${escapeHtml(input.reasonLabel)}</h2>
+      <p style="white-space:pre-wrap;padding:12px 14px;background:#f5f5f5;border-radius:8px;">${escapeHtml(input.preview || "(no text)")}</p>
+      ${input.details ? `<p><strong>Reporter's note:</strong> ${escapeHtml(input.details)}</p>` : ""}
+      <table style="font-size:13px;color:#444;border-collapse:collapse;margin-top:16px;">
+        <tr><td style="padding:2px 12px 2px 0;">Reported by</td><td>${escapeHtml(input.reporter.name)} &lt;${escapeHtml(input.reporter.email)}&gt; (#${input.reporter.id})</td></tr>
+        <tr><td style="padding:2px 12px 2px 0;">Sent</td><td>${new Date().toISOString()}</td></tr>
+      </table>
+      <p><a href="${input.queueUrl}" style="display:inline-block;padding:10px 14px;background:#001049;color:#fff;border-radius:8px;text-decoration:none;">Open the reports queue</a></p>
+      <p style="margin-top:20px;color:#666;font-size:13px;">Please remove or dismiss within 24 hours.</p>
+    </div>
+  `;
+
+  const result = await resend.emails.send({
+    from: fromEmail,
+    to: reportsToEmail,
+    subject: `[AMSA report] ${input.targetLabel}: ${input.reasonLabel}`,
+    html,
+  });
+
+  if (result.error) console.error("Failed to send report email with Resend:", result.error.message);
+}

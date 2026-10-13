@@ -8,7 +8,7 @@ export type ShellData = {
   /** notifications newer than ?seenAfter= (the client's amsa_notif_seen) */
   unseenNotifications: number;
   /** moderation queue sizes; zero for roles that can't see them */
-  pending: { posts: number; threads: number; verification: number };
+  pending: { posts: number; threads: number; verification: number; reports: number };
 };
 
 /**
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     console.error("GET /api/me/shell failed:", e);
     return NextResponse.json(
-      { membershipStatus: null, unseenNotifications: 0, pending: { posts: 0, threads: 0, verification: 0 } },
+      { membershipStatus: null, unseenNotifications: 0, pending: { posts: 0, threads: 0, verification: 0, reports: 0 } },
       { status: 500 },
     );
   }

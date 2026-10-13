@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const { data: user, error } = await supabase
       .from("Users")
-      .select("id, email, password, firstName, lastName, role, acceptanceStatus, profilePic, level, bio, graduationYear")
+      .select("id, email, password, firstName, lastName, role, acceptanceStatus, profilePic, level, bio, graduationYear, termsAcceptedAt")
       .eq("email", normalizedEmail)
       .single();
 
@@ -108,6 +108,7 @@ export async function POST(request: Request) {
         profilePic: user.profilePic ?? null,
         level: user.level ?? null,
         bio: user.bio ?? null,
+        termsAcceptedAt: user.termsAcceptedAt ?? null,
       },
       token,
     });

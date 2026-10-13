@@ -14,6 +14,8 @@ export type User = {
   profilePic: string | null;
   level: string | null;
   bio: string | null;
+  /** When they agreed to the Terms of Use; null for older accounts. */
+  termsAcceptedAt?: string | null;
 };
 
 export type SignupPayload = {
@@ -22,6 +24,7 @@ export type SignupPayload = {
   firstName: string;
   lastName: string;
   turnstileToken: string;
+  acceptedTerms: boolean;
 };
 
 type AuthContextValue = {

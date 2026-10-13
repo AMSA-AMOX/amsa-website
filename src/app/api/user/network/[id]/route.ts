@@ -33,6 +33,8 @@ type NetworkProfile = {
     followersCount: number;
     followingCount: number;
     isFollowing: boolean;
+    /** The viewer blocked this member (their profile stays visible so it can be unblocked). */
+    blockedByMe?: boolean;
   };
   experiences: unknown[];
   nextProfiles: SearchableMember[];
@@ -58,12 +60,22 @@ export async function GET(request: Request, { params }: RouteContext) {
       return NextResponse.json({ message: "Invalid member id" }, { status: 400 });
     }
 
-    const profile = await rpc<NetworkProfile | null>("get_network_profile", {
-      p_viewer_id: payload.id,
-      p_target_id: targetId,
-    });
+    const [profile, blocks] = await Promise.all([
+      rpc<NetworkProfile | null>("get_network_profile", {
+        p_viewer_id: payload.id,
+        p_target_id: targetId,
+      }),
+      supabase
+        .from("UserBlocks")
+        .select("blockerId")
+        .or(`and(blockerId.eq.${payload.id},blockedId.eq.${targetId}),and(blockerId.eq.${targetId},blockedId.eq.${payload.id})`),
+    ]);
+    const blockRows = (blocks.data ?? []) as { blockerId: number }[];
+    const blockedByMe = blockRows.some((b) => b.blockerId === payload.id);
+    const blockedMe = blockRows.some((b) => b.blockerId === targetId);
 
-    if (!profile) {
+    // A member who blocked you is not shown to you at all.
+    if (!profile || blockedMe) {
       return NextResponse.json({ message: "Member not found" }, { status: 404 });
     }
 
@@ -80,6 +92,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       profile.user.collegeId = data?.college_unitid ?? null;
     }
 
+    profile.user.blockedByMe = blockedByMe;
     return NextResponse.json(profile);
   } catch (e) {
     console.error("Network profile fetch error:", e);

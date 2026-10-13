@@ -21,6 +21,7 @@ const TITLE_MAP: Record<string, string> = {
   "/dashboard/admin/verification": "Verification Queue",
   "/dashboard/admin/posts": "Post Approval",
   "/dashboard/admin/thread-approval": "Thread Approval",
+  "/dashboard/admin/reports": "Reports",
   "/verification": "Membership Form",
 };
 

@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 import { MEMBERSHIP_ASSIGNED_ROLES, isProtectedRole } from "@/lib/membership";
 import { supabase } from "@/lib/supabase";
 import { findCollegeByEmail } from "@/lib/college-match";
 import { resolveUserDenorm } from "@/lib/user-denorm";
+import { pushMembershipDecision } from "@/lib/push";
 
 type ReviewBody = {
   reviewStatus?: "approved" | "rejected";
@@ -121,6 +122,8 @@ export async function PATCH(
       .eq("id", existing.user_id);
 
     if (userError) throw userError;
+
+    after(() => pushMembershipDecision(existing.user_id, reviewStatus === "approved"));
 
     return NextResponse.json({ message: "Verification review saved" });
   } catch (error) {

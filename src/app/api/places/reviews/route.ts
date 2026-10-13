@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
+import { hiddenUserIds, toUserId } from "@/lib/blocks";
 
 function optionalUserId(request: Request): number | null {
   try {
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
   }
 
   try {
+    const hiddenPromise = hiddenUserIds(userId);
     const { data, error } = await supabase
       .from("place_reviews")
       .select("id, state_abbr, content, images, created_at, user_id, helpful_user_ids, Users(id, firstName, lastName, profilePic)")
@@ -32,7 +34,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Failed to load reviews." }, { status: 500 });
     }
 
-    const enriched = (data ?? []).map((r) => {
+    const hidden = await hiddenPromise;
+    const enriched = (data ?? []).filter((r) => !hidden.has(toUserId(r.user_id) ?? -1)).map((r) => {
       const helpfulUserIds = (r.helpful_user_ids as number[] | null) ?? [];
       const { helpful_user_ids: _, ...rest } = r;
       return {

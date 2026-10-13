@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
+import { isBlockedEitherWay } from "@/lib/blocks";
+import { pushNewFollower } from "@/lib/push";
 import { FOLLOWS_TABLE_CANDIDATES, getFollowsTableName } from "@/lib/follows-table";
 
 export async function GET(request: Request) {
@@ -48,6 +50,9 @@ export async function POST(request: Request) {
     if (!followingId || followingId === payload.id) {
       return NextResponse.json({ message: "Invalid followingId" }, { status: 400 });
     }
+    if (await isBlockedEitherWay(payload.id, Number(followingId))) {
+      return NextResponse.json({ message: "You can't follow this member." }, { status: 403 });
+    }
 
     let lastError: any = null;
     for (const followsTable of FOLLOWS_TABLE_CANDIDATES) {
@@ -56,6 +61,8 @@ export async function POST(request: Request) {
         .insert({ followerId: payload.id, followingId });
 
       if (!error || error.code === "23505") {
+        // 23505: already following, so nothing new to tell them.
+        if (!error) after(() => pushNewFollower(payload.id, Number(followingId)));
         return NextResponse.json({ message: "Followed" });
       }
 

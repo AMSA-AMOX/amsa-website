@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import {
@@ -8,6 +8,7 @@ import {
 } from "@/lib/membership";
 import { emailDomainLabel, verifySchoolEmail } from "@/lib/college-match";
 import { resolveUserDenorm } from "@/lib/user-denorm";
+import { pushNewApplication } from "@/lib/push";
 
 const MEMBERSHIP_COLUMNS = `
   id,
@@ -254,6 +255,8 @@ export async function POST(request: Request) {
     if (profileError) {
       console.error("Profile sync after verification submit failed:", profileError);
     }
+
+    after(() => pushNewApplication(normalized.fullName));
 
     return NextResponse.json(
       { membership: toClientPayload(membership), college: emailCheck.college },

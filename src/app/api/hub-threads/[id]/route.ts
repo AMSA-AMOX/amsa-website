@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
+import { hiddenUserIds } from "@/lib/blocks";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -53,7 +54,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     // Wave 1: thread, its comments and its upvotes are all keyed on threadId.
-    const [threadRes, commentsRes, threadUpvotesRes] = await Promise.all([
+    const [threadRes, commentsRes, threadUpvotesRes, hidden] = await Promise.all([
       supabase
         .from("HubThreads")
         .select("id, askerId, title, question, category, categoryDomain, images, status, isAnon, approvedBy, approvedAt, createdAt")
@@ -65,6 +66,7 @@ export async function GET(request: Request, context: RouteContext) {
         .eq("threadId", threadId)
         .order("createdAt", { ascending: true }),
       supabase.from("HubThreadUpvotes").select("userId").eq("threadId", threadId),
+      hiddenUserIds(payload.id),
     ]);
 
     const { data: thread, error } = threadRes;
@@ -75,11 +77,16 @@ export async function GET(request: Request, context: RouteContext) {
     const t = thread as HubThreadRow;
     const isBoardPlus = ["board_member", "admin"].includes(payload.role);
 
-    if (t.status !== "approved" && !isBoardPlus) {
+    if ((t.status !== "approved" && !isBoardPlus) || hidden.has(t.askerId)) {
       return NextResponse.json({ message: "Thread not found." }, { status: 404 });
     }
 
-    const commentRows = (commentsRes.data ?? []) as HubCommentRow[];
+    // Comments by blocked members (either way) are hidden, along with replies under them.
+    const allComments = (commentsRes.data ?? []) as HubCommentRow[];
+    const hiddenCommentIds = new Set(allComments.filter((c) => hidden.has(c.authorId)).map((c) => c.id));
+    const commentRows = allComments.filter(
+      (c) => !hiddenCommentIds.has(c.id) && !(c.parentId != null && hiddenCommentIds.has(c.parentId)),
+    );
     const commentIds = commentRows.map((c) => c.id);
 
     const threadUpvoteList = (threadUpvotesRes.data ?? []) as { userId: number }[];
