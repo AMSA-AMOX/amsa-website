@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { ROLES, verifyToken } from "@/lib/auth";
+import { pushQuestionAnswered } from "@/lib/push";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -132,6 +133,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     const byId = new Map<number, UserRow>(
       ((users ?? []) as UserRow[]).map((u) => [u.id, u])
     );
+
+    after(() => pushQuestionAnswered(t.askerId, byId.get(t.recipientId) ?? null, isAnonymous));
 
     return NextResponse.json({
       thread: {

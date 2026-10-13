@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
+import { hiddenUserIds } from "@/lib/blocks";
 
 type HubThreadRow = {
   id: number;
@@ -133,16 +134,18 @@ export async function GET(request: Request) {
 
     if (cursor) query = query.lt("approvedAt", cursor);
 
-    const { data, error } = await query;
+    const [{ data, error }, hidden] = await Promise.all([query, hiddenUserIds(payload.id)]);
     if (error) {
       console.error("GET /api/hub-threads failed:", error);
       return NextResponse.json({ message: "Failed to load threads" }, { status: 500 });
     }
 
-    const rows = (data ?? []) as HubThreadRow[];
+    const allRows = (data ?? []) as HubThreadRow[];
+    // The cursor comes from the unfiltered page so hidden threads don't end pagination early.
+    const nextCursor = allRows.length === limit ? (allRows[allRows.length - 1].approvedAt ?? null) : null;
+    const rows = allRows.filter((r) => !hidden.has(r.askerId));
     const { userMap, counts } = await loadThreadExtras(rows, payload.id, true);
     const threads = shapeThreads(rows, userMap, counts);
-    const nextCursor = rows.length === limit ? (rows[rows.length - 1].approvedAt ?? null) : null;
 
     return NextResponse.json({ threads, nextCursor });
   } catch (e) {

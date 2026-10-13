@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { ROLES, verifyToken } from "@/lib/auth";
+import { hiddenUserIds, isBlockedEitherWay } from "@/lib/blocks";
+import { pushNewQuestion } from "@/lib/push";
 
 type ThreadRow = {
   id: number;
@@ -94,13 +96,14 @@ export async function GET(request: Request) {
         query = query.eq("askerId", payload.id);
       }
 
-      const { data, error } = await query;
+      const [{ data, error }, hidden] = await Promise.all([query, hiddenUserIds(payload.id)]);
       if (error) {
         console.error("GET /api/threads?view=inbox failed:", error);
         return NextResponse.json({ message: "Failed to load inbox" }, { status: 500 });
       }
 
-      const threads = await enrichThreads((data ?? []) as ThreadRow[]);
+      const rows = ((data ?? []) as ThreadRow[]).filter((r) => !hidden.has(r.askerId) && !hidden.has(r.recipientId));
+      const threads = await enrichThreads(rows);
       return NextResponse.json({ threads });
     }
 
@@ -181,6 +184,10 @@ export async function POST(request: Request) {
       );
     }
 
+    if (await isBlockedEitherWay(payload.id, recipientId)) {
+      return NextResponse.json({ message: "You can't send questions to this member." }, { status: 403 });
+    }
+
     // Verify recipient exists and has the right role
     const { data: recipient, error: recipientError } = await supabase
       .from("Users")
@@ -235,6 +242,8 @@ export async function POST(request: Request) {
       asker: (asker as UserRow) ?? null,
       recipient: recipient as UserRow,
     };
+
+    after(() => pushNewQuestion(asker as UserRow | null, recipientId));
 
     return NextResponse.json({ thread }, { status: 201 });
   } catch (e) {

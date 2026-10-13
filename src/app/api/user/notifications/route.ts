@@ -4,7 +4,7 @@ import { rpc } from "@/lib/rpc";
 
 export type NotificationItem = {
   id: string;
-  type: "follow" | "event" | "thread_question" | "thread_answered" | "welcome" | "post_report";
+  type: "follow" | "event" | "thread_question" | "thread_answered" | "welcome" | "post_report" | "content_report";
   title: string;
   description: string;
   happenedAt: string;

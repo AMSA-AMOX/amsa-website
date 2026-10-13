@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { verifyToken } from "@/lib/auth";
+import { hiddenUserIds } from "@/lib/blocks";
+
+function optionalUserId(request: Request): number | null {
+  try {
+    return verifyToken(request).id;
+  } catch {
+    return null;
+  }
+}
 
 function deriveLogoUrl(website: string | null): string | null {
   if (!website) return null;
@@ -23,7 +33,7 @@ const normalizeImages = (value: unknown): string[] => {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -48,7 +58,8 @@ export async function GET(
     logoUrl: deriveLogoUrl(collegeRow.school_url as string | null),
   };
 
-  const { data: posts, error } = await supabase
+  const hiddenPromise = hiddenUserIds(optionalUserId(request));
+  const { data: allPosts, error } = await supabase
     .from("Posts")
     .select("id, userId, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
     .eq("tagged_college_id", unitid)
@@ -61,7 +72,10 @@ export async function GET(
     return NextResponse.json({ posts: [] });
   }
 
-  if (!posts || posts.length === 0) return NextResponse.json({ posts: [] });
+  // Hidden when either side blocked the other.
+  const hidden = await hiddenPromise;
+  const posts = (allPosts ?? []).filter((p) => p.userId == null || !hidden.has(Number(p.userId)));
+  if (posts.length === 0) return NextResponse.json({ posts: [] });
 
   const userIds = Array.from(
     new Set(posts.map((p) => p.userId).filter((id): id is number => id != null))

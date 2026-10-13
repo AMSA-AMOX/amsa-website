@@ -39,13 +39,21 @@ async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, turnstileToken } = body;
+    const { email, password, firstName, lastName, turnstileToken, acceptedTerms } = body;
 
     const eduEmail = email?.toLowerCase().trim();
 
     if (!eduEmail || !password) {
       return NextResponse.json(
         { message: "Missing email or password" },
+        { status: 400 }
+      );
+    }
+
+    // Agreeing to the Terms of Use (which ban objectionable content) is required.
+    if (acceptedTerms !== true) {
+      return NextResponse.json(
+        { message: "Please agree to the Terms of Use to create an account." },
         { status: 400 }
       );
     }
@@ -97,6 +105,7 @@ export async function POST(request: Request) {
     const role = isBoardMember ? "board_member" : "member";
     const acceptanceStatus = "approved";
     const emailVerified = isBoardMember;
+    const termsAcceptedAt = new Date().toISOString();
 
     const { data: user, error: userError } = await supabase
       .from("Users")
@@ -108,6 +117,7 @@ export async function POST(request: Request) {
         role,
         acceptanceStatus,
         emailVerified,
+        termsAcceptedAt,
       })
       .select("id, email, firstName, lastName, role, acceptanceStatus")
       .single();
@@ -141,6 +151,7 @@ export async function POST(request: Request) {
           profilePic: null,
           level: null,
           bio: null,
+          termsAcceptedAt,
         },
         token,
       },

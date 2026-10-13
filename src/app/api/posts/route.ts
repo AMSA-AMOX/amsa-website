@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { ROLES, verifyToken } from "@/lib/auth";
+import { hiddenUserIds } from "@/lib/blocks";
 
 type RawPostRow = {
   id: number;
@@ -111,13 +112,17 @@ export async function GET(request: Request) {
       query = query.eq("reviewStatus", "approved");
     }
 
-    const { data: posts, error } = await query;
+    // Blocked members (either way) are hidden from the feed, but never from moderation views.
+    const [{ data: posts, error }, hidden] = await Promise.all([
+      query,
+      canViewModeration ? Promise.resolve(new Set<number>()) : hiddenUserIds(viewerId),
+    ]);
     if (error) {
       console.error("List posts failed:", error);
       return NextResponse.json({ message: "Failed to load posts" }, { status: 500 });
     }
 
-    const safePosts = (posts ?? []) as RawPostRow[];
+    const safePosts = ((posts ?? []) as RawPostRow[]).filter((post) => !hidden.has(normalizeId(post.userId) ?? -1));
     if (safePosts.length === 0) return NextResponse.json({ posts: [] });
 
     const userIds = Array.from(

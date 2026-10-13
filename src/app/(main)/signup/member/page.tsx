@@ -29,6 +29,7 @@ const SignupMember = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "", firstName: "", lastName: "" });
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -43,6 +44,10 @@ const SignupMember = () => {
       setError("Please complete the security check.");
       return;
     }
+    if (!acceptedTerms) {
+      setError("Please agree to the Terms of Use.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -52,6 +57,7 @@ const SignupMember = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         turnstileToken,
+        acceptedTerms,
       });
       router.push("/dashboard/feed");
     } catch (err: any) {
@@ -125,6 +131,27 @@ const SignupMember = () => {
             </div>
           </div>
 
+          <label className="flex items-start gap-3 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#001049]"
+              required
+            />
+            <span>
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-[#001049] font-medium hover:underline">
+                Terms of Use
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="text-[#001049] font-medium hover:underline">
+                Privacy Policy
+              </Link>
+              . There is no tolerance for objectionable content or abusive members.
+            </span>
+          </label>
+
           <Turnstile
             ref={turnstileRef}
             siteKey={SITE_KEY}
@@ -139,7 +166,7 @@ const SignupMember = () => {
 
           <button
             type="submit"
-            disabled={loading || !turnstileToken}
+            disabled={loading || !turnstileToken || !acceptedTerms}
             className="w-full bg-[#001049] text-white py-3 rounded-xl font-medium hover:bg-[#001A78] transition disabled:opacity-50 mt-2"
           >
             {loading ? "Creating account…" : "Create Account"}
