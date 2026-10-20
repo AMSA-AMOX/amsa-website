@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { removeTarget, type ReportTargetType } from "@/lib/reports";
 
@@ -32,7 +32,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ message: "action must be 'remove' or 'dismiss'." }, { status: 400 });
     }
 
-    const { data: report } = await supabase
+    const { data: report } = await supabaseAdmin
       .from("ContentReports")
       .select("id, targetType, targetId")
       .eq("id", reportId)
@@ -44,7 +44,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (action === "remove") await removeTarget(report.targetType, report.targetId);
 
     const status = action === "remove" ? "removed" : "dismissed";
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("ContentReports")
       .update({ status, resolvedBy: payload.id, resolvedAt: new Date().toISOString() })
       .eq("targetType", report.targetType)

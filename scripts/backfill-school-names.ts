@@ -11,11 +11,11 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const { supabase } = await import("../src/lib/supabase");
+  const { supabaseAdmin } = await import("../src/lib/supabase-admin");
   const { findCollegeByEmail } = await import("../src/lib/college-match");
   const dry = process.argv.includes("--dry");
 
-  const { data: users, error } = await supabase
+  const { data: users, error } = await supabaseAdmin
     .from("Users")
     .select("id, schoolEmail")
     .is("schoolName", null)
@@ -31,7 +31,7 @@ async function main() {
     }
     console.log(`${dry ? "would" : "set  "} #${u.id} ${u.schoolEmail} → ${college.name}`);
     if (!dry) {
-      const { error: updErr } = await supabase.from("Users").update({ schoolName: college.name }).eq("id", u.id);
+      const { error: updErr } = await supabaseAdmin.from("Users").update({ schoolName: college.name }).eq("id", u.id);
       if (updErr) throw updErr;
     }
     updated += 1;

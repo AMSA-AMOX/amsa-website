@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { resolveExperienceLogoDomain } from "@/lib/experience-denorm";
 
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: experiences, error } = await supabase
+    const { data: experiences, error } = await supabaseAdmin
       .from("Experiences")
       .select("*")
       .eq("userId", payload.id)
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const logoDomain = await resolveExperienceLogoDomain({ company, companyUrl });
 
-    const { data: experience, error } = await supabase
+    const { data: experience, error } = await supabaseAdmin
       .from("Experiences")
       .insert({
         userId: payload.id,

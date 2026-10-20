@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ROLES, verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -39,7 +39,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     // Derive the roles array from the new primary role
     const rolesArray = role === ROLES.ADMIN ? [ROLES.ADMIN, ROLES.US_MEMBER] : [role];
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("Users")
       .update({ role, roles: rolesArray })
       .eq("id", targetId)

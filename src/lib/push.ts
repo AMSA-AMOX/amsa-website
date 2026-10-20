@@ -1,7 +1,7 @@
 import "server-only";
 import http2 from "node:http2";
 import jwt from "jsonwebtoken";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * Push notifications to the iOS app through Apple Push Notification service (APNs).
@@ -109,7 +109,7 @@ function deliver(environment: Environment, tokens: string[], payload: string): P
 export async function sendPush(userIds: number[], push: Push): Promise<void> {
   if (!KEY || !KEY_ID || !TEAM_ID || userIds.length === 0) return;
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("DeviceTokens")
       .select("token, environment")
       .in("userId", userIds);
@@ -129,7 +129,7 @@ export async function sendPush(userIds: number[], push: Push): Promise<void> {
         }),
       )
     ).flat();
-    if (stale.length) await supabase.from("DeviceTokens").delete().in("token", stale);
+    if (stale.length) await supabaseAdmin.from("DeviceTokens").delete().in("token", stale);
   } catch (error) {
     console.error("Push failed:", error);
   }
@@ -140,7 +140,7 @@ export async function sendPush(userIds: number[], push: Push): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function pushNewFollower(followerId: number, followingId: number): Promise<void> {
-  const { data: follower } = await supabase
+  const { data: follower } = await supabaseAdmin
     .from("Users")
     .select("firstName, lastName, role")
     .eq("id", followerId)
@@ -191,7 +191,7 @@ export async function pushMembershipDecision(userId: number, approved: boolean):
 
 /** To every admin: they're the ones who review applications. */
 export async function pushNewApplication(applicantName: string): Promise<void> {
-  const { data: admins } = await supabase.from("Users").select("id").eq("role", "admin");
+  const { data: admins } = await supabaseAdmin.from("Users").select("id").eq("role", "admin");
   await sendPush(
     ((admins ?? []) as { id: number }[]).map((a) => a.id),
     {

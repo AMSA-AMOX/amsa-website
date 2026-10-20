@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -20,7 +20,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from("HubThreadUpvotes")
       .select("threadId")
       .eq("threadId", threadId)
@@ -28,18 +28,18 @@ export async function POST(request: Request, context: RouteContext) {
       .maybeSingle();
 
     if (existing) {
-      await supabase
+      await supabaseAdmin
         .from("HubThreadUpvotes")
         .delete()
         .eq("threadId", threadId)
         .eq("userId", payload.id);
     } else {
-      await supabase
+      await supabaseAdmin
         .from("HubThreadUpvotes")
         .insert({ threadId, userId: payload.id, createdAt: new Date().toISOString() });
     }
 
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from("HubThreadUpvotes")
       .select("*", { count: "exact", head: true })
       .eq("threadId", threadId);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { resolveExperienceLogoDomain } from "@/lib/experience-denorm";
 
@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const logoDomain = await resolveExperienceLogoDomain({ company, companyUrl });
 
-    const { data: experience, error } = await supabase
+    const { data: experience, error } = await supabaseAdmin
       .from("Experiences")
       .update({
         jobTitle,
@@ -64,7 +64,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("Experiences")
       .delete()
       .eq("id", id)

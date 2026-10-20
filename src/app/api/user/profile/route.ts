@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { emailDomainLabel, verifySchoolEmail } from "@/lib/college-match";
 import { resolveUserDenorm } from "@/lib/user-denorm";
@@ -53,7 +53,7 @@ export async function PATCH(request: Request) {
     // belong to the named college, and when it does we store the official name.
     // Then refresh the denormalized college/state/logo columns from the result.
     if ("schoolEmail" in updates || "schoolName" in updates || "state" in updates) {
-      const { data: current } = await supabase
+      const { data: current } = await supabaseAdmin
         .from("Users")
         .select("schoolName, schoolEmail, state")
         .eq("id", payload.id)
@@ -82,7 +82,7 @@ export async function PATCH(request: Request) {
       Object.assign(updates, await resolveUserDenorm({ schoolName, schoolEmail, state }));
     }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from("Users")
       .update(updates)
       .eq("id", payload.id)

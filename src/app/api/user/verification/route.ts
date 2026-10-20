@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   membershipToProfileUpdates,
   normalizeMembershipSubmissionPayload,
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: membership, error } = await supabase
+    const { data: membership, error } = await supabaseAdmin
       .from("amsa_memberships")
       .select(MEMBERSHIP_COLUMNS)
       .eq("user_id", payload.id)
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       normalized.enrolledUniversity = emailCheck.college.name;
     }
 
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from("amsa_memberships")
       .select("id, review_status")
       .eq("user_id", payload.id)
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
     let membership: MembershipRow | null = null;
 
     if (existing?.id) {
-      const { data: updated, error: updateError } = await supabase
+      const { data: updated, error: updateError } = await supabaseAdmin
         .from("amsa_memberships")
         .update(upsertPayload)
         .eq("id", existing.id)
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
       }
       membership = updated;
     } else {
-      const { data: created, error: insertError } = await supabase
+      const { data: created, error: insertError } = await supabaseAdmin
         .from("amsa_memberships")
         .insert(upsertPayload)
         .select(MEMBERSHIP_COLUMNS)
@@ -240,7 +240,7 @@ export async function POST(request: Request) {
     // (school, year, major, graduation, location, phone, .edu email) so they
     // don't have to re-enter them on the Profile page.
     const profileUpdates = membershipToProfileUpdates(normalized);
-    const { error: profileError } = await supabase
+    const { error: profileError } = await supabaseAdmin
       .from("Users")
       .update({
         ...profileUpdates,

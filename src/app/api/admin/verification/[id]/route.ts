@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 import { MEMBERSHIP_ASSIGNED_ROLES, isProtectedRole } from "@/lib/membership";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { findCollegeByEmail } from "@/lib/college-match";
 import { resolveUserDenorm } from "@/lib/user-denorm";
 import { pushMembershipDecision } from "@/lib/push";
@@ -39,7 +39,7 @@ export async function PATCH(
       return NextResponse.json({ message: "assignedRole must be us_member or member when approving" }, { status: 400 });
     }
 
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from("amsa_memberships")
       .select("id, user_id, email, enrolled_university, state")
       .eq("id", id)
@@ -75,7 +75,7 @@ export async function PATCH(
             reviewed_by: payload.id,
           };
 
-    const { error: membershipError } = await supabase
+    const { error: membershipError } = await supabaseAdmin
       .from("amsa_memberships")
       .update(membershipUpdates)
       .eq("id", id);
@@ -84,7 +84,7 @@ export async function PATCH(
 
     // Board members / admins / ambassadors also submit this form, but a review
     // decision must never overwrite their elevated role.
-    const { data: applicant, error: applicantError } = await supabase
+    const { data: applicant, error: applicantError } = await supabaseAdmin
       .from("Users")
       .select("role")
       .eq("id", existing.user_id)
@@ -116,7 +116,7 @@ export async function PATCH(
           }
         : { ...(keepRole ? {} : { role: "member" }), acceptanceStatus: "approved" };
 
-    const { error: userError } = await supabase
+    const { error: userError } = await supabaseAdmin
       .from("Users")
       .update(userUpdates)
       .eq("id", existing.user_id);

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * GET /api/health        → function is up (no DB)
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
 
   const started = performance.now();
-  const { error } = await supabase.from("Users").select("id").limit(1);
+  const { error } = await supabaseAdmin.from("Users").select("id").limit(1);
   const dbMs = Math.round(performance.now() - started);
 
   return Response.json(

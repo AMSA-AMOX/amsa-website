@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function parseEventId(raw: string): number | null {
   const id = Number(raw);
@@ -30,7 +30,7 @@ export async function GET(
     const includeHistory = url.searchParams.get("includeHistory") === "true";
     const activeStatuses = ["reserved", "paid", "waitlisted"];
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("EventReservations")
       .select(
         "id, userId, status, waitlistPosition, paymentStatus, paymentDueAt, checkedIn, checkedInAt, createdAt, Users!EventReservations_userId_fkey(id, firstName, lastName, email, phoneNumber)"

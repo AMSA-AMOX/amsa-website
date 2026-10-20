@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { decodeResetTokenId, verifyResetToken } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: user } = await supabase
+    const { data: user } = await supabaseAdmin
       .from("Users")
       .select("id, password")
       .eq("id", userId)
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("Users")
       .update({ password: hashedPassword })
       .eq("id", user.id);

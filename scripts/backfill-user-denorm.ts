@@ -9,11 +9,11 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const { supabase } = await import("../src/lib/supabase");
+  const { supabaseAdmin } = await import("../src/lib/supabase-admin");
   const { resolveUserDenorm } = await import("../src/lib/user-denorm");
   const dry = process.argv.includes("--dry");
 
-  const { data: users, error } = await supabase
+  const { data: users, error } = await supabaseAdmin
     .from("Users")
     .select("id, schoolName, schoolEmail, state")
     .or("schoolName.not.is.null,schoolEmail.not.is.null,state.not.is.null")
@@ -26,7 +26,7 @@ async function main() {
     if (!denorm.college_unitid && !denorm.state_abbr && !denorm.logo_domain) continue;
     console.log(`${dry ? "would" : "set  "} #${u.id} college=${denorm.college_unitid ?? "-"} state=${denorm.state_abbr ?? "-"} logo=${denorm.logo_domain ?? "-"}`);
     if (!dry) {
-      const { error: updErr } = await supabase.from("Users").update(denorm).eq("id", u.id);
+      const { error: updErr } = await supabaseAdmin.from("Users").update(denorm).eq("id", u.id);
       if (updErr) throw updErr;
     }
     updated += 1;

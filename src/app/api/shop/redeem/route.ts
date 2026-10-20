@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const SHOP_ITEMS = [
   { key: "agm_ticket", label: "Ticket to AGM", cost: 20 },
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid shop item." }, { status: 400 });
     }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from("Users")
       .select("id, appreciationTokens")
       .eq("id", payload.id)
@@ -44,13 +44,13 @@ export async function POST(request: Request) {
     }
 
     const nextBalance = balance - item.cost;
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("Users")
       .update({ appreciationTokens: nextBalance })
       .eq("id", payload.id);
     if (updateError) throw updateError;
 
-    const { error: requestError } = await supabase.from("ShopRedemptions").insert({
+    const { error: requestError } = await supabaseAdmin.from("ShopRedemptions").insert({
       userId: payload.id,
       itemKey: item.key,
       itemLabel: item.label,

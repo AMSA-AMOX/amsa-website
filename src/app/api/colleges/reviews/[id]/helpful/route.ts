@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -15,7 +15,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: reviewId } = await context.params;
 
   try {
-    const { data: review, error: fetchError } = await supabase
+    const { data: review, error: fetchError } = await supabaseAdmin
       .from("college_reviews")
       .select("id, helpful_user_ids")
       .eq("id", reviewId)
@@ -31,7 +31,7 @@ export async function POST(request: Request, context: RouteContext) {
       ? current.filter((id) => id !== payload.id)
       : [...current, payload.id];
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("college_reviews")
       .update({ helpful_user_ids: next })
       .eq("id", reviewId);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ROLES, verifyToken } from "@/lib/auth";
 
 // GET /api/admin/users?search=...&limit=50
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const limit = Math.min(200, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 100));
 
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, email, role, profilePic, createdAt")
       .order("createdAt", { ascending: false })

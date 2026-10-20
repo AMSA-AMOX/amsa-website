@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -20,7 +20,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const { data: thread, error: threadError } = await supabase
+    const { data: thread, error: threadError } = await supabaseAdmin
       .from("HubThreads")
       .select("id, status")
       .eq("id", threadId)
@@ -45,7 +45,7 @@ export async function POST(request: Request, context: RouteContext) {
     // Validate parentId: must belong to this thread and be a top-level comment
     let parentId: number | null = null;
     if (parentIdRaw != null && Number.isFinite(parentIdRaw)) {
-      const { data: parent } = await supabase
+      const { data: parent } = await supabaseAdmin
         .from("HubComments")
         .select("id, threadId, parentId")
         .eq("id", parentIdRaw)
@@ -61,7 +61,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const now = new Date().toISOString();
-    const { data: inserted, error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await supabaseAdmin
       .from("HubComments")
       .insert({ threadId, authorId: payload.id, content, isAnon, parentId, createdAt: now })
       .select("id, threadId, authorId, content, isAnon, parentId, createdAt")
@@ -74,7 +74,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     let author = null;
     if (!isAnon) {
-      const { data: user } = await supabase
+      const { data: user } = await supabaseAdmin
         .from("Users")
         .select("id, firstName, lastName, profilePic")
         .eq("id", payload.id)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { hiddenUserIds } from "@/lib/blocks";
 
@@ -43,13 +43,13 @@ async function loadThreadExtras(rows: HubThreadRow[], viewerId: number, withCoun
 
   const [usersRes, commentsRes, upvotesRes] = await Promise.all([
     askerIds.length > 0
-      ? supabase.from("Users").select("id, firstName, lastName, profilePic").in("id", askerIds)
+      ? supabaseAdmin.from("Users").select("id, firstName, lastName, profilePic").in("id", askerIds)
       : Promise.resolve({ data: [] as UserRow[] }),
     withCounts
-      ? supabase.from("HubComments").select("threadId").in("threadId", threadIds)
+      ? supabaseAdmin.from("HubComments").select("threadId").in("threadId", threadIds)
       : Promise.resolve({ data: [] as { threadId: number }[] }),
     withCounts
-      ? supabase.from("HubThreadUpvotes").select("threadId, userId").in("threadId", threadIds)
+      ? supabaseAdmin.from("HubThreadUpvotes").select("threadId, userId").in("threadId", threadIds)
       : Promise.resolve({ data: [] as { threadId: number; userId: number }[] }),
   ]);
 
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
     if (view === "pending") {
       if (!isBoardPlus) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("HubThreads")
         .select(SELECT)
         .eq("status", "pending")
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ threads: shapeThreads(rows, userMap, counts) });
     }
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("HubThreads")
       .select(SELECT)
       .eq("status", "approved")
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
-    const { data: inserted, error } = await supabase
+    const { data: inserted, error } = await supabaseAdmin
       .from("HubThreads")
       .insert({ askerId: payload.id, title, question, category, categoryDomain, images, isAnon, status: "pending", createdAt: now, updatedAt: now })
       .select("id")

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { College, MeritScholarship } from "@/app/(dashboard)/dashboard/research/types";
 import { USNEWS_LAC_IDS } from "@/data/usnews-rankings";
 
@@ -408,7 +408,7 @@ const BATCH_SIZE = 500;
 async function fetchAllRows<T>(table: string, orderBy: string): Promise<{ rows: T[]; error: string | null }> {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from(table)
       .select("*")
       .order(orderBy)
@@ -424,7 +424,7 @@ async function fetchByIds<T>(
 ): Promise<{ rows: T[]; error: string | null }> {
   const batches: PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>[] = [];
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-    batches.push(supabase.from(table).select(select).in(idColumn, ids.slice(i, i + BATCH_SIZE)));
+    batches.push(supabaseAdmin.from(table).select(select).in(idColumn, ids.slice(i, i + BATCH_SIZE)));
   }
   const rows: T[] = [];
   let error: string | null = null;

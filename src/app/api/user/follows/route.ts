@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { isBlockedEitherWay } from "@/lib/blocks";
 import { pushNewFollower } from "@/lib/push";
@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     // is exactly two parallel queries per call.
     const followsTable = await getFollowsTableName();
     const [followersRes, followingRes] = await Promise.all([
-      supabase.from(followsTable).select("id", { count: "exact", head: true }).eq("followingId", payload.id),
-      supabase.from(followsTable).select("followingId").eq("followerId", payload.id),
+      supabaseAdmin.from(followsTable).select("id", { count: "exact", head: true }).eq("followingId", payload.id),
+      supabaseAdmin.from(followsTable).select("followingId").eq("followerId", payload.id),
     ]);
 
     if (followersRes.error) throw followersRes.error;
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     let lastError: any = null;
     for (const followsTable of FOLLOWS_TABLE_CANDIDATES) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from(followsTable)
         .insert({ followerId: payload.id, followingId });
 

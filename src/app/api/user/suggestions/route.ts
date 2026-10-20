@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: Request) {
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: users } = await supabase
+    const { data: users } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic, schoolName, graduationYear, major, schoolYear")
       .eq("acceptanceStatus", "approved")

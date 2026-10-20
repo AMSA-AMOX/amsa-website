@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { verifyToken, ROLES } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   getEventById,
   getUserById,
@@ -37,7 +37,7 @@ export async function POST(
     const isAdmin = payload.role === ROLES.ADMIN;
     const targetUserId = isAdmin ? requestedUserId : payload.id;
 
-    const { data: reservation, error: reservationError } = await supabase
+    const { data: reservation, error: reservationError } = await supabaseAdmin
       .from("EventReservations")
       .select("id, status")
       .eq("eventId", eventId)
@@ -53,7 +53,7 @@ export async function POST(
       );
     }
 
-    const { error: cancelError } = await supabase
+    const { error: cancelError } = await supabaseAdmin
       .from("EventReservations")
       .update({
         status: "cancelled",

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { extractSchoolEmailDomain, getKnownSchoolDomain } from "@/lib/logo-lookup";
 import { resolveUserCollege } from "@/lib/college-match";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return res as NextResponse;
   }
 
-  const { data: userRow, error: userErr } = await supabase
+  const { data: userRow, error: userErr } = await supabaseAdmin
     .from("Users")
     .select("schoolName, schoolEmail")
     .eq("id", payload.id)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ROLES, verifyToken } from "@/lib/auth";
 import { hiddenUserIds } from "@/lib/blocks";
 
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from("Posts")
       .select("id, userId, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic, tagged_college_id")
       .order("createdAt", { ascending: false })
@@ -145,13 +145,13 @@ export async function GET(request: Request) {
     // the post list — fetch all three in one wave.
     const [usersRes, collegesRes, helpfulRes] = await Promise.all([
       userIds.length > 0
-        ? supabase.from("Users").select("id, firstName, lastName, headline, profilePic").in("id", userIds)
+        ? supabaseAdmin.from("Users").select("id, firstName, lastName, headline, profilePic").in("id", userIds)
         : Promise.resolve({ data: [] as RawUserRow[], error: null }),
       collegeIds.length > 0
-        ? supabase.from("colleges_base").select("unitid, name, school_url").in("unitid", collegeIds)
+        ? supabaseAdmin.from("colleges_base").select("unitid, name, school_url").in("unitid", collegeIds)
         : Promise.resolve({ data: [] as RawCollegeRow[], error: null }),
       viewerId
-        ? supabase
+        ? supabaseAdmin
             .from("PostHelpfuls")
             .select("postId")
             .eq("userId", viewerId)
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
     if (rawCollegeId != null) {
       const parsed = Number(rawCollegeId);
       if (Number.isFinite(parsed) && parsed > 0) {
-        const { count } = await supabase
+        const { count } = await supabaseAdmin
           .from("colleges_base")
           .select("unitid", { count: "exact", head: true })
           .eq("unitid", parsed);
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const { count: todayCount, error: countError } = await supabase
+    const { count: todayCount, error: countError } = await supabaseAdmin
       .from("Posts")
       .select("*", { count: "exact", head: true })
       .eq("userId", payload.id)
@@ -285,7 +285,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: insertedPost, error } = await supabase
+    const { data: insertedPost, error } = await supabaseAdmin
       .from("Posts")
       .insert({
         userId: payload.id,
@@ -305,7 +305,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Failed to create post" }, { status: 500 });
     }
 
-    const { data: author } = await supabase
+    const { data: author } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, headline, profilePic")
       .eq("id", payload.id)
@@ -314,7 +314,7 @@ export async function POST(request: Request) {
     let college = null;
     const raw = insertedPost as RawPostRow;
     if (raw.tagged_college_id) {
-      const { data: collegeRow } = await supabase
+      const { data: collegeRow } = await supabaseAdmin
         .from("colleges_base")
         .select("unitid, name, school_url")
         .eq("unitid", raw.tagged_college_id)

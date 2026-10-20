@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string; commentId: string }> };
@@ -20,7 +20,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from("HubCommentUpvotes")
       .select("commentId")
       .eq("commentId", commentId)
@@ -28,18 +28,18 @@ export async function POST(request: Request, context: RouteContext) {
       .maybeSingle();
 
     if (existing) {
-      await supabase
+      await supabaseAdmin
         .from("HubCommentUpvotes")
         .delete()
         .eq("commentId", commentId)
         .eq("userId", payload.id);
     } else {
-      await supabase
+      await supabaseAdmin
         .from("HubCommentUpvotes")
         .insert({ commentId, userId: payload.id, createdAt: new Date().toISOString() });
     }
 
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from("HubCommentUpvotes")
       .select("*", { count: "exact", head: true })
       .eq("commentId", commentId);

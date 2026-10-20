@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ROLES, verifyToken } from "@/lib/auth";
 import { hiddenUserIds, isBlockedEitherWay } from "@/lib/blocks";
 import { pushNewQuestion } from "@/lib/push";
@@ -42,7 +42,7 @@ async function enrichThreads(rows: ThreadRow[]): Promise<ThreadItem[]> {
   const userIds = Array.from(
     new Set([...rows.map((r) => r.askerId), ...rows.map((r) => r.recipientId)])
   );
-  const { data: users } = await supabase
+  const { data: users } = await supabaseAdmin
     .from("Users")
     .select("id, firstName, lastName, profilePic")
     .in("id", userIds);
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
         payload.role as any
       );
 
-      let query = supabase
+      let query = supabaseAdmin
         .from("Threads")
         .select(SELECT_COLS)
         .order("createdAt", { ascending: false })
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
     const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 25));
     const cursor = url.searchParams.get("cursor");
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("Threads")
       .select(SELECT_COLS)
       .not("answer", "is", null)
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
     }
 
     // Verify recipient exists and has the right role
-    const { data: recipient, error: recipientError } = await supabase
+    const { data: recipient, error: recipientError } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic, role")
       .eq("id", recipientId)
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
-    const { data: inserted, error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await supabaseAdmin
       .from("Threads")
       .insert({ askerId: payload.id, recipientId, question, isPublic, createdAt: now, updatedAt: now })
       .select(SELECT_COLS)
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Failed to submit question." }, { status: 500 });
     }
 
-    const { data: asker } = await supabase
+    const { data: asker } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic")
       .eq("id", payload.id)
