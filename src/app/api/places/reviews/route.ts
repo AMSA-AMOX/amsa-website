@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { hiddenUserIds, toUserId } from "@/lib/blocks";
 
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   try {
     const hiddenPromise = hiddenUserIds(userId);
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("place_reviews")
       .select("id, state_abbr, content, images, created_at, user_id, helpful_user_ids, Users(id, firstName, lastName, profilePic)")
       .eq("state_abbr", stateAbbr)
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Review must be 10–2000 characters." }, { status: 400 });
     }
 
-    const { data: inserted, error } = await supabase
+    const { data: inserted, error } = await supabaseAdmin
       .from("place_reviews")
       .insert({ state_abbr: stateAbbr, user_id: payload.id, content, images })
       .select("id, state_abbr, content, images, created_at, user_id")
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Failed to submit review." }, { status: 500 });
     }
 
-    const { data: user } = await supabase
+    const { data: user } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic")
       .eq("id", payload.id)

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { rpc } from "@/lib/rpc";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { SearchableMember } from "@/lib/network-users";
 
 type RouteContext = {
@@ -65,7 +65,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         p_viewer_id: payload.id,
         p_target_id: targetId,
       }),
-      supabase
+      supabaseAdmin
         .from("UserBlocks")
         .select("blockerId")
         .or(`and(blockerId.eq.${payload.id},blockedId.eq.${targetId}),and(blockerId.eq.${targetId},blockedId.eq.${payload.id})`),
@@ -84,7 +84,7 @@ export async function GET(request: Request, { params }: RouteContext) {
     // that runs, the RPC omits the key entirely (undefined, not null), so read
     // the indexed column directly rather than ship a profile with no logo link.
     if (profile.user.collegeId === undefined) {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("Users")
         .select("college_unitid")
         .eq("id", targetId)

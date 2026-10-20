@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken, ROLES } from "@/lib/auth";
 import { rpc } from "@/lib/rpc";
 
@@ -35,7 +35,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from("Users")
       .select("id, role, profilePic")
       .eq("id", payload.id)
@@ -64,7 +64,7 @@ export async function DELETE(request: Request) {
     // not worth failing the request over.
     const avatarPath = user.profilePic ? avatarStoragePath(user.profilePic) : null;
     if (avatarPath) {
-      const { error: storageError } = await supabase.storage.from("avatars").remove([avatarPath]);
+      const { error: storageError } = await supabaseAdmin.storage.from("avatars").remove([avatarPath]);
       if (storageError) console.error("DELETE /api/user/account: avatar cleanup failed", storageError);
     }
 

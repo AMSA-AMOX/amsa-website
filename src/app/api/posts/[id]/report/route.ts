@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { toUserId } from "@/lib/blocks";
 import { sendReportEmail } from "@/lib/email/resend";
@@ -25,7 +25,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Invalid post id" }, { status: 400 });
   }
 
-  const { data: post } = await supabase
+  const { data: post } = await supabaseAdmin
     .from("Posts")
     .select("id, userId, body")
     .eq("id", postId)
@@ -42,7 +42,7 @@ export async function POST(request: Request, context: RouteContext) {
   const body = await request.json().catch(() => ({}));
   const reason: ReportReason = REPORT_REASONS.includes(body?.reason) ? body.reason : "other";
 
-  const { error } = await supabase.from("ContentReports").insert({
+  const { error } = await supabaseAdmin.from("ContentReports").insert({
     reporterId: payload.id,
     targetType: "post",
     targetId: String(postId),
@@ -61,7 +61,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const queueUrl = `${request.headers.get("origin") ?? new URL(request.url).origin}/dashboard/admin/reports`;
   after(async () => {
-    const { data: reporter } = await supabase
+    const { data: reporter } = await supabaseAdmin
       .from("Users")
       .select("email, firstName, lastName")
       .eq("id", payload.id)

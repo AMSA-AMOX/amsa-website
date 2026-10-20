@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 import { paymentDueAtFrom } from "@/lib/events/logic";
 import { rpc } from "@/lib/rpc";
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
       createdBy: payload.id,
     };
 
-    const { data: event, error } = await supabase
+    const { data: event, error } = await supabaseAdmin
       .from("Events")
       .insert({
         ...baseInsert,
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
 
     let createdEvent = event;
     if (error && /virtualMeetingUrl|virtualLinkSoon/.test(error.message || "")) {
-      const retry = await supabase.from("Events").insert(baseInsert).select("*").single();
+      const retry = await supabaseAdmin.from("Events").insert(baseInsert).select("*").single();
       if (retry.error || !retry.data) {
         throw retry.error || new Error("Failed to create event");
       }
@@ -184,11 +184,11 @@ export async function POST(request: Request) {
         sortOrder: index,
       }));
 
-      const { error: imagesError } = await supabase.from("EventImages").insert(imageRows);
+      const { error: imagesError } = await supabaseAdmin.from("EventImages").insert(imageRows);
       if (imagesError) throw imagesError;
     }
 
-    const { data: hydrated, error: hydratedError } = await supabase
+    const { data: hydrated, error: hydratedError } = await supabaseAdmin
       .from("Events")
       .select("*, EventImages(id, imageUrl, sortOrder)")
       .eq("id", createdEvent.id)

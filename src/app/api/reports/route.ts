@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { sendReportEmail } from "@/lib/email/resend";
 import {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "You can't report your own content." }, { status: 400 });
     }
 
-    const { data: report, error } = await supabase
+    const { data: report, error } = await supabaseAdmin
       .from("ContentReports")
       .insert({
         reporterId: payload.id,
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
     const queueUrl = `${request.headers.get("origin") ?? new URL(request.url).origin}/dashboard/admin/reports`;
     after(async () => {
-      const { data: reporter } = await supabase
+      const { data: reporter } = await supabaseAdmin
         .from("Users")
         .select("id, email, firstName, lastName")
         .eq("id", payload.id)

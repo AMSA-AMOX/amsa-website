@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken, assertRole } from "@/lib/auth";
 
 // Parse a CSV string into array of objects
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
   let upserted = 0;
   for (let i = 0; i < rows.length; i += BATCH) {
     const batch = rows.slice(i, i + BATCH);
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("ipeds_sfa")
       .upsert(batch, { onConflict: "unitid" });
     if (error) {

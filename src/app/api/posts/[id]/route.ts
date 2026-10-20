@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ROLES, verifyToken } from "@/lib/auth";
 
 type RouteContext = {
@@ -23,7 +23,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   const isAdmin = payload.role === ROLES.ADMIN || payload.role === ROLES.BOARD_MEMBER;
 
   try {
-    const { data: post, error: fetchError } = await supabase
+    const { data: post, error: fetchError } = await supabaseAdmin
       .from("Posts")
       .select("id, userId")
       .eq("id", postId)
@@ -37,7 +37,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       return NextResponse.json({ message: "Not authorized." }, { status: 403 });
     }
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from("Posts")
       .delete()
       .eq("id", postId);

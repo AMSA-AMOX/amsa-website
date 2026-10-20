@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getKnownSchoolDomain } from "@/lib/logo-lookup";
 
 export type MatchedCollege = {
@@ -139,7 +139,7 @@ export async function findCollegeByDomain(
   root: string,
   preferName?: string | null,
 ): Promise<MatchedCollege | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("colleges_base")
     .select(COLLEGE_COLUMNS)
     .ilike("school_url", `%${root}%`)
@@ -157,7 +157,7 @@ export async function findCollegeByName(name: string | null | undefined): Promis
   const trimmed = name?.trim();
   if (!trimmed) return null;
 
-  const { data: exact } = await supabase
+  const { data: exact } = await supabaseAdmin
     .from("colleges_base")
     .select(COLLEGE_COLUMNS)
     .ilike("name", trimmed)
@@ -175,7 +175,7 @@ export async function findCollegeByName(name: string | null | undefined): Promis
   const tokens = significantTokens(trimmed);
   const seed = tokens[0] ?? normalizeCollegeName(trimmed).split(" ")[0];
   if (!seed) return null;
-  const { data: candidates } = await supabase
+  const { data: candidates } = await supabaseAdmin
     .from("colleges_base")
     .select(COLLEGE_COLUMNS)
     .ilike("name", `%${seed}%`)

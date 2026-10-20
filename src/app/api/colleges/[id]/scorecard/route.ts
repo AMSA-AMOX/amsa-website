@@ -7,7 +7,7 @@
  * missing the newer columns (i.e. before the first expanded sync).
  */
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export type ScorecardProfile = {
   // Admissions
@@ -79,7 +79,7 @@ export async function GET(
   }
 
   // Try to serve from DB first
-  const { data: row, error: dbErr } = await supabase
+  const { data: row, error: dbErr } = await supabaseAdmin
     .from("colleges_base")
     .select(
       "sat_avg, sat_read_25, sat_read_75, sat_math_25, sat_math_75," +

@@ -5,7 +5,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserPlus, faEnvelope, faBell } from "@fortawesome/free-solid-svg-icons";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { supabase } from "@/lib/supabase";
 
 const staticCtas = [
   { icon: faUserPlus, label: "Become a member", action: "Register to AMSA!", link: "/signup/member" },
@@ -27,28 +26,23 @@ const InfoCTASection = () => {
     e.preventDefault();
     setStatus("loading");
     setErrorMsg("");
-    const { data: existing } = await supabase
-      .from("newsletter")
-      .select("email")
-      .eq("email", form.email)
-      .maybeSingle();
-
-    if (existing) {
-      setErrorMsg("This email is already subscribed.");
-      setStatus("error");
-      return;
-    }
-
-    const { error } = await supabase.from("newsletter").insert([
-      { first_name: form.firstName, last_name: form.lastName, email: form.email },
-    ]);
-    if (error) {
-      console.error("Newsletter insert error:", error);
-      setErrorMsg(error.message);
-      setStatus("error");
-    } else {
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorMsg(data.message ?? "Could not subscribe right now. Please try again.");
+        setStatus("error");
+        return;
+      }
       setStatus("success");
       setForm({ firstName: "", lastName: "", email: "" });
+    } catch {
+      setErrorMsg("Could not subscribe right now. Please try again.");
+      setStatus("error");
     }
   };
 

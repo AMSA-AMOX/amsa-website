@@ -9,11 +9,11 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const { supabase } = await import("../src/lib/supabase");
+  const { supabaseAdmin } = await import("../src/lib/supabase-admin");
   const { resolveExperienceLogoDomain } = await import("../src/lib/experience-denorm");
   const dry = process.argv.includes("--dry");
 
-  const { data: rows, error } = await supabase
+  const { data: rows, error } = await supabaseAdmin
     .from("Experiences")
     .select("id, company, companyUrl, logoDomain")
     .order("id");
@@ -25,7 +25,7 @@ async function main() {
     if (!logoDomain || logoDomain === row.logoDomain) continue;
     console.log(`${dry ? "would" : "set  "} #${row.id} ${row.company} → ${logoDomain}`);
     if (!dry) {
-      const { error: updErr } = await supabase.from("Experiences").update({ logoDomain }).eq("id", row.id);
+      const { error: updErr } = await supabaseAdmin.from("Experiences").update({ logoDomain }).eq("id", row.id);
       if (updErr) throw updErr;
     }
     updated += 1;

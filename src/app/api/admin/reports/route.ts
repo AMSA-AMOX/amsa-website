@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import {
   REPORT_REASON_LABELS,
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   const status = new URL(request.url).searchParams.get("status") === "all" ? "all" : "open";
 
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from("ContentReports")
       .select("id, reporterId, targetType, targetId, targetUserId, reason, details, status, createdAt, resolvedAt")
       .order("createdAt", { ascending: status === "open" })
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     );
     const [usersRes, targets] = await Promise.all([
       userIds.length > 0
-        ? supabase.from("Users").select("id, firstName, lastName, profilePic").in("id", userIds)
+        ? supabaseAdmin.from("Users").select("id, firstName, lastName, profilePic").in("id", userIds)
         : Promise.resolve({ data: [] as UserRow[] }),
       // ≤100 small lookups; reports on the same item share one.
       (async () => {

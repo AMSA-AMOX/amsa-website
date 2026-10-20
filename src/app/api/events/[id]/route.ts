@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 
 function parseEventId(raw: string): number | null {
@@ -25,7 +25,7 @@ export async function GET(
   }
 
   try {
-    const { data: event, error } = await supabase
+    const { data: event, error } = await supabaseAdmin
       .from("Events")
       .select("*, EventImages(id, imageUrl, sortOrder)")
       .eq("id", eventId)
@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ message: "Event not found" }, { status: 404 });
     }
 
-    const { data: reservations, error: reservationsError } = await supabase
+    const { data: reservations, error: reservationsError } = await supabaseAdmin
       .from("EventReservations")
       .select("eventId, status, userId, waitlistPosition, paymentDueAt, paymentStatus")
       .eq("eventId", eventId)
@@ -106,7 +106,7 @@ export async function PUT(
       virtualLinkSoon: boolean;
     } | null = null;
 
-    const { data: existingWithVirtual, error: existingWithVirtualError } = await supabase
+    const { data: existingWithVirtual, error: existingWithVirtualError } = await supabaseAdmin
       .from("Events")
       .select("eventMode, virtualMeetingUrl, virtualLinkSoon")
       .eq("id", eventId)
@@ -115,7 +115,7 @@ export async function PUT(
     if (!existingWithVirtualError && existingWithVirtual) {
       existingEvent = existingWithVirtual;
     } else {
-      const { data: existingFallback, error: existingFallbackError } = await supabase
+      const { data: existingFallback, error: existingFallbackError } = await supabaseAdmin
         .from("Events")
         .select("eventMode")
         .eq("id", eventId)
@@ -211,7 +211,7 @@ export async function PUT(
       }
     }
 
-    const { data: event, error } = await supabase
+    const { data: event, error } = await supabaseAdmin
       .from("Events")
       .update(patch)
       .eq("id", eventId)
@@ -222,7 +222,7 @@ export async function PUT(
       const fallbackPatch = { ...patch } as Record<string, unknown>;
       delete fallbackPatch.virtualLinkSoon;
       delete fallbackPatch.virtualMeetingUrl;
-      const retry = await supabase
+      const retry = await supabaseAdmin
         .from("Events")
         .update(fallbackPatch)
         .eq("id", eventId)
@@ -237,7 +237,7 @@ export async function PUT(
     }
 
     if (images) {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await supabaseAdmin
         .from("EventImages")
         .delete()
         .eq("eventId", eventId);
@@ -249,12 +249,12 @@ export async function PUT(
           imageUrl,
           sortOrder: index,
         }));
-        const { error: insertError } = await supabase.from("EventImages").insert(rows);
+        const { error: insertError } = await supabaseAdmin.from("EventImages").insert(rows);
         if (insertError) throw insertError;
       }
     }
 
-    const { data: hydrated, error: hydratedError } = await supabase
+    const { data: hydrated, error: hydratedError } = await supabaseAdmin
       .from("Events")
       .select("*, EventImages(id, imageUrl, sortOrder)")
       .eq("id", updatedEvent.id)
@@ -290,7 +290,7 @@ export async function DELETE(
   }
 
   try {
-    const { error } = await supabase.from("Events").delete().eq("id", eventId);
+    const { error } = await supabaseAdmin.from("Events").delete().eq("id", eventId);
     if (error) throw error;
     return NextResponse.json({ ok: true });
   } catch (e: any) {

@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { makeResetToken } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email/resend";
 
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing email" }, { status: 400 });
     }
 
-    const { data: user } = await supabase
+    const { data: user } = await supabaseAdmin
       .from("Users")
       .select("id, email, password, firstName")
       .eq("email", normalizedEmail)

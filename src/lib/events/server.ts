@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { paymentDueAtFrom } from "@/lib/events/logic";
 import { buildEventEmailHtml, sendEventEmail } from "@/lib/email/resend";
 
@@ -17,7 +17,7 @@ type BasicEvent = {
 };
 
 export async function getUserById(userId: number) {
-  const { data: user, error } = await supabase
+  const { data: user, error } = await supabaseAdmin
     .from("Users")
     .select("id, email, firstName, lastName, role")
     .eq("id", userId)
@@ -30,7 +30,7 @@ export async function getUserById(userId: number) {
 }
 
 export async function getEventById(eventId: number): Promise<BasicEvent> {
-  const { data: event, error } = await supabase
+  const { data: event, error } = await supabaseAdmin
     .from("Events")
     .select("id, title, eventMode, virtualMeetingUrl, virtualLinkSoon, startAt, endAt, totalSeats, feeAmount, currency")
     .eq("id", eventId)
@@ -41,7 +41,7 @@ export async function getEventById(eventId: number): Promise<BasicEvent> {
   }
 
   // Backward-compatible fallback when new virtual columns are not migrated yet.
-  const { data: fallbackEvent, error: fallbackError } = await supabase
+  const { data: fallbackEvent, error: fallbackError } = await supabaseAdmin
     .from("Events")
     .select("id, title, startAt, endAt, totalSeats, feeAmount, currency")
     .eq("id", eventId)
@@ -60,7 +60,7 @@ export async function getEventById(eventId: number): Promise<BasicEvent> {
 }
 
 export async function getReservedCount(eventId: number): Promise<number> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("EventReservations")
     .select("id")
     .eq("eventId", eventId)
@@ -71,7 +71,7 @@ export async function getReservedCount(eventId: number): Promise<number> {
 }
 
 export async function getNextWaitlistPosition(eventId: number): Promise<number> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("EventReservations")
     .select("waitlistPosition")
     .eq("eventId", eventId)
@@ -85,7 +85,7 @@ export async function getNextWaitlistPosition(eventId: number): Promise<number> 
 }
 
 export async function normalizeWaitlistPositions(eventId: number): Promise<void> {
-  const { data: waitlisted, error } = await supabase
+  const { data: waitlisted, error } = await supabaseAdmin
     .from("EventReservations")
     .select("id")
     .eq("eventId", eventId)
@@ -99,7 +99,7 @@ export async function normalizeWaitlistPositions(eventId: number): Promise<void>
   for (let i = 0; i < waitlisted.length; i += 1) {
     const row = waitlisted[i];
     const position = i + 1;
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("EventReservations")
       .update({ waitlistPosition: position })
       .eq("id", row.id);
@@ -199,7 +199,7 @@ export async function promoteNextWaitlisted(eventId: number): Promise<{
   promotedUserId: number;
   paymentDueAt: string;
 } | null> {
-  const { data: nextWaitlisted, error } = await supabase
+  const { data: nextWaitlisted, error } = await supabaseAdmin
     .from("EventReservations")
     .select("id, userId")
     .eq("eventId", eventId)
@@ -213,7 +213,7 @@ export async function promoteNextWaitlisted(eventId: number): Promise<{
   if (!nextWaitlisted) return null;
 
   const paymentDueAt = paymentDueAtFrom();
-  const { error: promoteError } = await supabase
+  const { error: promoteError } = await supabaseAdmin
     .from("EventReservations")
     .update({
       status: "reserved",

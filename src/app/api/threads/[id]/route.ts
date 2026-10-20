@@ -1,5 +1,5 @@
 import { NextResponse, after } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ROLES, verifyToken } from "@/lib/auth";
 import { pushQuestionAnswered } from "@/lib/push";
 
@@ -55,7 +55,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const body = await request.json();
 
-    const { data: thread, error: fetchError } = await supabase
+    const { data: thread, error: fetchError } = await supabaseAdmin
       .from("Threads")
       .select("id, askerId, recipientId, question, answer, answeredAt, createdAt, isAnonymous")
       .eq("id", threadId)
@@ -84,7 +84,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         );
       }
       const isAnon = typeof body.isAnonymous === "boolean" ? body.isAnonymous : t.isAnonymous;
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from("Threads")
         .update({ isAnonymous: isAnon, updatedAt: now })
         .eq("id", threadId);
@@ -113,7 +113,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const isAnonymous = typeof body?.isAnonymous === "boolean" ? body.isAnonymous : false;
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("Threads")
       .update({ answer, answeredAt: now, updatedAt: now, isAnonymous })
       .eq("id", threadId);
@@ -125,7 +125,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     // Fetch enriched thread to return
     const userIds = Array.from(new Set([t.askerId, t.recipientId]));
-    const { data: users } = await supabase
+    const { data: users } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic")
       .in("id", userIds);
@@ -183,7 +183,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   try {
-    const { data: thread, error: fetchError } = await supabase
+    const { data: thread, error: fetchError } = await supabaseAdmin
       .from("Threads")
       .select("id, recipientId")
       .eq("id", threadId)
@@ -200,7 +200,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       );
     }
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from("Threads")
       .delete()
       .eq("id", threadId);

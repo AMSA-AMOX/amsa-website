@@ -19,7 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Step = "all" | "scorecard" | "cds" | "ipeds";
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // Reset stale CDS sources back to 'pending' so the scraper re-processes them
   if (step === "all" || step === "cds") {
-    const { data: resetRows, error } = await supabase
+    const { data: resetRows, error } = await supabaseAdmin
       .from("cds_sources")
       .update({ scrape_status: "pending" })
       .or(`year.lt.${staleYear},year.is.null`)

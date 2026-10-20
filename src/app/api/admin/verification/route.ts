@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
 
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { MEMBERSHIP_REVIEW_STATUSES, type MembershipReviewStatus } from "@/lib/membership";
 
 type MembershipListRow = {
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const statusParam = (searchParams.get("status") || "pending").toLowerCase();
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("amsa_memberships")
       .select(LIST_COLUMNS)
       .order("created_at", { ascending: false });
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     let usersById = new Map<number, UserLookupRow>();
 
     if (idsToLookup.length > 0) {
-      const { data: users, error: usersError } = await supabase
+      const { data: users, error: usersError } = await supabaseAdmin
         .from("Users")
         .select("id, email, firstName, lastName, role, acceptanceStatus")
         .in("id", idsToLookup)

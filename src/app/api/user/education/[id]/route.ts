@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ message: "School name is required" }, { status: 400 });
     }
 
-    const { data: education, error } = await supabase
+    const { data: education, error } = await supabaseAdmin
       .from("Education")
       .update({
         schoolName,
@@ -58,7 +58,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (isNaN(id)) return NextResponse.json({ message: "Invalid id" }, { status: 400 });
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("Education")
       .delete()
       .eq("id", id)

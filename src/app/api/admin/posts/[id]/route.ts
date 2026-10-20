@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertContentCreator, verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type ReviewBody = {
   reviewStatus?: "approved" | "rejected";
@@ -34,7 +34,7 @@ export async function PATCH(
       return NextResponse.json({ message: "reviewStatus must be approved or rejected" }, { status: 400 });
     }
 
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from("Posts")
       .select("id, reviewStatus")
       .eq("id", postId)
@@ -47,7 +47,7 @@ export async function PATCH(
       return NextResponse.json({ message: "Only pending posts can be reviewed." }, { status: 400 });
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("Posts")
       .update({
         reviewStatus,

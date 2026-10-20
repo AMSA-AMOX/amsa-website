@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 // APNs device tokens are hex; Apple doesn't promise a fixed length.
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const device = await readToken(request);
   if (!device) return NextResponse.json({ message: "Invalid device token" }, { status: 400 });
 
-  const { error } = await supabase.from("DeviceTokens").upsert(
+  const { error } = await supabaseAdmin.from("DeviceTokens").upsert(
     {
       token: device.token,
       userId: payload.id,
@@ -54,7 +54,7 @@ export async function DELETE(request: Request) {
   const device = await readToken(request);
   if (!device) return NextResponse.json({ message: "Invalid device token" }, { status: 400 });
 
-  const { error } = await supabase.from("DeviceTokens").delete().eq("token", device.token).eq("userId", payload.id);
+  const { error } = await supabaseAdmin.from("DeviceTokens").delete().eq("token", device.token).eq("userId", payload.id);
   if (error) {
     console.error("DELETE /api/user/devices failed:", error);
     return NextResponse.json({ message: "Failed to unregister device" }, { status: 500 });

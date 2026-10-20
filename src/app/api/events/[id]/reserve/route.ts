@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hasEventEnded, hasSeatAvailable, paymentDueAtFrom } from "@/lib/events/logic";
 import {
   getEventById,
@@ -54,7 +54,7 @@ export async function POST(
       );
     }
 
-    const { data: existingActive, error: existingError } = await supabase
+    const { data: existingActive, error: existingError } = await supabaseAdmin
       .from("EventReservations")
       .select("id, status, waitlistPosition, paymentDueAt, paymentStatus")
       .eq("eventId", eventId)
@@ -77,7 +77,7 @@ export async function POST(
     const reservedCount = await getReservedCount(eventId);
     if (hasSeatAvailable(event.totalSeats, reservedCount)) {
       const paymentDueAt = paymentDueAtFrom();
-      const { data: reserved, error: reserveError } = await supabase
+      const { data: reserved, error: reserveError } = await supabaseAdmin
         .from("EventReservations")
         .insert({
           eventId,
@@ -112,7 +112,7 @@ export async function POST(
     }
 
     const waitlistPosition = await getNextWaitlistPosition(eventId);
-    const { data: waitlisted, error: waitlistError } = await supabase
+    const { data: waitlisted, error: waitlistError } = await supabaseAdmin
       .from("EventReservations")
       .insert({
         eventId,
