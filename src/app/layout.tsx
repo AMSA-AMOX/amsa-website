@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
-import { Urbanist, Ysabeau_SC } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 
-const urbanist = Urbanist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-urbanist" });
-const ysabeauSC = Ysabeau_SC({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-ysabeau-sc" });
+const urbanist = localFont({
+  src: "./fonts/Urbanist.ttf",
+  weight: "400 600",
+  style: "normal",
+  display: "swap",
+  variable: "--font-urbanist",
+});
+const ysabeauSC = localFont({
+  src: "./fonts/YsabeauSC.ttf",
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
+  variable: "--font-ysabeau-sc",
+});
 
 export const metadata: Metadata = {
   title: "AMSA - Association of Mongolian Students in America",
