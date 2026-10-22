@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const buffer = new Uint8Array(await file.arrayBuffer());
 
-    const { error } = await supabase.storage.from(BUCKET).upload(fileName, buffer, {
+    const { error } = await supabaseAdmin.storage.from(BUCKET).upload(fileName, buffer, {
       contentType: file.type,
       upsert: false,
     });
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Failed to upload image." }, { status: 500 });
     }
 
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
+    const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(fileName);
     return NextResponse.json({ url: data.publicUrl }, { status: 201 });
   } catch (e) {
     console.error("POST /api/upload exception:", e);

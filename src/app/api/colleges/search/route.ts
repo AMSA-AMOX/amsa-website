@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function rootDomain(website: string | null): string | null {
   if (!website) return null;
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const q = new URL(request.url).searchParams.get("q")?.trim() ?? "";
   if (q.length < 2) return NextResponse.json({ colleges: [] });
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("colleges_base")
     .select("unitid, name, school_url")
     .ilike("name", `%${q}%`)

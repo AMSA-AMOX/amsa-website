@@ -23,6 +23,9 @@ npm install
 Copy `.env.example` to `.env.local` (or create it) and fill in your connection details:
 ```env
 # .env.local expected variables (e.g., Database, Supabase secrets, etc.)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=   # public: browser Storage uploads only
+SUPABASE_SERVICE_ROLE_KEY=       # secret: server only, never prefix with NEXT_PUBLIC_
 ```
 
 3) Run the development server:

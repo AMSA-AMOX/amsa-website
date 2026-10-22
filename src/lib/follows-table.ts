@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 let followsTableName: string | null = null;
 let followsTablePromise: Promise<string> | null = null;
@@ -12,7 +12,7 @@ export function getFollowsTableName(): Promise<string> {
 
   followsTablePromise = (async () => {
     for (const tableName of FOLLOWS_TABLE_CANDIDATES) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from(tableName)
         .select("id", { head: true, count: "exact" });
 

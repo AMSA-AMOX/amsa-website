@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * Members hidden from `viewerId`: everyone they blocked and everyone who
@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
  */
 export async function hiddenUserIds(viewerId: number | null | undefined): Promise<Set<number>> {
   if (!viewerId) return new Set();
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("UserBlocks")
     .select("blockerId, blockedId")
     .or(`blockerId.eq.${viewerId},blockedId.eq.${viewerId}`);

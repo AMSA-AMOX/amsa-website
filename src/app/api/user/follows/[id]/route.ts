@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { FOLLOWS_TABLE_CANDIDATES } from "@/lib/follows-table";
 
@@ -16,7 +16,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     let lastError: any = null;
     for (const followsTable of FOLLOWS_TABLE_CANDIDATES) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from(followsTable)
         .delete()
         .eq("followerId", payload.id)

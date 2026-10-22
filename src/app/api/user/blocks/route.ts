@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { getFollowsTableName } from "@/lib/follows-table";
 
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("UserBlocks")
       .select("blockedId, createdAt")
       .eq("blockerId", payload.id)
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const rows = (data ?? []) as BlockRow[];
     const ids = rows.map((r) => r.blockedId);
     const { data: users } = ids.length > 0
-      ? await supabase.from("Users").select("id, firstName, lastName, profilePic").in("id", ids)
+      ? await supabaseAdmin.from("Users").select("id, firstName, lastName, profilePic").in("id", ids)
       : { data: [] as UserRow[] };
     const byId = new Map(((users ?? []) as UserRow[]).map((u) => [u.id, u]));
 
@@ -59,10 +59,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid userId." }, { status: 400 });
     }
 
-    const { data: target } = await supabase.from("Users").select("id").eq("id", userId).maybeSingle();
+    const { data: target } = await supabaseAdmin.from("Users").select("id").eq("id", userId).maybeSingle();
     if (!target) return NextResponse.json({ message: "Member not found." }, { status: 404 });
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("UserBlocks")
       .upsert({ blockerId: payload.id, blockedId: userId }, { onConflict: "blockerId,blockedId", ignoreDuplicates: true });
     if (error) throw error;
@@ -70,12 +70,12 @@ export async function POST(request: Request) {
     const followsTable = await getFollowsTableName().catch(() => null);
     await Promise.all([
       followsTable
-        ? supabase
+        ? supabaseAdmin
             .from(followsTable)
             .delete()
             .or(`and(followerId.eq.${payload.id},followingId.eq.${userId}),and(followerId.eq.${userId},followingId.eq.${payload.id})`)
         : Promise.resolve(),
-      supabase
+      supabaseAdmin
         .from("Threads")
         .delete()
         .is("answer", null)

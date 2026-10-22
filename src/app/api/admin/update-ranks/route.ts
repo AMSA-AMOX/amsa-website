@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken, assertRole } from "@/lib/auth";
 import { USNEWS_RANKS } from "@/data/usnews-rankings";
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // 1. Clear all ranks in one shot
-    const { error: clearErr } = await supabase
+    const { error: clearErr } = await supabaseAdmin
       .from("colleges_base")
       .update({ national_rank: null })
       .gt("unitid", 0);
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     let ranked = 0;
     for (const [rank, unitids] of byRank) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from("colleges_base")
         .update({ national_rank: rank })
         .in("unitid", unitids);

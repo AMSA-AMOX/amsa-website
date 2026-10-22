@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export class RpcError extends Error {
   code?: string;
@@ -15,7 +15,7 @@ export class RpcError extends Error {
  * page, replacing the 5–10 sequential queries the routes used to make.
  */
 export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args);
+  const { data, error } = await supabaseAdmin.rpc(fn, args);
   if (error) throw new RpcError(fn, error.message, error.code);
   return data as T;
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { hiddenUserIds } from "@/lib/blocks";
 
@@ -42,7 +42,7 @@ export async function GET(
     return NextResponse.json({ posts: [] });
   }
 
-  const { data: collegeRow, error: collegeErr } = await supabase
+  const { data: collegeRow, error: collegeErr } = await supabaseAdmin
     .from("colleges_base")
     .select("unitid, name, school_url")
     .eq("unitid", unitid)
@@ -59,7 +59,7 @@ export async function GET(
   };
 
   const hiddenPromise = hiddenUserIds(optionalUserId(request));
-  const { data: allPosts, error } = await supabase
+  const { data: allPosts, error } = await supabaseAdmin
     .from("Posts")
     .select("id, userId, body, images, helpfulCount, createdAt, reviewStatus, reviewedAt, reviewNote, topic")
     .eq("tagged_college_id", unitid)
@@ -83,7 +83,7 @@ export async function GET(
 
   let usersById = new Map<number, { id: number; firstName: string; lastName: string; headline: string | null; profilePic: string | null }>();
   if (userIds.length > 0) {
-    const { data: users } = await supabase
+    const { data: users } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, headline, profilePic")
       .in("id", userIds);

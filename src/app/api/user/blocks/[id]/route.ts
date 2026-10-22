@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -19,7 +19,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Invalid member id." }, { status: 400 });
   }
 
-  const { error } = await supabase.from("UserBlocks").delete().eq("blockerId", payload.id).eq("blockedId", userId);
+  const { error } = await supabaseAdmin.from("UserBlocks").delete().eq("blockerId", payload.id).eq("blockedId", userId);
   if (error) {
     console.error("DELETE /api/user/blocks/[id] failed:", error);
     return NextResponse.json({ message: "Failed to unblock member." }, { status: 500 });

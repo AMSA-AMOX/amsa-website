@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { jsonCached } from "@/lib/http";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
-    const { data: users, error } = await supabase
+    const { data: users, error } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic, role, schoolName, schoolEmail, major, graduationYear")
       .in("role", ["ambassador", "us_member", "board_member", "admin"])

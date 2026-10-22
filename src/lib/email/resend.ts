@@ -1,6 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type TemplateKey =
   | "reservation_confirmation"
@@ -118,7 +118,7 @@ export async function sendPasswordResetEmail(input: {
 }
 
 export async function sendEventEmail(input: EventEmailInput): Promise<void> {
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseAdmin
     .from("EventEmails")
     .select("id")
     .eq("dedupeKey", input.dedupeKey)
@@ -143,7 +143,7 @@ export async function sendEventEmail(input: EventEmailInput): Promise<void> {
     return;
   }
 
-  const { error: logError } = await supabase.from("EventEmails").insert({
+  const { error: logError } = await supabaseAdmin.from("EventEmails").insert({
     eventId: input.eventId,
     userId: input.userId,
     templateKey: input.templateKey,

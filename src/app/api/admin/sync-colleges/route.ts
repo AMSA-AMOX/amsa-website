@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken, assertRole } from "@/lib/auth";
 import { USNEWS_RANKS, USNEWS_LAC_IDS } from "@/data/usnews-rankings";
 
@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
     let upserted = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
       const batch = rows.slice(i, i + BATCH);
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from("colleges_base")
         .upsert(batch, { onConflict: "unitid" });
       if (error) throw new Error(`Supabase upsert failed: ${error.message}`);

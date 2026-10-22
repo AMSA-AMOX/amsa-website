@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { makeToken, isAmsaAdminEmail } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from("Users")
       .select("id, email, password, firstName, lastName, role, acceptanceStatus, profilePic, level, bio, graduationYear, termsAcceptedAt")
       .eq("email", normalizedEmail)
@@ -44,19 +44,19 @@ export async function POST(request: Request) {
     if (isAmsaAdminEmail(normalizedEmail) && role !== "admin" && role !== "board_member") {
       role = "board_member";
       acceptanceStatus = "approved";
-      await supabase
+      await supabaseAdmin
         .from("Users")
         .update({ role, acceptanceStatus, emailVerified: true })
         .eq("id", user.id);
     } else if (isAmsaAdminEmail(normalizedEmail) && role === "board_member" && acceptanceStatus !== "approved") {
       acceptanceStatus = "approved";
-      await supabase
+      await supabaseAdmin
         .from("Users")
         .update({ acceptanceStatus, emailVerified: true })
         .eq("id", user.id);
     } else if (role === "member" && acceptanceStatus !== "approved") {
       acceptanceStatus = "approved";
-      await supabase
+      await supabaseAdmin
         .from("Users")
         .update({ acceptanceStatus })
         .eq("id", user.id);
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       }
 
       if (!isAlum) {
-        const { data: educations } = await supabase
+        const { data: educations } = await supabaseAdmin
           .from("Education")
           .select("graduationYear, currentlyEnrolled")
           .eq("userId", user.id)
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
 
       if (isAlum) {
         role = "alum";
-        await supabase.from("Users").update({ role: "alum" }).eq("id", user.id);
+        await supabaseAdmin.from("Users").update({ role: "alum" }).eq("id", user.id);
       }
     }
 

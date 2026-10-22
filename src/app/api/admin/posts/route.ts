@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertContentCreator, verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type RawPostRow = {
   id: number;
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Invalid status filter" }, { status: 400 });
     }
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("Posts")
       .select("id, userId, body, images, createdAt, helpfulCount, reviewStatus, reviewedAt, reviewedBy, reviewNote")
       .order("createdAt", { ascending: false })
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
 
     let usersById = new Map<number, RawUserRow>();
     if (lookupIds.length > 0) {
-      const { data: users, error: usersError } = await supabase
+      const { data: users, error: usersError } = await supabaseAdmin
         .from("Users")
         .select("id, firstName, lastName, headline, profilePic")
         .in("id", lookupIds)

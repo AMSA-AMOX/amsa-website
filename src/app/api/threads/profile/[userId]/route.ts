@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ userId: string }> };
@@ -41,7 +41,7 @@ export async function GET(request: Request, context: RouteContext) {
   const isOwner = payload.id === targetId;
 
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from("Threads")
       .select("id, askerId, recipientId, question, answer, answeredAt, createdAt, isAnonymous, isPublic")
       .eq("recipientId", targetId)
@@ -66,7 +66,7 @@ export async function GET(request: Request, context: RouteContext) {
     const userIds = Array.from(
       new Set([...rows.map((r) => r.askerId), ...rows.map((r) => r.recipientId)])
     );
-    const { data: users } = await supabase
+    const { data: users } = await supabaseAdmin
       .from("Users")
       .select("id, firstName, lastName, profilePic")
       .in("id", userIds);

@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getFollowsTableName } from "@/lib/follows-table";
 import { rpc } from "@/lib/rpc";
 
@@ -105,7 +105,7 @@ async function listNetworkMembersLegacy(
 ): Promise<SearchableMember[]> {
 
   const candidateLimit = q ? Math.max(120, limit * 3) : limit;
-  let usersQuery = supabase
+  let usersQuery = supabaseAdmin
     .from("Users")
     .select("id, firstName, lastName, profilePic, schoolName, graduationYear, role")
     .in("role", ["ambassador", "us_member", "board_member", "admin", "alum"])
@@ -142,9 +142,9 @@ async function listNetworkMembersLegacy(
   try {
     const followsTable = await getFollowsTableName();
     const [followingData, followersRowsRes, followingRowsRes] = await Promise.all([
-      supabase.from(followsTable).select("followingId").eq("followerId", userId),
-      supabase.from(followsTable).select("followingId").in("followingId", memberIds),
-      supabase.from(followsTable).select("followerId").in("followerId", memberIds),
+      supabaseAdmin.from(followsTable).select("followingId").eq("followerId", userId),
+      supabaseAdmin.from(followsTable).select("followingId").in("followingId", memberIds),
+      supabaseAdmin.from(followsTable).select("followerId").in("followerId", memberIds),
     ]);
 
     if (followingData.error) throw followingData.error;
@@ -156,7 +156,7 @@ async function listNetworkMembersLegacy(
     );
 
     const mutualRowsRes = followingSet.size
-      ? await supabase
+      ? await supabaseAdmin
           .from(followsTable)
           .select("followerId")
           .in("followerId", memberIds)

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function parseEventId(raw: string): number | null {
   const id = Number(raw);
@@ -32,7 +32,7 @@ export async function POST(
       return NextResponse.json({ message: "Invalid userId" }, { status: 400 });
     }
 
-    const { data: reservation, error } = await supabase
+    const { data: reservation, error } = await supabaseAdmin
       .from("EventReservations")
       .select("id, status, paymentStatus")
       .eq("eventId", eventId)
@@ -52,7 +52,7 @@ export async function POST(
       return NextResponse.json({ ok: true, alreadyPaid: true });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabaseAdmin
       .from("EventReservations")
       .update({
         status: "paid",

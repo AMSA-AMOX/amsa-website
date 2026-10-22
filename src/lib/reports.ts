@@ -1,5 +1,5 @@
 import "server-only";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { toUserId } from "@/lib/blocks";
 
 export const REPORT_TARGET_TYPES = [
@@ -72,12 +72,12 @@ export async function resolveTarget(
 ): Promise<ResolvedTarget | null> {
   switch (type) {
     case "post": {
-      const { data } = await supabase.from("Posts").select("id, userId, body").eq("id", Number(targetId)).maybeSingle();
+      const { data } = await supabaseAdmin.from("Posts").select("id, userId, body").eq("id", Number(targetId)).maybeSingle();
       if (!data) return null;
       return { ownerId: toUserId(data.userId), preview: clip(data.body), href: `/dashboard/feed?reportedPostId=${data.id}` };
     }
     case "hub_thread": {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("HubThreads")
         .select("id, askerId, title, question")
         .eq("id", Number(targetId))
@@ -90,7 +90,7 @@ export async function resolveTarget(
       };
     }
     case "hub_comment": {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("HubComments")
         .select("id, authorId, content")
         .eq("id", Number(targetId))
@@ -99,7 +99,7 @@ export async function resolveTarget(
       return { ownerId: toUserId(data.authorId), preview: clip(data.content), href: "/dashboard/threads" };
     }
     case "college_review": {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("college_reviews")
         .select("id, user_id, content, college_id")
         .eq("id", targetId)
@@ -112,7 +112,7 @@ export async function resolveTarget(
       };
     }
     case "place_review": {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("place_reviews")
         .select("id, user_id, content, state_abbr")
         .eq("id", targetId)
@@ -125,7 +125,7 @@ export async function resolveTarget(
       };
     }
     case "question": {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("Threads")
         .select("id, askerId, recipientId, question, answer")
         .eq("id", Number(targetId))
@@ -143,7 +143,7 @@ export async function resolveTarget(
       };
     }
     case "user": {
-      const { data } = await supabase
+      const { data } = await supabaseAdmin
         .from("Users")
         .select("id, firstName, lastName, headline, bio")
         .eq("id", Number(targetId))
@@ -171,42 +171,42 @@ export async function removeTarget(type: ReportTargetType, targetId: string): Pr
   switch (type) {
     case "post": {
       const id = Number(targetId);
-      check(await supabase.from("PostHelpfuls").delete().eq("postId", id));
-      check(await supabase.from("PostReports").delete().eq("postId", id));
-      check(await supabase.from("Posts").delete().eq("id", id));
+      check(await supabaseAdmin.from("PostHelpfuls").delete().eq("postId", id));
+      check(await supabaseAdmin.from("PostReports").delete().eq("postId", id));
+      check(await supabaseAdmin.from("Posts").delete().eq("id", id));
       return;
     }
     case "hub_thread": {
       const id = Number(targetId);
-      const { data: comments } = await supabase.from("HubComments").select("id").eq("threadId", id);
+      const { data: comments } = await supabaseAdmin.from("HubComments").select("id").eq("threadId", id);
       const commentIds = (comments ?? []).map((c: { id: number }) => c.id);
-      if (commentIds.length > 0) check(await supabase.from("HubCommentUpvotes").delete().in("commentId", commentIds));
-      check(await supabase.from("HubThreadUpvotes").delete().eq("threadId", id));
-      check(await supabase.from("HubComments").delete().eq("threadId", id));
-      check(await supabase.from("HubThreads").delete().eq("id", id));
+      if (commentIds.length > 0) check(await supabaseAdmin.from("HubCommentUpvotes").delete().in("commentId", commentIds));
+      check(await supabaseAdmin.from("HubThreadUpvotes").delete().eq("threadId", id));
+      check(await supabaseAdmin.from("HubComments").delete().eq("threadId", id));
+      check(await supabaseAdmin.from("HubThreads").delete().eq("id", id));
       return;
     }
     case "hub_comment": {
       const id = Number(targetId);
-      const { data: replies } = await supabase.from("HubComments").select("id").eq("parentId", id);
+      const { data: replies } = await supabaseAdmin.from("HubComments").select("id").eq("parentId", id);
       const ids = [id, ...(replies ?? []).map((r: { id: number }) => r.id)];
-      check(await supabase.from("HubCommentUpvotes").delete().in("commentId", ids));
-      check(await supabase.from("HubComments").delete().eq("parentId", id));
-      check(await supabase.from("HubComments").delete().eq("id", id));
+      check(await supabaseAdmin.from("HubCommentUpvotes").delete().in("commentId", ids));
+      check(await supabaseAdmin.from("HubComments").delete().eq("parentId", id));
+      check(await supabaseAdmin.from("HubComments").delete().eq("id", id));
       return;
     }
     case "college_review":
-      check(await supabase.from("college_reviews").delete().eq("id", targetId));
+      check(await supabaseAdmin.from("college_reviews").delete().eq("id", targetId));
       return;
     case "place_review":
-      check(await supabase.from("place_reviews").delete().eq("id", targetId));
+      check(await supabaseAdmin.from("place_reviews").delete().eq("id", targetId));
       return;
     case "question":
-      check(await supabase.from("Threads").delete().eq("id", Number(targetId)));
+      check(await supabaseAdmin.from("Threads").delete().eq("id", Number(targetId)));
       return;
     case "user":
       check(
-        await supabase
+        await supabaseAdmin
           .from("Users")
           .update({ profilePic: null, headline: null, bio: null })
           .eq("id", Number(targetId)),

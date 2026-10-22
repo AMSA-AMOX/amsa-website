@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -16,7 +16,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const { data: review, error: fetchError } = await supabase
+    const { data: review, error: fetchError } = await supabaseAdmin
       .from("college_reviews")
       .select("id, user_id")
       .eq("id", id)
@@ -33,7 +33,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       return NextResponse.json({ message: "Forbidden." }, { status: 403 });
     }
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from("college_reviews")
       .delete()
       .eq("id", id);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 import { hiddenUserIds } from "@/lib/blocks";
 
@@ -55,17 +55,17 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     // Wave 1: thread, its comments and its upvotes are all keyed on threadId.
     const [threadRes, commentsRes, threadUpvotesRes, hidden] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from("HubThreads")
         .select("id, askerId, title, question, category, categoryDomain, images, status, isAnon, approvedBy, approvedAt, createdAt")
         .eq("id", threadId)
         .single(),
-      supabase
+      supabaseAdmin
         .from("HubComments")
         .select("id, threadId, authorId, content, isAnon, parentId, createdAt")
         .eq("threadId", threadId)
         .order("createdAt", { ascending: true }),
-      supabase.from("HubThreadUpvotes").select("userId").eq("threadId", threadId),
+      supabaseAdmin.from("HubThreadUpvotes").select("userId").eq("threadId", threadId),
       hiddenUserIds(payload.id),
     ]);
 
@@ -101,10 +101,10 @@ export async function GET(request: Request, context: RouteContext) {
     // Wave 2: comment upvotes and author rows both depend only on wave 1.
     const [commentUpvotesRes, usersRes] = await Promise.all([
       commentIds.length > 0
-        ? supabase.from("HubCommentUpvotes").select("commentId, userId").in("commentId", commentIds)
+        ? supabaseAdmin.from("HubCommentUpvotes").select("commentId, userId").in("commentId", commentIds)
         : Promise.resolve({ data: [] as { commentId: number; userId: number }[] }),
       userIds.length > 0
-        ? supabase.from("Users").select("id, firstName, lastName, profilePic").in("id", userIds)
+        ? supabaseAdmin.from("Users").select("id, firstName, lastName, profilePic").in("id", userIds)
         : Promise.resolve({ data: [] as UserRow[] }),
     ]);
 
@@ -196,7 +196,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const now = new Date().toISOString();
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await supabaseAdmin
       .from("HubThreads")
       .update({ status, approvedBy: payload.id, approvedAt: status === "approved" ? now : null, updatedAt: now })
       .eq("id", threadId)
@@ -235,13 +235,13 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   try {
-    await supabase.from("HubCommentUpvotes").delete().in(
+    await supabaseAdmin.from("HubCommentUpvotes").delete().in(
       "commentId",
-      (await supabase.from("HubComments").select("id").eq("threadId", threadId)).data?.map((c: any) => c.id) ?? []
+      (await supabaseAdmin.from("HubComments").select("id").eq("threadId", threadId)).data?.map((c: any) => c.id) ?? []
     );
-    await supabase.from("HubThreadUpvotes").delete().eq("threadId", threadId);
-    await supabase.from("HubComments").delete().eq("threadId", threadId);
-    const { error } = await supabase.from("HubThreads").delete().eq("id", threadId);
+    await supabaseAdmin.from("HubThreadUpvotes").delete().eq("threadId", threadId);
+    await supabaseAdmin.from("HubComments").delete().eq("threadId", threadId);
+    const { error } = await supabaseAdmin.from("HubThreads").delete().eq("id", threadId);
     if (error) {
       console.error("DELETE /api/hub-threads/[id] failed:", error);
       return NextResponse.json({ message: "Failed to delete thread." }, { status: 500 });

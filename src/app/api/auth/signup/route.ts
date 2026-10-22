@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { makeToken, isAmsaAdminEmail } from "@/lib/auth";
 import { sendWelcomeEmail } from "@/lib/email/resend";
 
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     // Check for existing user
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from("Users")
       .select("id")
       .eq("email", eduEmail)
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     const emailVerified = isBoardMember;
     const termsAcceptedAt = new Date().toISOString();
 
-    const { data: user, error: userError } = await supabase
+    const { data: user, error: userError } = await supabaseAdmin
       .from("Users")
       .insert({
         email: eduEmail,

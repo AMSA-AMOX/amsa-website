@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: Request) {
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: educations, error } = await supabase
+    const { data: educations, error } = await supabaseAdmin
       .from("Education")
       .select("*")
       .eq("userId", payload.id)
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "School name is required" }, { status: 400 });
     }
 
-    const { data: education, error } = await supabase
+    const { data: education, error } = await supabaseAdmin
       .from("Education")
       .insert({
         userId: payload.id,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendFeedbackEmail } from "@/lib/email/resend";
 
 const FEEDBACK_CATEGORIES = ["Bug", "Idea", "Question", "Other"] as const;
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Please wait a minute before sending more feedback." }, { status: 429 });
     }
 
-    const { data: user } = await supabase
+    const { data: user } = await supabaseAdmin
       .from("Users")
       .select("id, email, firstName, lastName, role")
       .eq("id", payload.id)
