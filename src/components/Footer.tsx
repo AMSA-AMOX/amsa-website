@@ -12,6 +12,11 @@ const navLinks = [
   { label: "Careers", href: "/careers" },
 ];
 
+const legalLinks = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Use", href: "/terms" },
+];
+
 const socialLinks = [
   { icon: <FaInstagram />, href: "https://www.instagram.com/amsa.amokh/", label: "Instagram" },
   { icon: <FaFacebook />,  href: "https://www.facebook.com/amsa.amokh",  label: "Facebook"  },
@@ -107,6 +112,17 @@ const Footer = () => {
         {/* Divider */}
         <div className="border-t border-[#FFFCF3]/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[#FFFCF3]/40" style={{ fontSize: "clamp(0.65rem, 1vw, 0.875rem)" }}>
           <span>© {new Date().getFullYear()} AMSA. All rights reserved.</span>
+          <nav aria-label="Legal" className="flex items-center gap-6">
+            {legalLinks.map(({ label, href }) => (
+              <Link
+                key={label}
+                href={href}
+                className="hover:text-[#FFCA3A] transition-colors duration-200"
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
           <span>Association of Mongolian Students in America</span>
         </div>
 
