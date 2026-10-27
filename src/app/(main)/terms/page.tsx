@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LegalList, LegalPage, LegalSection } from "@/components/legal/LegalPage";
-import { SUPPORT_EMAIL } from "@/lib/legal";
+import { SUPPORT_EMAIL, TERMS_EFFECTIVE_DATE } from "@/lib/legal";
 
 export const metadata = {
   title: "Terms of Use | AMSA",
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms of Use">
+    <LegalPage title="Terms of Use" effectiveDate={TERMS_EFFECTIVE_DATE}>
       <LegalSection title="1. Agreement">
         <p>
           These Terms of Use govern your use of the Association of Mongolian Students in America (&quot;AMSA&quot;,
