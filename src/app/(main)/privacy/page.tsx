@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LegalList, LegalPage, LegalSection } from "@/components/legal/LegalPage";
-import { SUPPORT_EMAIL } from "@/lib/legal";
+import { PRIVACY_EFFECTIVE_DATE, SUPPORT_EMAIL } from "@/lib/legal";
 
 export const metadata = {
   title: "Privacy Policy | AMSA",
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy">
+    <LegalPage title="Privacy Policy" effectiveDate={PRIVACY_EFFECTIVE_DATE}>
       <LegalSection title="1. Who we are">
         <p>
           This policy explains how the Association of Mongolian Students in America (&quot;AMSA&quot;, &quot;we&quot;)
@@ -32,11 +32,15 @@ export default function PrivacyPage() {
               moderators&apos; decision.
             </>,
             <>
-              <strong>Content and activity</strong>: posts and their images, threads, comments, reviews, direct
+              <strong>Content and activity</strong>: posts, reviews and their images, threads, comments, direct
               questions and answers, upvotes and appreciations, follows, event reservations, saved colleges, and the
               reports and blocks you make.
             </>,
             <><strong>Support</strong>: feedback you send us.</>,
+            <>
+              <strong>Device</strong>: if you allow notifications, a notification token for your device, which we
+              delete when you sign out.
+            </>,
             <>
               <strong>Technical</strong>: our servers keep standard request logs (such as IP address and time), and a
               security check at signup uses your IP address to stop bots.
@@ -56,7 +60,8 @@ export default function PrivacyPage() {
             "to connect members, for example by suggesting people at the same school;",
             "to review membership applications;",
             "to keep the community safe: moderating content, acting on reports and enforcing blocks;",
-            "to send account emails such as welcome messages, password resets and event updates; and",
+            "to send the notifications you've allowed, such as replies, approvals and new messages;",
+            "to send account emails such as welcome messages, password resets and confirmations for events you sign up for; and",
             "to answer feedback and support requests.",
           ]}
         />
@@ -75,8 +80,12 @@ export default function PrivacyPage() {
             "Supabase — database and file storage;",
             "Vercel — website and API hosting;",
             "Resend — email delivery;",
-            "Cloudflare Turnstile — bot protection at signup; and",
-            "logo.dev — school and company logos (it receives the school or company website, not your personal information).",
+            "Apple Push Notification service — delivers notifications to your device;",
+            "Cloudflare Turnstile — bot protection at signup;",
+            "logo.dev — school and company logos (it receives the school or company website, not your personal information);",
+            "Clearbit — company name suggestions when you tag a company in a thread (it receives what you type in that field);",
+            "Google — small website icons next to college links; and",
+            "Pexels — state photos.",
           ]}
         />
         <p>We may also disclose information when the law requires it.</p>
