@@ -27,7 +27,6 @@ type MembershipListRow = {
   event_ideas: string | null;
   heard_about_amsa: string;
   heard_about_amsa_other: string | null;
-  agrees_to_emails: boolean;
   review_status: MembershipReviewStatus;
   reviewed_at: string | null;
   reviewed_by: number | null;
@@ -67,7 +66,6 @@ const LIST_COLUMNS = `
   event_ideas,
   heard_about_amsa,
   heard_about_amsa_other,
-  agrees_to_emails,
   review_status,
   reviewed_at,
   reviewed_by,
@@ -151,7 +149,6 @@ export async function GET(request: Request) {
         eventIdeas: row.event_ideas,
         heardAboutAmsa: row.heard_about_amsa,
         heardAboutAmsaOther: row.heard_about_amsa_other,
-        agreesToEmails: row.agrees_to_emails,
         reviewStatus: row.review_status,
         reviewedAt: row.reviewed_at,
         reviewedBy: row.reviewed_by,

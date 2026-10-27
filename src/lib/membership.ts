@@ -71,7 +71,6 @@ export type MembershipSubmissionPayload = {
   eventIdeas: string;
   heardAboutAmsa: string;
   heardAboutAmsaOther: string;
-  agreesToEmails: boolean;
 };
 
 const normalizeString = (value: unknown) =>
@@ -131,7 +130,6 @@ export function normalizeMembershipSubmissionPayload(
     eventIdeas: normalizeString(body.eventIdeas),
     heardAboutAmsa: normalizeString(body.heardAboutAmsa),
     heardAboutAmsaOther: normalizeString(body.heardAboutAmsaOther),
-    agreesToEmails: Boolean(body.agreesToEmails),
   };
 }
 
