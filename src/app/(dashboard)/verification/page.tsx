@@ -64,7 +64,6 @@ const emptyForm: MembershipSubmissionPayload = {
   eventIdeas: "",
   heardAboutAmsa: "",
   heardAboutAmsaOther: "",
-  agreesToEmails: false,
 };
 
 export default function VerificationPage() {
@@ -143,7 +142,6 @@ export default function VerificationPage() {
             eventIdeas: membership.eventIdeas ?? "",
             heardAboutAmsa: membership.heardAboutAmsa ?? "",
             heardAboutAmsaOther: membership.heardAboutAmsaOther ?? "",
-            agreesToEmails: membership.agreesToEmails ?? false,
           });
           setReviewStatus(membership.reviewStatus ?? "pending");
         } else {
@@ -437,17 +435,6 @@ export default function VerificationPage() {
           </section>
 
           <div className="border-t-2 border-gray-300" />
-
-          <label className="flex items-start gap-3 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={form.agreesToEmails}
-              onChange={(e) => updateField("agreesToEmails", e.target.checked)}
-              disabled={isLocked}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#001049] focus:ring-[#001049]/30"
-            />
-            <span>I agree to receive AMSA emails and updates.</span>
-          </label>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           {success && <p className="text-sm text-green-700">{success}</p>}

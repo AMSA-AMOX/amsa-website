@@ -29,7 +29,6 @@ type VerificationSubmission = {
   eventIdeas: string | null;
   heardAboutAmsa: string;
   heardAboutAmsaOther: string | null;
-  agreesToEmails: boolean;
   reviewStatus: "pending" | "approved" | "rejected";
   reviewedAt: string | null;
   reviewedBy: number | null;

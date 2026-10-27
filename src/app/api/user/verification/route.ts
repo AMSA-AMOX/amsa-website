@@ -33,7 +33,6 @@ const MEMBERSHIP_COLUMNS = `
   event_ideas,
   heard_about_amsa,
   heard_about_amsa_other,
-  agrees_to_emails,
   review_status,
   reviewed_at,
   reviewed_by,
@@ -64,7 +63,6 @@ type MembershipRow = {
   event_ideas: string | null;
   heard_about_amsa: string;
   heard_about_amsa_other: string | null;
-  agrees_to_emails: boolean;
   review_status: string;
   reviewed_at: string | null;
   reviewed_by: number | null;
@@ -96,7 +94,6 @@ function toClientPayload(row: MembershipRow) {
     eventIdeas: row.event_ideas ?? "",
     heardAboutAmsa: row.heard_about_amsa,
     heardAboutAmsaOther: row.heard_about_amsa_other ?? "",
-    agreesToEmails: row.agrees_to_emails,
     reviewStatus: row.review_status,
     reviewedAt: row.reviewed_at,
     reviewedBy: row.reviewed_by,
@@ -201,7 +198,8 @@ export async function POST(request: Request) {
       event_ideas: normalized.eventIdeas || null,
       heard_about_amsa: normalized.heardAboutAmsa,
       heard_about_amsa_other: normalized.heardAboutAmsaOther || null,
-      agrees_to_emails: normalized.agreesToEmails,
+      // The email opt-in was removed along with the newsletter; existing rows keep the column.
+      agrees_to_emails: false,
       review_status: "pending",
       reviewed_at: null,
       reviewed_by: null,
