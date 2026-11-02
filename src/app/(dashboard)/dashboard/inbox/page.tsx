@@ -253,6 +253,7 @@ export default function InboxPage() {
 
   const isRecipient =
     user?.role === "us_member" ||
+    user?.role === "alum" ||
     user?.role === "board_member" ||
     user?.role === "admin";
 

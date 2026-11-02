@@ -80,7 +80,7 @@ export async function GET(request: Request) {
 
   try {
     if (view === "inbox") {
-      const isRecipient = [ROLES.AMBASSADOR, ROLES.US_MEMBER, ROLES.ADMIN, ROLES.BOARD_MEMBER].includes(
+      const isRecipient = [ROLES.AMBASSADOR, ROLES.US_MEMBER, ROLES.ALUM, ROLES.ADMIN, ROLES.BOARD_MEMBER].includes(
         payload.role as any
       );
 
@@ -198,7 +198,7 @@ export async function POST(request: Request) {
     if (
       recipientError ||
       !recipient ||
-      !["ambassador", "us_member", "board_member", "admin"].includes((recipient as UserRow).role ?? "")
+      !["ambassador", "us_member", "alum", "board_member", "admin"].includes((recipient as UserRow).role ?? "")
     ) {
       return NextResponse.json(
         { message: "Recipient not found or not eligible to receive questions." },
