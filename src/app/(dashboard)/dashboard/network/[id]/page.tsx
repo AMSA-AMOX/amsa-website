@@ -351,7 +351,7 @@ export default function NetworkProfilePage() {
     user?.role === "member" &&
     profile !== null &&
     profile.id !== user?.id &&
-    (profile.roles?.some((r) => ["ambassador", "us_member", "board_member"].includes(r)) ?? false);
+    (profile.roles?.some((r) => ["ambassador", "us_member", "alum", "board_member"].includes(r)) ?? false);
 
   if (!user) return null;
 

@@ -24,7 +24,7 @@ const HOSTS = {
 type Environment = keyof typeof HOSTS;
 
 /** Roles whose profiles are public in the network (and who can answer questions). */
-const PROFILE_ROLES = ["ambassador", "us_member", "board_member", "admin"];
+const PROFILE_ROLES = ["ambassador", "us_member", "alum", "board_member", "admin"];
 
 type Push = { title: string; body: string; href?: string | null };
 type NameRow = { firstName: string | null; lastName: string | null };

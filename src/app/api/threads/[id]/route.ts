@@ -37,11 +37,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (
     payload.role !== ROLES.AMBASSADOR &&
     payload.role !== ROLES.US_MEMBER &&
+    payload.role !== ROLES.ALUM &&
     payload.role !== ROLES.ADMIN &&
     payload.role !== ROLES.BOARD_MEMBER
   ) {
     return NextResponse.json(
-      { message: "Only ambassadors, US members, board members, and admins can answer questions." },
+      { message: "Only ambassadors, US members, alums, board members, and admins can answer questions." },
       { status: 403 }
     );
   }
@@ -167,11 +168,12 @@ export async function DELETE(request: Request, context: RouteContext) {
   if (
     payload.role !== ROLES.AMBASSADOR &&
     payload.role !== ROLES.US_MEMBER &&
+    payload.role !== ROLES.ALUM &&
     payload.role !== ROLES.ADMIN &&
     payload.role !== ROLES.BOARD_MEMBER
   ) {
     return NextResponse.json(
-      { message: "Only ambassadors, US members, board members, and admins can delete threads." },
+      { message: "Only ambassadors, US members, alums, board members, and admins can delete threads." },
       { status: 403 }
     );
   }
