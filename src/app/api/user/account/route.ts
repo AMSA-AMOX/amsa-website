@@ -54,6 +54,13 @@ export async function DELETE(request: Request) {
         { status: 403 },
       );
     }
+    // Board accounts (@amsa.mn) belong to the org, and board members can't delete anything.
+    if (user.role === ROLES.BOARD_MEMBER) {
+      return NextResponse.json(
+        { message: "Board member accounts can't be deleted from settings. Ask an admin." },
+        { status: 403 },
+      );
+    }
 
     const deleted = await rpc<boolean>("delete_user_account", { p_user_id: user.id });
     if (!deleted) {

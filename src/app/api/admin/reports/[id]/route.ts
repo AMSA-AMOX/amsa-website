@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { verifyToken } from "@/lib/auth";
+import { BOARD_CANNOT_DELETE_MESSAGE, ROLES, verifyToken } from "@/lib/auth";
 import { removeTarget, type ReportTargetType } from "@/lib/reports";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -30,6 +30,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     const action = body?.action;
     if (action !== "remove" && action !== "dismiss") {
       return NextResponse.json({ message: "action must be 'remove' or 'dismiss'." }, { status: 400 });
+    }
+    // Board members can dismiss reports, but removing deletes the content — admins only.
+    if (action === "remove" && payload.role !== ROLES.ADMIN) {
+      return NextResponse.json({ message: BOARD_CANNOT_DELETE_MESSAGE }, { status: 403 });
     }
 
     const { data: report } = await supabaseAdmin

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { invalidateShell } from "@/hooks/useShell";
+import { canDelete } from "@/lib/permissions";
 
 type ModerationPost = {
   id: number;
@@ -225,14 +226,16 @@ export default function AdminPostsQueuePage() {
                     </button>
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={() => deletePost(post.id)}
-                  disabled={deletingId === post.id}
-                  className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500 transition disabled:opacity-50"
-                >
-                  {deletingId === post.id ? "Deleting…" : "Delete"}
-                </button>
+                {canDelete(user.role) && (
+                  <button
+                    type="button"
+                    onClick={() => deletePost(post.id)}
+                    disabled={deletingId === post.id}
+                    className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-500 transition disabled:opacity-50"
+                  >
+                    {deletingId === post.id ? "Deleting…" : "Delete"}
+                  </button>
+                )}
               </div>
             </article>
           ))}

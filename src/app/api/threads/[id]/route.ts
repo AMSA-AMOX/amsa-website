@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ROLES, verifyToken } from "@/lib/auth";
+import { assertCanDelete, ROLES, verifyToken } from "@/lib/auth";
 import { pushQuestionAnswered } from "@/lib/push";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -161,6 +161,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   let payload;
   try {
     payload = verifyToken(request);
+    assertCanDelete(payload);
   } catch (res) {
     return res as NextResponse;
   }
@@ -169,11 +170,10 @@ export async function DELETE(request: Request, context: RouteContext) {
     payload.role !== ROLES.AMBASSADOR &&
     payload.role !== ROLES.US_MEMBER &&
     payload.role !== ROLES.ALUM &&
-    payload.role !== ROLES.ADMIN &&
-    payload.role !== ROLES.BOARD_MEMBER
+    payload.role !== ROLES.ADMIN
   ) {
     return NextResponse.json(
-      { message: "Only ambassadors, US members, alums, board members, and admins can delete threads." },
+      { message: "Only ambassadors, US members, alums, and admins can delete threads." },
       { status: 403 }
     );
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { ROLES, verifyToken } from "@/lib/auth";
+import { assertCanDelete, ROLES, verifyToken } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -10,6 +10,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   let payload;
   try {
     payload = verifyToken(request);
+    assertCanDelete(payload);
   } catch (res) {
     return res as NextResponse;
   }
@@ -20,7 +21,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Invalid post ID." }, { status: 400 });
   }
 
-  const isAdmin = payload.role === ROLES.ADMIN || payload.role === ROLES.BOARD_MEMBER;
+  const isAdmin = payload.role === ROLES.ADMIN;
 
   try {
     const { data: post, error: fetchError } = await supabaseAdmin

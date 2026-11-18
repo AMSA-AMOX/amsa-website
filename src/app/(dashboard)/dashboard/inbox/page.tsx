@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { canDelete } from "@/lib/permissions";
 
 type ThreadUser = {
   id: number;
@@ -76,7 +77,8 @@ function ReceivedThreadCard({
   onAnonDraftChange: (val: boolean) => void;
   onSubmit: () => void;
   onToggleAnon: () => void;
-  onDelete: () => void;
+  /** Omitted for board members, who can't delete. */
+  onDelete?: () => void;
   submitting: boolean;
   toggling: boolean;
   deleting: boolean;
@@ -133,7 +135,7 @@ function ReceivedThreadCard({
                   </span>
                 )}
                 <div className="flex-1" />
-                {confirmDelete ? (
+                {onDelete && (confirmDelete ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">Delete this thread?</span>
                     <button
@@ -161,7 +163,7 @@ function ReceivedThreadCard({
                   >
                     Delete
                   </button>
-                )}
+                ))}
               </div>
             </>
           ) : (
@@ -439,7 +441,7 @@ export default function InboxPage() {
                         }
                         onSubmit={() => handleAnswer(t.id)}
                         onToggleAnon={() => handleToggleAnon(t.id)}
-                        onDelete={() => handleDelete(t.id)}
+                        onDelete={canDelete(user?.role) ? () => handleDelete(t.id) : undefined}
                         submitting={submitting.has(t.id)}
                         toggling={toggling.has(t.id)}
                         deleting={deleting.has(t.id)}
@@ -468,7 +470,7 @@ export default function InboxPage() {
                         onAnonDraftChange={() => {}}
                         onSubmit={() => {}}
                         onToggleAnon={() => handleToggleAnon(t.id)}
-                        onDelete={() => handleDelete(t.id)}
+                        onDelete={canDelete(user?.role) ? () => handleDelete(t.id) : undefined}
                         submitting={false}
                         toggling={toggling.has(t.id)}
                         deleting={deleting.has(t.id)}
