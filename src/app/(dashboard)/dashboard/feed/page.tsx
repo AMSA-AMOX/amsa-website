@@ -7,6 +7,7 @@ import PostComposer from "@/components/posts/PostComposer";
 import type { PostItem } from "@/components/posts/types";
 import { POST_TOPICS } from "@/components/posts/types";
 import { useAuth } from "@/context/AuthContext";
+import { canDelete } from "@/lib/permissions";
 
 export default function FeedPage() {
   const router = useRouter();
@@ -316,7 +317,7 @@ export default function FeedPage() {
               isFollowing={post.author ? followingIds.has(post.author.id) : false}
               followingInProgress={post.author ? followingInProgress.has(post.author.id) : false}
               onDelete={
-                post.author?.id === user.id || user.role === "admin" || user.role === "board_member"
+                canDelete(user.role) && (post.author?.id === user.id || user.role === "admin")
                   ? onDelete
                   : undefined
               }

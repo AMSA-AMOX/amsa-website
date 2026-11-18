@@ -484,7 +484,8 @@ function CollegeReviewItem({ review, currentUserId, currentUserRole, onDelete, o
   const author = review.Users;
   const initials = author ? `${author.firstName?.[0] ?? ""}${author.lastName?.[0] ?? ""}`.toUpperCase() : "?";
   const authorName = author ? `${author.firstName} ${author.lastName}`.trim() : "Member";
-  const canDelete = currentUserId === review.user_id || currentUserRole === "admin";
+  // Board members can't delete anything, even their own review (lib/permissions.ts).
+  const canDelete = currentUserRole !== "board_member" && (currentUserId === review.user_id || currentUserRole === "admin");
 
   const deleteReview = async () => {
     if (!confirm("Delete this review?")) return;

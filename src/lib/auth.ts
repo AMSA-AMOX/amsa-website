@@ -26,11 +26,25 @@ export function assertRole(payload: JwtPayload, role: string): void {
 }
 
 /**
- * Allows both "admin" and "board_member" roles to create/edit/delete content.
+ * Allows both "admin" and "board_member" roles to create, edit and review
+ * content. Deleting is separate — see `assertCanDelete`.
  */
 export function assertContentCreator(payload: JwtPayload): void {
   if (payload.role !== "admin" && payload.role !== "board_member") {
     throw NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+}
+
+export const BOARD_CANNOT_DELETE_MESSAGE = "Board member accounts can't delete anything. Ask an admin to do it.";
+
+/**
+ * Board members (every @amsa.mn account is one) can't delete anything — not
+ * their own posts, reviews or questions, not reported content, and not their
+ * account. Only admins delete. Mirrored in the iOS app (`Role.canDelete`).
+ */
+export function assertCanDelete(payload: JwtPayload): void {
+  if (payload.role === "board_member") {
+    throw NextResponse.json({ message: BOARD_CANNOT_DELETE_MESSAGE }, { status: 403 });
   }
 }
 

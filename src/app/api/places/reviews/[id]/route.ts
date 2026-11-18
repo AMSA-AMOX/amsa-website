@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { verifyToken } from "@/lib/auth";
+import { assertCanDelete, verifyToken } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -9,6 +9,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   let payload;
   try {
     payload = verifyToken(request);
+    assertCanDelete(payload);
   } catch (res) {
     return res as NextResponse;
   }

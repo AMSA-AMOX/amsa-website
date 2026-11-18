@@ -67,6 +67,7 @@ export default function SettingsPage() {
   if (!user) return null;
 
   const isAdmin = user.role === "admin";
+  const isBoard = user.role === "board_member";
   const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase();
   const location = [me?.city, me?.state].filter(Boolean).join(", ");
 
@@ -150,13 +151,15 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-500 mt-1">
                   {isAdmin
                     ? "Admin accounts can't be deleted from settings. Ask another admin to change your role first."
+                    : isBoard
+                    ? "Board member accounts can't be deleted from settings. Ask an admin."
                     : "Permanently removes your profile, posts, questions, comments, reviews, and event reservations. This can't be undone."}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setConfirmOpen(true)}
-                disabled={isAdmin}
+                disabled={isAdmin || isBoard}
                 className="shrink-0 px-5 py-2 rounded-lg border-2 border-red-500 text-red-600 text-sm font-semibold hover:bg-red-50 transition disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 Delete account

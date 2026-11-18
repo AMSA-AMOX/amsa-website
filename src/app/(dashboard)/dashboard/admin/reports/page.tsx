@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { invalidateShell } from "@/hooks/useShell";
+import { canDelete } from "@/lib/permissions";
 
 type ReportUser = { id: number; firstName: string | null; lastName: string | null; profilePic: string | null };
 
@@ -36,9 +37,11 @@ function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function ReportCard({ report, busy, onResolve }: {
+function ReportCard({ report, busy, canRemove, onResolve }: {
   report: Report;
   busy: boolean;
+  /** Board members can dismiss reports but not delete the content. */
+  canRemove: boolean;
   onResolve: (report: Report, action: "remove" | "dismiss") => void;
 }) {
   return (
@@ -73,14 +76,16 @@ function ReportCard({ report, busy, onResolve }: {
         >
           Dismiss
         </button>
-        <button
-          type="button"
-          disabled={busy || report.preview === null}
-          onClick={() => onResolve(report, "remove")}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
-        >
-          {report.targetType === "user" ? "Clear profile" : "Remove"}
-        </button>
+        {canRemove && (
+          <button
+            type="button"
+            disabled={busy || report.preview === null}
+            onClick={() => onResolve(report, "remove")}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
+          >
+            {report.targetType === "user" ? "Clear profile" : "Remove"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -161,7 +166,7 @@ export default function ReportsPage() {
           <div className="space-y-3">
             <p className="text-xs text-gray-500 mb-1">{reports.length} open report{reports.length !== 1 ? "s" : ""}</p>
             {reports.map((r) => (
-              <ReportCard key={r.id} report={r} busy={busyId === r.id} onResolve={resolve} />
+              <ReportCard key={r.id} report={r} busy={busyId === r.id} canRemove={canDelete(user.role)} onResolve={resolve} />
             ))}
           </div>
         )}

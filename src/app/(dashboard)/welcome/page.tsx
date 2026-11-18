@@ -10,6 +10,7 @@ import { collegeHref } from "@/lib/college-href";
 import { socialHandle, socialHref } from "@/lib/social";
 import PostCard from "@/components/posts/PostCard";
 import type { PostItem } from "@/components/posts/types";
+import { canDelete } from "@/lib/permissions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -279,7 +280,8 @@ function UnansweredCard({
   answerDraft: string;
   onDraftChange: (val: string) => void;
   onSubmit: () => void;
-  onDelete: () => void;
+  /** Omitted for board members, who can't delete. */
+  onDelete?: () => void;
   submitting: boolean;
   deleting: boolean;
 }) {
@@ -288,7 +290,7 @@ function UnansweredCard({
       <div className="px-5 pt-4 pb-3">
         <div className="flex items-start justify-between gap-3">
           <p className="text-lg font-bold text-gray-900 leading-snug">{thread.question}</p>
-          <ThreadDeleteButton onDelete={onDelete} deleting={deleting} />
+          {onDelete && <ThreadDeleteButton onDelete={onDelete} deleting={deleting} />}
         </div>
         <p className="text-xs text-gray-400 mt-1">{timeText}</p>
       </div>
@@ -321,6 +323,7 @@ function UnansweredCard({
 export default function DashboardPage() {
   const { user, authFetch, updateUser, loading } = useAuth();
   const router = useRouter();
+  const canDeleteContent = canDelete(user?.role);
 
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -1002,7 +1005,7 @@ export default function DashboardPage() {
                       appreciating={appreciating.has(post.id)}
                       showAuthor
                       authorClickable={false}
-                      onDelete={onDeletePost}
+                      onDelete={canDeleteContent ? onDeletePost : undefined}
                       deleting={deletingPost.has(post.id)}
                     />
                   ))}
@@ -1073,10 +1076,12 @@ export default function DashboardPage() {
                             <div className="px-5 pt-4 pb-3">
                               <div className="flex items-start justify-between gap-3">
                                 <p className="text-xl font-bold text-gray-900 leading-snug">{t.question}</p>
-                                <ThreadDeleteButton
-                                  onDelete={() => handleDeleteThread(t.id)}
-                                  deleting={deletingThread.has(t.id)}
-                                />
+                                {canDeleteContent && (
+                                  <ThreadDeleteButton
+                                    onDelete={() => handleDeleteThread(t.id)}
+                                    deleting={deletingThread.has(t.id)}
+                                  />
+                                )}
                               </div>
                             </div>
                             <div className="px-5 pb-4">
@@ -1131,7 +1136,7 @@ export default function DashboardPage() {
                             answerDraft={answerDraft[t.id] ?? ""}
                             onDraftChange={(val: string) => setAnswerDraft((p) => ({ ...p, [t.id]: val }))}
                             onSubmit={() => handleAnswer(t.id)}
-                            onDelete={() => handleDeleteThread(t.id)}
+                            onDelete={canDeleteContent ? () => handleDeleteThread(t.id) : undefined}
                             submitting={submittingAnswer.has(t.id)}
                             deleting={deletingThread.has(t.id)}
                           />

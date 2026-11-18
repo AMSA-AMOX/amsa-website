@@ -71,7 +71,6 @@ export default function AdminVerificationPage() {
 
   const [status, setStatus] = useState<FilterStatus>("pending");
   const [submissions, setSubmissions] = useState<VerificationSubmission[]>([]);
-  const [selectedRoles, setSelectedRoles] = useState<Record<string, "us_member" | "member">>({});
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [loadingSubmissions, setLoadingSubmissions] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -106,17 +105,6 @@ export default function AdminVerificationPage() {
       setExpandedSubmissionId((prev) =>
         prev && rows.some((row) => row.id === prev) ? prev : null,
       );
-      setSelectedRoles((prev) => {
-        const next = { ...prev };
-        for (const row of rows) {
-          if (!next[row.id] && row.assignedRole) {
-            next[row.id] = row.assignedRole;
-          } else if (!next[row.id]) {
-            next[row.id] = "member";
-          }
-        }
-        return next;
-      });
       setAdminNotes((prev) => {
         const next = { ...prev };
         for (const row of rows) {
@@ -145,7 +133,6 @@ export default function AdminVerificationPage() {
         method: "PATCH",
         body: JSON.stringify({
           reviewStatus,
-          assignedRole: reviewStatus === "approved" ? selectedRoles[submission.id] ?? "member" : undefined,
           adminNote: adminNotes[submission.id] ?? "",
         }),
       });
@@ -165,7 +152,7 @@ export default function AdminVerificationPage() {
     <div className="py-8 px-4 md:px-8 max-w-7xl mx-auto">
       <div className="mb-5">
         <p className="text-sm text-gray-500 mt-1">
-          Review verification forms, assign role, and approve or reject users.
+          Review US Member applications. Approving makes the applicant a US Member; rejecting leaves them a Member.
         </p>
       </div>
 
@@ -324,24 +311,7 @@ export default function AdminVerificationPage() {
                     </div>
                   )}
 
-                  <div className="mt-4 grid md:grid-cols-[220px_1fr] gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assign Role</label>
-                      <select
-                        value={selectedRoles[submission.id] ?? "member"}
-                        onChange={(e) =>
-                          setSelectedRoles((prev) => ({
-                            ...prev,
-                            [submission.id]: e.target.value as "us_member" | "member",
-                          }))
-                        }
-                        disabled={submission.reviewStatus !== "pending" || actionId === submission.id}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#001049]/20"
-                      >
-                        <option value="member">Member</option>
-                        <option value="us_member">US Member</option>
-                      </select>
-                    </div>
+                  <div className="mt-4">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Admin Note</label>
                       <textarea

@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { assertRole, ROLES, verifyToken } from "@/lib/auth";
-import { MEMBERSHIP_ASSIGNED_ROLES, isProtectedRole } from "@/lib/membership";
+import { isProtectedRole } from "@/lib/membership";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { findCollegeByEmail } from "@/lib/college-match";
 import { resolveUserDenorm } from "@/lib/user-denorm";
@@ -8,9 +8,15 @@ import { pushMembershipDecision } from "@/lib/push";
 
 type ReviewBody = {
   reviewStatus?: "approved" | "rejected";
-  assignedRole?: "us_member" | "member";
   adminNote?: string;
 };
+
+/**
+ * Approving the US Member Application always makes the applicant a US member;
+ * rejecting leaves them a member. There's no in-between, so any `assignedRole`
+ * an older client still sends is ignored.
+ */
+const APPROVED_ROLE = ROLES.US_MEMBER;
 
 export async function PATCH(
   request: Request,
@@ -28,15 +34,10 @@ export async function PATCH(
     const { id } = await params;
     const body = (await request.json()) as ReviewBody;
     const reviewStatus = body.reviewStatus;
-    const assignedRole = body.assignedRole;
     const adminNote = body.adminNote?.trim() || null;
 
     if (!reviewStatus || !["approved", "rejected"].includes(reviewStatus)) {
       return NextResponse.json({ message: "reviewStatus must be approved or rejected" }, { status: 400 });
-    }
-
-    if (reviewStatus === "approved" && !MEMBERSHIP_ASSIGNED_ROLES.includes((assignedRole ?? "") as "us_member" | "member")) {
-      return NextResponse.json({ message: "assignedRole must be us_member or member when approving" }, { status: 400 });
     }
 
     const { data: existing, error: existingError } = await supabaseAdmin
@@ -62,7 +63,7 @@ export async function PATCH(
       reviewStatus === "approved"
         ? {
             review_status: "approved",
-            assigned_role: assignedRole,
+            assigned_role: APPROVED_ROLE,
             admin_note: adminNote,
             reviewed_at: now,
             reviewed_by: payload.id,
@@ -102,7 +103,7 @@ export async function PATCH(
     const userUpdates =
       reviewStatus === "approved"
         ? {
-            ...(keepRole ? {} : { role: assignedRole }),
+            ...(keepRole ? {} : { role: APPROVED_ROLE }),
             acceptanceStatus: "approved",
             emailVerified: true,
             // Confirm the .edu email (and its college) on the user's profile
