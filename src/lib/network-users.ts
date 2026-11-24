@@ -98,6 +98,26 @@ export async function listNetworkMembersForUser(
   return listNetworkMembersLegacy(userId, q, limit);
 }
 
+/**
+ * Board members are in the network only once their US Member Application is
+ * approved (same rule as get_network_members in
+ * supabase/migrations/20261124_0011_network_board_member_application.sql).
+ */
+async function withoutUnapprovedBoardMembers(users: BaseUserRow[]) {
+  const boardIds = users.filter((u) => u.role === "board_member").map((u) => u.id);
+  if (boardIds.length === 0) return users;
+
+  const { data, error } = await supabaseAdmin
+    .from("amsa_memberships")
+    .select("user_id")
+    .in("user_id", boardIds)
+    .eq("review_status", "approved");
+  if (error) throw error;
+
+  const approved = new Set((data ?? []).map((row) => Number(row.user_id)));
+  return users.filter((u) => u.role !== "board_member" || approved.has(u.id));
+}
+
 async function listNetworkMembersLegacy(
   userId: number,
   q: string,
@@ -119,7 +139,7 @@ async function listNetworkMembersLegacy(
   const { data, error } = await usersQuery;
   if (error) throw error;
 
-  const users = (data ?? []) as BaseUserRow[];
+  const users = await withoutUnapprovedBoardMembers((data ?? []) as BaseUserRow[]);
   const zeroEnriched: SearchableMember[] = users.map((member) => ({
     id: member.id,
     firstName: member.firstName ?? "",
